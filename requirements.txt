@@ -6,3 +6,5 @@ python-dotenv==1.0.1
 streamlit==1.38.0
 rdflib==7.0.0
 pytest==8.3.3
+pypdf==6.16.2
+python-multipart==0.0.12

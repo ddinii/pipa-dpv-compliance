@@ -9,19 +9,21 @@ PIPA-DPV Compliance API
 
 엔드포인트:
     POST /compliance-check/text   - 처리방침 원문 텍스트를 입력받아 점검
+    POST /compliance-check/pdf    - 처리방침 PDF 파일을 업로드받아 텍스트 추출 후 점검
     POST /compliance-check/facts  - 이미 구조화된 Fact를 입력받아 점검 (테스트/디버깅용)
     GET  /rules                   - 현재 적용 중인 규칙 목록 조회
     GET  /health                  - 헬스체크
 """
 
 from __future__ import annotations
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.models import PolicyFacts, ComplianceReport
 from backend.rules.rule_engine import evaluate_policy, RULES
 from backend.extraction.llm_extractor import get_extractor
+from backend.extraction.file_parsers import extract_text_from_pdf
 
 app = FastAPI(
     title="PIPA-DPV Compliance API",
@@ -70,15 +72,33 @@ def list_rules():
     ]
 
 
-@app.post("/compliance-check/text", response_model=ComplianceCheckResponse)
-def check_from_text(req: PolicyTextRequest):
-    if not req.text or len(req.text.strip()) < 20:
+def _run_text_check(text: str) -> ComplianceCheckResponse:
+    if not text or len(text.strip()) < 20:
         raise HTTPException(status_code=400, detail="처리방침 텍스트가 너무 짧습니다.")
 
     extractor = get_extractor()
-    facts = extractor.extract(req.text)
+    facts = extractor.extract(text)
     report = evaluate_policy(facts)
     return ComplianceCheckResponse(facts=facts, report=report)
+
+
+@app.post("/compliance-check/text", response_model=ComplianceCheckResponse)
+def check_from_text(req: PolicyTextRequest):
+    return _run_text_check(req.text)
+
+
+@app.post("/compliance-check/pdf", response_model=ComplianceCheckResponse)
+async def check_from_pdf(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="PDF 파일만 업로드할 수 있습니다.")
+
+    file_bytes = await file.read()
+    try:
+        text = extract_text_from_pdf(file_bytes)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    return _run_text_check(text)
 
 
 @app.post("/compliance-check/facts", response_model=ComplianceCheckResponse)
