@@ -26,10 +26,12 @@ FIELD_NAMES = [
     "third_party_provision", "outsourcing", "destruction_procedure",
     "cross_border_transfer", "consent_withdrawal_method",
     "data_subject_rights_method", "privacy_officer_contact",
+    "auto_collection_device", "sensitive_data_disclosure_method",
+    "pseudonymized_data_processing",
 ]
 
 EXTRACTION_SYSTEM_PROMPT = """당신은 한국 개인정보 처리방침을 분석하는 정보추출 시스템입니다.
-입력된 처리방침 텍스트에서 아래 10개 항목의 존재 여부를 판단하고, 반드시 JSON만 출력하세요.
+입력된 처리방침 텍스트에서 아래 13개 항목의 존재 여부를 판단하고, 반드시 JSON만 출력하세요.
 설명이나 마크다운 코드블록 없이 순수 JSON만 반환합니다.
 
 각 항목은 다음 형식을 가집니다:
@@ -39,17 +41,23 @@ EXTRACTION_SYSTEM_PROMPT = """당신은 한국 개인정보 처리방침을 분�
   "confidence": 0.0~1.0
 }
 
-10개 항목: purpose, collection_items, retention_period, third_party_provision,
+13개 항목: purpose, collection_items, retention_period, third_party_provision,
 outsourcing, destruction_procedure, cross_border_transfer,
-consent_withdrawal_method, data_subject_rights_method, privacy_officer_contact
+consent_withdrawal_method, data_subject_rights_method, privacy_officer_contact,
+auto_collection_device(쿠키 등 자동 수집 장치 설치·운영 및 거부방법),
+sensitive_data_disclosure_method(민감정보 공개 가능성 및 비공개 선택방법),
+pseudonymized_data_processing(가명정보 처리에 관한 사항)
 
 또한 involves_minor(만 14세 미만 아동 관련 언급 여부, true/false/null),
-involves_sensitive_data(민감정보 언급 여부, true/false/null) 도 함께 판단하세요.
+involves_sensitive_data(민감정보 언급 여부, true/false/null),
+involves_pseudonymized_data(가명정보 처리 언급 여부, true/false/null) 도 함께 판단하세요.
 
 최종 출력은 다음 최상위 키를 가진 단일 JSON 객체입니다:
 purpose, collection_items, retention_period, third_party_provision, outsourcing,
 destruction_procedure, cross_border_transfer, consent_withdrawal_method,
-data_subject_rights_method, privacy_officer_contact, involves_minor, involves_sensitive_data
+data_subject_rights_method, privacy_officer_contact, auto_collection_device,
+sensitive_data_disclosure_method, pseudonymized_data_processing,
+involves_minor, involves_sensitive_data, involves_pseudonymized_data
 """
 
 
@@ -79,6 +87,9 @@ class MockExtractor(BaseExtractor):
         "consent_withdrawal_method": ["동의철회", "동의 철회"],
         "data_subject_rights_method": ["열람청구", "정정·삭제", "권리행사"],
         "privacy_officer_contact": ["개인정보보호책임자", "개인정보 보호책임자"],
+        "auto_collection_device": ["쿠키", "자동 수집 장치", "접속정보파일"],
+        "sensitive_data_disclosure_method": ["민감정보의 공개", "민감정보 비공개", "민감정보 공개 여부"],
+        "pseudonymized_data_processing": ["가명정보", "가명처리", "가명 처리"],
     }
 
     def extract(self, policy_text: str) -> PolicyFacts:
@@ -101,11 +112,13 @@ class MockExtractor(BaseExtractor):
 
         involves_minor = bool(re.search(r"(14세|만 14|아동)", policy_text))
         involves_sensitive = bool(re.search(r"(민감정보|건강정보|생체정보)", policy_text))
+        involves_pseudonymized = bool(re.search(r"가명(정보|처리)", policy_text))
 
         return PolicyFacts(
             **fields,
             involves_minor=involves_minor,
             involves_sensitive_data=involves_sensitive,
+            involves_pseudonymized_data=involves_pseudonymized,
         )
 
 
@@ -158,6 +171,7 @@ class ClaudeExtractor(BaseExtractor):
             **fields,
             involves_minor=parsed.get("involves_minor"),
             involves_sensitive_data=parsed.get("involves_sensitive_data"),
+            involves_pseudonymized_data=parsed.get("involves_pseudonymized_data"),
         )
 
 

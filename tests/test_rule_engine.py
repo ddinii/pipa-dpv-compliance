@@ -9,7 +9,10 @@ def _all_present_facts() -> PolicyFacts:
         third_party_provision=field, outsourcing=field, destruction_procedure=field,
         cross_border_transfer=field, consent_withdrawal_method=field,
         data_subject_rights_method=field, privacy_officer_contact=field,
+        auto_collection_device=field, sensitive_data_disclosure_method=field,
+        pseudonymized_data_processing=field,
         involves_minor=False, involves_sensitive_data=False,
+        involves_pseudonymized_data=False,
     )
 
 
@@ -46,3 +49,25 @@ def test_minor_context_adds_r11_amber():
     r11 = next((r for r in report.results if r.rule_id == "R11"), None)
     assert r11 is not None
     assert r11.verdict == Verdict.AMBER
+
+
+def test_r12_is_always_evaluated():
+    facts = _all_present_facts()
+    report = evaluate_policy(facts)
+    r12 = next((r for r in report.results if r.rule_id == "R12"), None)
+    assert r12 is not None
+    assert r12.verdict == Verdict.GREEN
+
+
+def test_r13_r14_only_appear_when_applicable():
+    facts = _all_present_facts()
+    report = evaluate_policy(facts)
+    assert not any(r.rule_id in ("R13", "R14") for r in report.results)
+
+    facts.involves_sensitive_data = True
+    facts.involves_pseudonymized_data = True
+    report = evaluate_policy(facts)
+    r13 = next((r for r in report.results if r.rule_id == "R13"), None)
+    r14 = next((r for r in report.results if r.rule_id == "R14"), None)
+    assert r13 is not None and r13.verdict == Verdict.GREEN
+    assert r14 is not None and r14.verdict == Verdict.GREEN

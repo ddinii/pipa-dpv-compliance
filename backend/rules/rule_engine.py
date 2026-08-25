@@ -1,15 +1,21 @@
 """
 PIPA Machine-Readable Rules Profile (2계층)
 
-주제 제안 문서의 PoC 범위: "개인정보 처리방침 필수 기재사항" 관련 10개 규칙.
+주제 제안 문서의 PoC 범위: "개인정보 처리방침 필수 기재사항" 관련 규칙.
 전체 개인정보 보호법을 구현하지 않고, 처리방침 자동점검(Killer Application #1)에
-필요한 최소 규칙 집합만 구현합니다.
+필요한 최소 규칙 집합만 구현합니다. 상시 평가되는 핵심 규칙 11개(R01~R10, R12)와
+"해당되는 경우에만" 평가되는 조건부 규칙 3개(R11 미성년자, R13 민감정보, R14 가명정보)로
+구성됩니다.
 
 각 Rule은:
   1. 어떤 Fact 필드를 검사하는지 (field_name)
-  2. 그 근거가 되는 법 조문 (legal_basis) — ⚠️ 팀원 검증 필요, placeholder
+  2. 그 근거가 되는 법 조문 (legal_basis)
   3. 판정 로직 (evaluate)
 로 구성됩니다.
+
+법령 조문 검증: 2026-08-26, 국가법령정보센터(law.go.kr)·casenote.kr 대조,
+개인정보 보호법(법률 제20897호, 2025.4.1. 일부개정) 및 시행령 제31조 기준.
+이후 법이 개정되면 이 날짜를 기준으로 재검증하세요.
 
 판정은 GREEN / RED / AMBER 세 가지로만 나뉩니다 (Yes/No 이분법 지양).
   - GREEN: 필수 항목이 명시적으로 존재
@@ -32,7 +38,7 @@ CONFIDENCE_THRESHOLD = 0.6
 class Rule:
     rule_id: str
     rule_name: str
-    legal_basis: str  # TODO(팀원): 실제 최신 조문 번호로 검증/치환
+    legal_basis: str
     field_name: str
     extra_check: Callable[[PolicyFacts], Verdict | None] | None = None
     """extra_check: 단순 존재유무를 넘어선 추가 판정 로직이 필요한 경우 사용.
@@ -70,17 +76,19 @@ def _rule_minor_context(facts: PolicyFacts) -> Verdict | None:
 
 
 RULES: List[Rule] = [
-    Rule("R01", "처리목적 명시", "개인정보 보호법 제30조제1항제1호(placeholder)", "purpose"),
-    Rule("R02", "수집항목 명시", "개인정보 보호법 제30조제1항제1호(placeholder)", "collection_items"),
-    Rule("R03", "보유기간 명시", "개인정보 보호법 제30조제1항제2호(placeholder)", "retention_period"),
-    Rule("R04", "제3자 제공 관련 사항", "개인정보 보호법 제30조제1항제3호(placeholder)", "third_party_provision"),
-    Rule("R05", "처리위탁 관련 사항", "개인정보 보호법 제30조제1항제4호(placeholder)", "outsourcing"),
-    Rule("R06", "파기절차 및 방법 명시", "개인정보 보호법 제30조제1항제5호(placeholder)", "destruction_procedure"),
-    Rule("R07", "국외이전 관련 사항", "개인정보 보호법 제28조의8(placeholder)", "cross_border_transfer",
-         extra_check=_rule_cross_border),
-    Rule("R08", "동의 철회 방법 명시", "개인정보 보호법 제30조제1항제6호(placeholder)", "consent_withdrawal_method"),
-    Rule("R09", "정보주체 권리행사 방법 명시", "개인정보 보호법 제30조제1항제6호(placeholder)", "data_subject_rights_method"),
-    Rule("R10", "개인정보보호책임자 연락처 명시", "개인정보 보호법 제30조제1항제7호(placeholder)", "privacy_officer_contact"),
+    Rule("R01", "처리목적 명시", "개인정보 보호법 제30조제1항제1호", "purpose"),
+    Rule("R02", "수집항목 명시", "개인정보 보호법 제30조제1항제8호, 같은 법 시행령 제31조제1항제1호", "collection_items"),
+    Rule("R03", "보유기간 명시", "개인정보 보호법 제30조제1항제2호", "retention_period"),
+    Rule("R04", "제3자 제공 관련 사항", "개인정보 보호법 제30조제1항제3호", "third_party_provision"),
+    Rule("R05", "처리위탁 관련 사항", "개인정보 보호법 제30조제1항제4호", "outsourcing"),
+    Rule("R06", "파기절차 및 방법 명시", "개인정보 보호법 제30조제1항제3호의2", "destruction_procedure"),
+    Rule("R07", "국외이전 관련 사항",
+         "개인정보 보호법 제28조의8(국외이전 요건), 같은 법 제30조제1항제8호·시행령 제31조제1항제2호(처리방침 기재의무)",
+         "cross_border_transfer", extra_check=_rule_cross_border),
+    Rule("R08", "동의 철회 방법 명시", "개인정보 보호법 제30조제1항제5호", "consent_withdrawal_method"),
+    Rule("R09", "정보주체 권리행사 방법 명시", "개인정보 보호법 제30조제1항제5호", "data_subject_rights_method"),
+    Rule("R10", "개인정보보호책임자 연락처 명시", "개인정보 보호법 제30조제1항제6호", "privacy_officer_contact"),
+    Rule("R12", "자동 수집 장치(쿠키 등) 설치·운영 및 거부방법 명시", "개인정보 보호법 제30조제1항제7호", "auto_collection_device"),
 ]
 
 
@@ -113,7 +121,7 @@ def evaluate_rule(rule: Rule, facts: PolicyFacts) -> RuleResult:
 
 
 def evaluate_policy(facts: PolicyFacts) -> ComplianceReport:
-    """전체 10개 규칙을 순회하며 판정 후 종합 리포트 생성"""
+    """핵심 규칙(RULES)을 순회하고, 해당되는 조건부 규칙(R11/R13/R14)을 덧붙여 종합 리포트 생성"""
     results = [evaluate_rule(rule, facts) for rule in RULES]
 
     # 미성년자 컨텍스트에 대한 별도 안내 규칙 (선택적 부가 규칙)
@@ -122,10 +130,24 @@ def evaluate_policy(facts: PolicyFacts) -> ComplianceReport:
         results.append(RuleResult(
             rule_id="R11",
             rule_name="미성년자 정보주체 처리 관련 추가요건",
-            legal_basis="개인정보 보호법 제22조의2(placeholder)",
+            legal_basis="개인정보 보호법 제22조의2제1항",
             verdict=minor_verdict,
             rationale="만 14세 미만 아동 대상 처리가 포함되어 법정대리인 동의 등 "
                       "추가 요건 충족 여부에 대한 사람의 검토가 필요함.",
+        ))
+
+    # R13/R14는 "해당되는 경우에만 정한다" 류 항목이라, 컨텍스트 플래그가 True일 때만 평가한다.
+    if facts.involves_sensitive_data:
+        results.append(evaluate_rule(
+            Rule("R13", "민감정보 공개가능성 및 비공개 선택방법 명시",
+                 "개인정보 보호법 제30조제1항제3호의3", "sensitive_data_disclosure_method"),
+            facts,
+        ))
+    if facts.involves_pseudonymized_data:
+        results.append(evaluate_rule(
+            Rule("R14", "가명정보 처리에 관한 사항 명시",
+                 "개인정보 보호법 제30조제1항제4호의2", "pseudonymized_data_processing"),
+            facts,
         ))
 
     green = sum(1 for r in results if r.verdict == Verdict.GREEN)
