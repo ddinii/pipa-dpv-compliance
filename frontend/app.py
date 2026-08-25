@@ -30,6 +30,7 @@ col_input, col_result = st.columns([1, 1.3])
 
 with col_input:
     st.subheader("1. 처리방침 입력")
+    uploaded_pdf = st.file_uploader("PDF 업로드 (선택)", type=["pdf"])
     selected_sample = st.selectbox("샘플 불러오기 (선택)", ["직접 입력"] + sample_files)
 
     default_text = ""
@@ -37,26 +38,43 @@ with col_input:
         with open(os.path.join(sample_dir, selected_sample), encoding="utf-8") as f:
             default_text = f.read()
 
-    policy_text = st.text_area("처리방침 원문", value=default_text, height=420)
+    policy_text = st.text_area(
+        "처리방침 원문", value=default_text, height=420,
+        disabled=uploaded_pdf is not None,
+        help="PDF를 업로드하면 이 입력란은 비활성화되고 PDF 내용으로 점검합니다." if uploaded_pdf else None,
+    )
     run_button = st.button("점검 실행", type="primary")
 
 with col_result:
     st.subheader("2. 판정 결과")
     if run_button:
-        if not policy_text.strip():
-            st.warning("처리방침 텍스트를 입력해주세요.")
+        if uploaded_pdf is None and not policy_text.strip():
+            st.warning("처리방침 텍스트를 입력하거나 PDF를 업로드해주세요.")
         else:
             with st.spinner("추출 및 판정 중..."):
                 try:
-                    resp = httpx.post(
-                        f"{API_BASE}/compliance-check/text",
-                        json={"text": policy_text},
-                        timeout=60,
-                    )
+                    if uploaded_pdf is not None:
+                        resp = httpx.post(
+                            f"{API_BASE}/compliance-check/pdf",
+                            files={"file": (uploaded_pdf.name, uploaded_pdf.getvalue(), "application/pdf")},
+                            timeout=60,
+                        )
+                    else:
+                        resp = httpx.post(
+                            f"{API_BASE}/compliance-check/text",
+                            json={"text": policy_text},
+                            timeout=60,
+                        )
                     resp.raise_for_status()
                     data = resp.json()
                 except httpx.HTTPError as e:
-                    st.error(f"API 호출 실패: {e}")
+                    detail = ""
+                    if isinstance(e, httpx.HTTPStatusError):
+                        try:
+                            detail = f" ({e.response.json().get('detail', '')})"
+                        except Exception:
+                            pass
+                    st.error(f"API 호출 실패: {e}{detail}")
                     data = None
 
             if data:
