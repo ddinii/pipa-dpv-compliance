@@ -19,6 +19,9 @@ from __future__ import annotations
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from backend.models import PolicyFacts, ComplianceReport
 from backend.rules.rule_engine import evaluate_policy, RULES

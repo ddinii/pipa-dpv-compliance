@@ -10,6 +10,9 @@ PIPA-DPV Compliance Checker — Streamlit 데모 UI
 import os
 import httpx
 import streamlit as st
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_BASE = os.environ.get("PIPA_DPV_API_BASE", "http://localhost:8000")
 
@@ -25,6 +28,19 @@ st.caption(
 
 sample_dir = os.path.join(os.path.dirname(__file__), "..", "data", "sample_policies")
 sample_files = sorted(os.listdir(sample_dir)) if os.path.isdir(sample_dir) else []
+
+with st.sidebar:
+    st.subheader("적용 중인 규칙")
+    st.caption("항상 평가되는 핵심 규칙입니다. 미성년자/민감정보/가명정보 관련 조건부 "
+               "규칙(R11/R13/R14)은 처리방침 내용에 따라 점검 결과에서 추가로 나타납니다.")
+    try:
+        rules_resp = httpx.get(f"{API_BASE}/rules", timeout=10)
+        rules_resp.raise_for_status()
+        for rule in rules_resp.json():
+            with st.expander(f"[{rule['rule_id']}] {rule['rule_name']}"):
+                st.write(f"**근거 조문**: {rule['legal_basis']}")
+    except httpx.HTTPError as e:
+        st.caption(f"규칙 목록을 불러오지 못했습니다: {e}")
 
 col_input, col_result = st.columns([1, 1.3])
 
