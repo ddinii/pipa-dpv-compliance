@@ -46,10 +46,17 @@ tests/                     pytest 단위 테스트
 
 ### 1. 환경 설정
 
+> **Python 버전 주의**: `requirements.txt`의 고정 버전들(pydantic 2.9.2 등)은
+> **Python 3.10~3.12** 기준입니다. Python 3.13/3.14에서는 `pydantic-core`,
+> `pillow`(streamlit 의존성)의 사전빌드 wheel이 없어 `pip install`이
+> 소스 빌드를 시도하다 실패할 수 있습니다. PC에 여러 버전이 있다면
+> `python --version`으로 먼저 확인하고, Windows에서는 `py -3.10 -m venv .venv`
+> 처럼 버전을 지정해서 가상환경을 만드세요 (`py -0`으로 설치된 버전 목록 확인 가능).
+
 ```bash
 git clone <repo-url>
 cd pipa-dpv-compliance
-python -m venv .venv
+python -m venv .venv        # 여러 버전 설치 시: py -3.10 -m venv .venv
 source .venv/bin/activate   # Windows는 .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
@@ -59,30 +66,50 @@ cp .env.example .env
 비워두면 자동으로 `MockExtractor`(키워드 기반, API 키 불필요)가 동작합니다.
 **팀원들은 API 키 없이도 바로 개발/테스트를 시작할 수 있습니다.**
 
-### 2. 백엔드 실행
+> **Streamlit 최초 실행 시**: "onboarding 이메일을 받으시겠습니까?" 프롬프트가
+> 뜨면서 입력을 기다릴 수 있습니다. 그냥 Enter(빈 값)를 치면 되고, 아예 안 뜨게
+> 하려면 아래 파일을 미리 만들어두세요.
+> ```bash
+> mkdir -p ~/.streamlit
+> printf '[general]\nemail = ""\n' > ~/.streamlit/credentials.toml
+> ```
+
+### 2. 한 번에 실행 (개발 중 빠른 확인용)
 
 ```bash
+python app.py
+```
+
+백엔드(FastAPI)와 프론트엔드(Streamlit)를 함께 띄웁니다. Ctrl+C 한 번으로 둘 다 종료됩니다.
+
+- 백엔드: http://localhost:8000/docs (Swagger UI)
+- 프론트엔드: http://localhost:8501
+
+기능을 수정하고 바로바로 확인하고 싶을 때는 이 스크립트를 그대로 다시 실행하면 됩니다.
+
+### 2-1. 백엔드/프론트엔드 개별 실행
+
+터미널을 나눠서 로그를 따로 보고 싶거나, 한쪽만 필요할 때는 아래처럼 각각 실행할 수 있습니다.
+
+```bash
+# 백엔드 (터미널 1)
 uvicorn backend.main:app --reload --port 8000
+
+# 프론트엔드 (터미널 2, 백엔드가 먼저 떠 있어야 함)
+streamlit run frontend/app.py
 ```
 
 - API 문서: http://localhost:8000/docs (Swagger UI 자동 생성)
 - 헬스체크: http://localhost:8000/health
+- 프론트엔드: http://localhost:8501 에서 샘플 처리방침을 불러오거나 직접 붙여넣고 점검할 수 있습니다.
 
-### 3. 프론트엔드 실행 (별도 터미널)
-
-```bash
-streamlit run frontend/app.py
-```
-
-http://localhost:8501 에서 샘플 처리방침을 불러오거나 직접 붙여넣고 점검할 수 있습니다.
-
-### 4. 테스트 실행
+### 3. 테스트 실행
 
 ```bash
 pytest
 ```
 
-### 5. 평가(Model A vs Model B) 실행
+### 4. 평가(Model A vs Model B) 실행
 
 ```bash
 python -m evaluation.evaluate
