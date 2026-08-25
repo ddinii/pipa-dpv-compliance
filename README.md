@@ -27,8 +27,8 @@ GREEN / RED / AMBER + 근거조문
 ```
 backend/
   models.py            데이터 모델 (Fact 구조)
-  extraction/           LLM 정보추출 (Mock / Claude)
-  rules/rule_engine.py   10개 규칙 + 판정 로직
+  extraction/           LLM 정보추출 (Mock / Claude) + 파일 파싱(PDF)
+  rules/rule_engine.py   규칙(핵심 11개 + 조건부 3개) + 판정 로직
   main.py                FastAPI 서버
 ontology/
   pipa_dpv_classes.ttl   Protégé 호환 온톨로지 (1계층)
@@ -37,6 +37,9 @@ frontend/
 data/
   sample_policies/        테스트용 샘플 처리방침
   gold_standard/           평가용 정답 라벨(전문가 작성 필요)
+  law_snapshots/           lawmonitor가 저장하는 법령 조문 스냅샷
+lawmonitor/
+  check_amendments.py     국내 개인정보보호법 개정 추적 스크립트 (PoC)
 evaluation/
   evaluate.py              Model A vs Model B 비교 스크립트
 tests/                     pytest 단위 테스트
@@ -101,7 +104,9 @@ streamlit run frontend/app.py
 
 - API 문서: http://localhost:8000/docs (Swagger UI 자동 생성)
 - 헬스체크: http://localhost:8000/health
-- 프론트엔드: http://localhost:8501 에서 샘플 처리방침을 불러오거나 직접 붙여넣고 점검할 수 있습니다.
+- 프론트엔드: http://localhost:8501 에서 샘플 처리방침을 불러오거나 직접 붙여넣고 점검할 수
+  있습니다. **PDF 파일 업로드**도 지원합니다 (`POST /compliance-check/pdf`) — 텍스트 레이어가
+  있는 PDF만 지원하며, 스캔 이미지로만 된 PDF는 아직 지원하지 않습니다(OCR 미지원).
 
 ### 3. 테스트 실행
 
@@ -118,6 +123,31 @@ python -m evaluation.evaluate
 `data/gold_standard/gold_labels_template.csv` 에 전문가 라벨을 채운 뒤 실행하면,
 Rule Engine 판정이 사람 판단과 얼마나 일치하는지 확인할 수 있습니다.
 
+### 5. 법령 개정 추적 (`lawmonitor`)
+
+`rule_engine.py`가 인용하는 조문(개인정보 보호법 제30조·제28조의8·제22조의2, 시행령
+제31조)이 국가법령정보센터 기준으로 바뀌었는지 확인하는 PoC 스크립트입니다.
+
+1. [국가법령정보센터 Open API](https://open.law.go.kr/LSO/openApi/cuAskList.do) 신청
+   (승인까지 1~2일 소요, OC는 등록 이메일의 아이디 부분)
+2. `.env`에 `LAW_GO_KR_OC=<발급받은 아이디>` 추가
+3. 실행:
+   ```bash
+   python -m lawmonitor.check_amendments
+   ```
+   `LAW_GO_KR_OC`가 없으면 안내만 하고 정상 종료합니다. 조문이 바뀐 게 감지되면
+   어떤 조문인지 알려주고, `rule_engine.py`의 `legal_basis`/판정 로직을 재검토하라고
+   경고합니다. 스냅샷은 `data/law_snapshots/`에 타임스탬프별로 쌓입니다.
+
+⚠️ **이 스크립트는 실제 국가법령정보센터 API 응답으로 검증되지 않았습니다.** XML
+파싱 로직(조문번호/조문내용 등 태그명)은 공식 문서의 요청 URL 패턴과 일반적인 관례를
+기반으로 작성했습니다. OC를 발급받아 처음 실행했을 때 "조문을 찾지 못했습니다" 오류가
+나면, `lawmonitor/check_amendments.py`의 `fetch_law_articles()`를 실제 응답 구조에
+맞게 조정해야 합니다.
+
+⚠️ 수동 실행 PoC입니다. 실제 운영 시에는 GitHub Actions 스케줄 워크플로우나 Windows
+작업 스케줄러로 주기 실행하는 것을 권장합니다.
+
 ## 온톨로지 편집 (Protégé)
 
 1. [Protégé](https://protege.stanford.edu/) 설치
@@ -126,16 +156,25 @@ Rule Engine 판정이 사람 판단과 얼마나 일치하는지 확인할 수 �
 
 ## 현재 PoC 범위
 
-- ✅ 개인정보 처리방침 필수 기재사항 10개 규칙
+- ✅ 개인정보 처리방침 필수 기재사항 핵심 규칙 11개(R01~R10, R12) + 조건부 규칙 3개
+  (R11 미성년자, R13 민감정보, R14 가명정보 — 해당하는 경우에만 평가)
 - ✅ GREEN/RED/AMBER 3단계 판정 + 근거조문 추적
 - ✅ LLM + 온톨로지 + Rule Engine 아키텍처 검증용 최소 구현
+- ✅ 텍스트 직접 입력 + PDF 업로드 (텍스트 레이어가 있는 PDF만, OCR 미지원)
+- ✅ 국내 법령 개정 추적 스크립트 (`lawmonitor`, 실 API 응답 검증은 OC 발급 후 필요)
 - ❌ 전체 개인정보 보호법 커버리지 (범위 밖)
 - ❌ 유출신고 판단, PIA 사전점검 등 확장 유즈케이스 (구조는 동일, 로드맵으로만 제시)
+- ❌ 챗봇(점검 결과 설명형) — 다음 우선순위, 아직 미구현
+- ❌ DOCX/URL 업로드 — PDF 다음 우선순위, 아직 미구현
+- ⚠️ R14(가명정보 처리)는 아직 이를 언급하는 샘플 처리방침이 없어 gold standard
+  테스트 커버리지가 없습니다. 4번째 샘플 추가를 권장합니다.
 
 ## ⚠️ 중요 — 팀원 필수 확인 사항
 
 - `rule_engine.py`, `pipa_dpv_classes.ttl` 안의 `legal_basis`(조문 번호)는
-  **placeholder**입니다. 반드시 최신 개인정보 보호법 조문과 대조 후 수정하세요.
+  2026-08-26 국가법령정보센터(law.go.kr)·casenote.kr 대조로 **검증 완료**되었습니다
+  (개인정보 보호법 법률 제20897호, 2025.4.1. 개정 기준). 법이 개정되면 `rule_engine.py`
+  상단의 검증일을 기준으로 재확인하세요.
 - 본 도구의 GREEN 판정은 "법적 적법성 확정"이 아닙니다. 모든 응답에
   disclaimer가 포함되도록 설계되어 있습니다 — 임의로 제거하지 마세요.
 - 실제 기업 처리방침 원본은 저작권/개인정보 이슈가 있을 수 있으니
