@@ -1,0 +1,87 @@
+"""
+PIPA-DPV Compliance API
+
+3계층 아키텍처의 3층(National Privacy Compliance API)에 해당하는
+데모용 FastAPI 서버입니다.
+
+실행:
+    uvicorn backend.main:app --reload --port 8000
+
+엔드포인트:
+    POST /compliance-check/text   - 처리방침 원문 텍스트를 입력받아 점검
+    POST /compliance-check/facts  - 이미 구조화된 Fact를 입력받아 점검 (테스트/디버깅용)
+    GET  /rules                   - 현재 적용 중인 규칙 목록 조회
+    GET  /health                  - 헬스체크
+"""
+
+from __future__ import annotations
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from backend.models import PolicyFacts, ComplianceReport
+from backend.rules.rule_engine import evaluate_policy, RULES
+from backend.extraction.llm_extractor import get_extractor
+
+app = FastAPI(
+    title="PIPA-DPV Compliance API",
+    description="W3C DPV 기반 한국 개인정보보호법 기계판독 규칙체계 PoC",
+    version="0.1.0",
+)
+
+# 팀원들이 로컬 프론트엔드(Streamlit/React 등)에서 바로 붙여볼 수 있도록 개방
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class PolicyTextRequest(BaseModel):
+    text: str
+
+
+class ComplianceCheckResponse(BaseModel):
+    facts: PolicyFacts
+    report: ComplianceReport
+    disclaimer: str = (
+        "본 판정 결과는 참고용 자동 점검 결과이며, 법적 적법성을 확정하지 않습니다. "
+        "GREEN 판정도 최종 적법성을 보장하지 않으며, RED/AMBER 항목은 반드시 "
+        "전문가 검토를 거쳐야 합니다."
+    )
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/rules")
+def list_rules():
+    return [
+        {
+            "rule_id": r.rule_id,
+            "rule_name": r.rule_name,
+            "legal_basis": r.legal_basis,
+            "field": r.field_name,
+        }
+        for r in RULES
+    ]
+
+
+@app.post("/compliance-check/text", response_model=ComplianceCheckResponse)
+def check_from_text(req: PolicyTextRequest):
+    if not req.text or len(req.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="처리방침 텍스트가 너무 짧습니다.")
+
+    extractor = get_extractor()
+    facts = extractor.extract(req.text)
+    report = evaluate_policy(facts)
+    return ComplianceCheckResponse(facts=facts, report=report)
+
+
+@app.post("/compliance-check/facts", response_model=ComplianceCheckResponse)
+def check_from_facts(facts: PolicyFacts):
+    report = evaluate_policy(facts)
+    return ComplianceCheckResponse(facts=facts, report=report)

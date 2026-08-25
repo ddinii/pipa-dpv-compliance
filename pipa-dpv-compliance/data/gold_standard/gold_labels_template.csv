@@ -1,0 +1,31 @@
+policy_file,rule_id,gold_verdict,notes
+sample_01_complete.txt,R01,GREEN,
+sample_01_complete.txt,R02,GREEN,
+sample_01_complete.txt,R03,GREEN,
+sample_01_complete.txt,R04,GREEN,
+sample_01_complete.txt,R05,GREEN,
+sample_01_complete.txt,R06,GREEN,
+sample_01_complete.txt,R07,AMBER,국외이전 언급 자체가 없어 검토 필요
+sample_01_complete.txt,R08,GREEN,
+sample_01_complete.txt,R09,GREEN,
+sample_01_complete.txt,R10,GREEN,
+sample_02_incomplete.txt,R01,GREEN,
+sample_02_incomplete.txt,R02,GREEN,
+sample_02_incomplete.txt,R03,RED,
+sample_02_incomplete.txt,R04,RED,
+sample_02_incomplete.txt,R05,RED,
+sample_02_incomplete.txt,R06,RED,
+sample_02_incomplete.txt,R07,RED,
+sample_02_incomplete.txt,R08,RED,
+sample_02_incomplete.txt,R09,RED,
+sample_02_incomplete.txt,R10,RED,
+sample_03_minor_sensitive.txt,R01,GREEN,
+sample_03_minor_sensitive.txt,R02,GREEN,
+sample_03_minor_sensitive.txt,R03,AMBER,보유기간은 있으나 파기절차 미기재로 해석 여지
+sample_03_minor_sensitive.txt,R04,GREEN,명시적으로 해당없음 기재
+sample_03_minor_sensitive.txt,R05,RED,
+sample_03_minor_sensitive.txt,R06,RED,
+sample_03_minor_sensitive.txt,R07,GREEN,명시적으로 해당없음 기재
+sample_03_minor_sensitive.txt,R08,RED,
+sample_03_minor_sensitive.txt,R09,AMBER,고객센터 문의만 있고 구체적 방법 불명확
+sample_03_minor_sensitive.txt,R10,RED,

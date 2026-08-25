@@ -1,0 +1,106 @@
+@prefix : <https://example.org/pipa-dpv#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dpv: <https://w3id.org/dpv#> .
+@prefix legal-kr: <https://w3c-cg.github.io/dpv/2.3/legal/kr#> .
+
+#################################################################
+# PIPA-DPV Semantic Profile (1계층)
+#
+# W3C DPV(Data Privacy Vocabulary)의 legal-kr 확장을 기반으로,
+# 한국 개인정보 보호법의 핵심 개념을 표준화한 온톨로지 스켈레톤입니다.
+#
+# ⚠️ 이 파일은 PoC 범위(처리방침 필수 기재사항 10개 규칙)에 필요한
+#    최소 클래스만 정의합니다. 전체 법 조문을 온톨로지화하지 않습니다.
+#
+# Protégé에서 열어서 팀원들이 Class/Property/Individual을 추가・수정할 수
+# 있습니다. File > Open > 이 .ttl 파일을 선택하세요.
+#################################################################
+
+<https://example.org/pipa-dpv> rdf:type owl:Ontology ;
+    rdfs:label "PIPA-DPV: Korean PIPA Machine-Readable Rules Profile"@ko ;
+    rdfs:comment "W3C DPV legal-kr 확장을 고도화한 한국 개인정보 보호법 온톨로지 (PoC)"@ko ;
+    owl:imports dpv: .
+
+#################################################################
+# 핵심 클래스 (dpv: 네임스페이스와 정합성을 갖도록 subClassOf 연결)
+#################################################################
+
+:PersonalData rdf:type owl:Class ;
+    rdfs:subClassOf dpv:PersonalData ;
+    rdfs:label "개인정보"@ko ;
+    rdfs:comment "개인정보 보호법상 개인정보에 해당하는 데이터 클래스"@ko .
+
+:SensitiveData rdf:type owl:Class ;
+    rdfs:subClassOf :PersonalData, dpv:SpecialCategoryPersonalData ;
+    rdfs:label "민감정보"@ko .
+
+:Purpose rdf:type owl:Class ;
+    rdfs:subClassOf dpv:Purpose ;
+    rdfs:label "처리목적"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제1호 (placeholder, 검증 필요)" .
+
+:Retention rdf:type owl:Class ;
+    rdfs:subClassOf dpv:hasRetentionPeriod ;
+    rdfs:label "보유기간"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제2호 (placeholder, 검증 필요)" .
+
+:ThirdPartyProvision rdf:type owl:Class ;
+    rdfs:subClassOf dpv:ThirdPartyDisclosure ;
+    rdfs:label "제3자 제공"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제3호 (placeholder, 검증 필요)" .
+
+:Outsourcing rdf:type owl:Class ;
+    rdfs:label "처리위탁"@ko ;
+    rdfs:comment "legal-kr 확장에 아직 존재하지 않아 신규 정의가 필요한 개념 (본 정책의 고도화 대상)"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제4호 (placeholder, 검증 필요)" .
+
+:Destruction rdf:type owl:Class ;
+    rdfs:subClassOf dpv:TechnicalOrganisationalMeasure ;
+    rdfs:label "파기절차"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제5호 (placeholder, 검증 필요)" .
+
+:CrossBorderTransfer rdf:type owl:Class ;
+    rdfs:subClassOf dpv:ThirdCountryTransfer ;
+    rdfs:label "국외이전"@ko ;
+    :legalBasis "개인정보 보호법 제28조의8 (placeholder, 검증 필요)" .
+
+:ConsentWithdrawal rdf:type owl:Class ;
+    rdfs:subClassOf dpv:Consent ;
+    rdfs:label "동의철회"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제6호 (placeholder, 검증 필요)" .
+
+:DataSubjectRight rdf:type owl:Class ;
+    rdfs:subClassOf dpv:DataSubjectRight ;
+    rdfs:label "정보주체 권리"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제6호 (placeholder, 검증 필요)" .
+
+:PrivacyOfficer rdf:type owl:Class ;
+    rdfs:label "개인정보보호책임자"@ko ;
+    rdfs:comment "legal-kr 확장 고도화 대상 — 국내 특유 제도 (EU GDPR의 DPO와 유사하나 별도 개념)"@ko ;
+    :legalBasis "개인정보 보호법 제30조제1항제7호 (placeholder, 검증 필요)" .
+
+#################################################################
+# Provenance(출처 추적) 프로퍼티
+# — "AI가 왜 이렇게 판단했는가"를 역추적하기 위한 핵심 장치
+#################################################################
+
+:legalBasis rdf:type owl:DatatypeProperty ;
+    rdfs:label "관련 법조문"@ko ;
+    rdfs:comment "법률 -> 조 -> 시행령 -> 고시 -> PIPA-DPV Rule ID 순으로 추적 가능하도록 기록"@ko ;
+    rdfs:range xsd:string .
+
+:ruleId rdf:type owl:DatatypeProperty ;
+    rdfs:label "대응 Rule Engine 규칙 ID"@ko ;
+    rdfs:comment "backend/rules/rule_engine.py 의 Rule.rule_id 와 매핑됨"@ko ;
+    rdfs:range xsd:string .
+
+#################################################################
+# TODO(팀원 작업 항목)
+#   1. 각 :legalBasis 값을 최신 개인정보 보호법 조문 번호로 검증・치환
+#   2. legal-kr 네임스페이스와의 정합성 재확인 (실제 W3C DPV 2.3 문서 대조)
+#   3. Outsourcing, PrivacyOfficer 등 legal-kr에 없는 한국 특유 개념 정식 제안
+#   4. SHACL Shape 파일 추가하여 Protégé 밖에서도 규칙 검증 가능하게 확장
+#################################################################
