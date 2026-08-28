@@ -1,0 +1,17 @@
+{
+  "processingType": "ThirdPartyTransfer",
+  "personalData": [
+    "EmailAddress"
+  ],
+  "purpose": "Advertising",
+  "recipient": "외부 광고업체",
+  "recipientRole": "ThirdParty",
+  "legalBasis": "Consent",
+  "retentionPeriod": "1년",
+  "noticeItems": [
+    "recipient",
+    "purpose",
+    "personalData",
+    "retentionPeriod"
+  ]
+}
