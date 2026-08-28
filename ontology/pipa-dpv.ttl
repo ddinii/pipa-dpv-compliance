@@ -1,0 +1,53 @@
+@prefix pipa: <https://example.org/pipa-dpv#> .
+@prefix dpv: <http://w3id.org/dpv#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+
+pipa:ProcessingFact
+    a rdfs:Class ;
+    rdfs:label "Processing Fact"@en .
+
+
+pipa:ThirdPartyTransfer
+    a rdfs:Class ;
+    rdfs:label "Third-party transfer"@en ;
+    rdfs:subClassOf dpv:Processing .
+
+
+pipa:Consent
+    a rdfs:Class ;
+    rdfs:label "Consent"@en ;
+    rdfs:subClassOf dpv:LegalBasis .
+
+
+pipa:ThirdParty
+    a rdfs:Class ;
+    rdfs:label "Third Party"@en ;
+    rdfs:subClassOf dpv:Recipient .
+
+
+pipa:EmailAddress
+    a rdfs:Class ;
+    rdfs:label "Email address"@en ;
+    rdfs:subClassOf dpv:PersonalData .
+
+
+pipa:Advertising
+    a rdfs:Class ;
+    rdfs:label "Advertising"@en ;
+    rdfs:subClassOf dpv:Purpose .
+
+
+pipa:processingType a rdf:Property .
+pipa:personalData a rdf:Property .
+pipa:purpose a rdf:Property .
+pipa:recipient a rdf:Property .
+pipa:recipientRole a rdf:Property .
+pipa:legalBasis a rdf:Property .
+pipa:retentionPeriod a rdf:Property .
+pipa:noticeItem a rdf:Property .
+
+pipa:ruleId a rdf:Property .
+pipa:legalReference a rdf:Property .
+pipa:missingLabel a rdf:Property .
