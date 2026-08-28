@@ -1,0 +1,110 @@
+@prefix pipa: <https://example.org/pipa-dpv#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+
+pipa:Article17ConsentThirdPartyTransferShape
+    a sh:NodeShape ;
+
+    pipa:ruleId
+        "PIPA-17-CONSENT-001" ;
+
+    pipa:legalReference
+        "개인정보 보호법 제17조제1항제1호 및 제2항" ;
+
+    sh:target [
+        a sh:SPARQLTarget ;
+        sh:select """
+            PREFIX pipa: <https://example.org/pipa-dpv#>
+
+            SELECT ?this
+            WHERE {
+                ?this
+                    a pipa:ProcessingFact ;
+                    pipa:processingType pipa:ThirdPartyTransfer ;
+                    pipa:legalBasis pipa:Consent .
+            }
+        """
+    ] ;
+
+    sh:property
+        pipa:RecipientRequiredShape,
+        pipa:PurposeRequiredShape,
+        pipa:PersonalDataRequiredShape,
+        pipa:RetentionRequiredShape,
+        pipa:RecipientNoticeShape,
+        pipa:PurposeNoticeShape,
+        pipa:PersonalDataNoticeShape,
+        pipa:RetentionNoticeShape,
+        pipa:RefusalNoticeShape .
+
+
+pipa:RecipientRequiredShape
+    a sh:PropertyShape ;
+    sh:path pipa:recipient ;
+    sh:minCount 1 ;
+    pipa:missingLabel "제공받는 자" ;
+    sh:message "제17조제2항: 개인정보를 제공받는 자가 필요합니다."@ko .
+
+
+pipa:PurposeRequiredShape
+    a sh:PropertyShape ;
+    sh:path pipa:purpose ;
+    sh:minCount 1 ;
+    pipa:missingLabel "제공받는 자의 개인정보 이용 목적" ;
+    sh:message "제17조제2항: 제공받는 자의 개인정보 이용 목적이 필요합니다."@ko .
+
+
+pipa:PersonalDataRequiredShape
+    a sh:PropertyShape ;
+    sh:path pipa:personalData ;
+    sh:minCount 1 ;
+    pipa:missingLabel "제공하는 개인정보의 항목" ;
+    sh:message "제17조제2항: 제공하는 개인정보의 항목이 필요합니다."@ko .
+
+
+pipa:RetentionRequiredShape
+    a sh:PropertyShape ;
+    sh:path pipa:retentionPeriod ;
+    sh:minCount 1 ;
+    pipa:missingLabel "제공받는 자의 개인정보 보유 및 이용 기간" ;
+    sh:message "제17조제2항: 제공받는 자의 개인정보 보유 및 이용 기간이 필요합니다."@ko .
+
+
+pipa:RecipientNoticeShape
+    a sh:PropertyShape ;
+    sh:path pipa:noticeItem ;
+    sh:hasValue "recipient" ;
+    pipa:missingLabel "제공받는 자 고지" ;
+    sh:message "제공받는 자를 정보주체에게 고지했는지 확인해야 합니다."@ko .
+
+
+pipa:PurposeNoticeShape
+    a sh:PropertyShape ;
+    sh:path pipa:noticeItem ;
+    sh:hasValue "purpose" ;
+    pipa:missingLabel "제공 목적 고지" ;
+    sh:message "제공 목적을 정보주체에게 고지했는지 확인해야 합니다."@ko .
+
+
+pipa:PersonalDataNoticeShape
+    a sh:PropertyShape ;
+    sh:path pipa:noticeItem ;
+    sh:hasValue "personalData" ;
+    pipa:missingLabel "제공 항목 고지" ;
+    sh:message "제공하는 개인정보 항목을 정보주체에게 고지했는지 확인해야 합니다."@ko .
+
+
+pipa:RetentionNoticeShape
+    a sh:PropertyShape ;
+    sh:path pipa:noticeItem ;
+    sh:hasValue "retentionPeriod" ;
+    pipa:missingLabel "보유·이용기간 고지" ;
+    sh:message "보유·이용기간을 정보주체에게 고지했는지 확인해야 합니다."@ko .
+
+
+pipa:RefusalNoticeShape
+    a sh:PropertyShape ;
+    sh:path pipa:noticeItem ;
+    sh:hasValue "refusalRight" ;
+    pipa:missingLabel "동의 거부 권리 및 거부에 따른 불이익" ;
+    sh:message "동의 거부 권리와 거부에 따른 불이익 관련 사항을 고지했는지 확인해야 합니다."@ko .
