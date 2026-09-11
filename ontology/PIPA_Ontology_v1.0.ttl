@@ -1,0 +1,415 @@
+@prefix pipa: <https://w3id.org/pipa-compliance/ontology#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+
+<https://w3id.org/pipa-compliance/ontology>
+    a owl:Ontology ;
+    owl:versionIRI <https://w3id.org/pipa-compliance/ontology/1.0> ;
+    owl:versionInfo "1.0" ;
+    dct:title "PIPA Compliance Process-Centered Ontology"@en ,
+              "개인정보 보호법 준수 지원 처리행위 중심 온톨로지"@ko ;
+    dct:created "2026-09-11"^^xsd:date ;
+    rdfs:comment "PoC Freeze 문서의 P0 Rule/Fact와 처리행위 중심 모델링 원칙을 반영한 Protégé 호환 OWL 2 Turtle 온톨로지이다. 법적 판단을 확정하지 않는다."@ko .
+
+#################################################################
+# Upper classes required for the Protégé class hierarchy
+#################################################################
+
+pipa:Actor a owl:Class ; rdfs:label "Actor"@en , "행위자"@ko .
+pipa:Information a owl:Class ; rdfs:label "Information"@en , "정보"@ko .
+pipa:Activity a owl:Class ; rdfs:label "Activity"@en , "활동"@ko .
+pipa:ProcessingActivity a owl:Class ;
+    rdfs:subClassOf pipa:Activity ;
+    rdfs:label "Processing Activity"@en , "처리행위"@ko ;
+    rdfs:comment "목적, 개인정보, 수신자/수탁자, 법적근거, 보유정보가 귀속되는 핵심 단위이다."@ko .
+pipa:LegalConcept a owl:Class ; rdfs:label "Legal Concept"@en , "법적 개념"@ko .
+pipa:LegalSource a owl:Class ; rdfs:label "Legal Source"@en , "법적 근거자료"@ko .
+pipa:Document a owl:Class ; rdfs:label "Document"@en , "문서"@ko .
+pipa:Incident a owl:Class ; rdfs:label "Incident"@en , "사고"@ko .
+pipa:Control a owl:Class ; rdfs:label "Control"@en , "통제·대응조치"@ko .
+pipa:Location a owl:Class ; rdfs:label "Location"@en , "장소"@ko .
+pipa:SystemConcept a owl:Class ; rdfs:label "System Concept"@en , "시스템 개념"@ko .
+
+# A controller/actor or a policy/document must never become a processing activity
+# merely because process-context properties were attached to it directly.
+pipa:Actor owl:disjointWith pipa:Activity .
+pipa:Document owl:disjointWith pipa:Activity .
+pipa:Information owl:disjointWith pipa:Actor , pipa:Activity .
+
+#################################################################
+# Domain classes
+#################################################################
+
+pipa:PersonalInformation a owl:Class ;
+    rdfs:subClassOf pipa:Information ;
+    rdfs:label "Personal Information"@en , "개인정보"@ko .
+
+pipa:DataSubject a owl:Class ;
+    rdfs:subClassOf pipa:Actor ;
+    rdfs:label "Data Subject"@en , "정보주체"@ko .
+
+pipa:PersonalInformationController a owl:Class ;
+    rdfs:subClassOf pipa:Actor ;
+    rdfs:label "Personal Information Controller"@en , "개인정보처리자"@ko .
+
+pipa:ThirdParty a owl:Class ;
+    rdfs:subClassOf pipa:Actor ;
+    rdfs:label "Third Party"@en , "제3자"@ko .
+
+pipa:EntrustedProcessor a owl:Class ;
+    rdfs:subClassOf pipa:Actor ;
+    rdfs:label "Entrusted Processor"@en , "수탁자"@ko .
+
+pipa:PrivacyPolicy a owl:Class ;
+    rdfs:subClassOf pipa:Document ;
+    rdfs:label "Privacy Policy"@en , "개인정보 처리방침"@ko .
+
+pipa:PersonalInformationProcessing a owl:Class ;
+    rdfs:subClassOf pipa:ProcessingActivity ;
+    rdfs:label "Personal Information Processing"@en , "개인정보 처리"@ko .
+
+pipa:CollectionAndUse a owl:Class ;
+    rdfs:subClassOf pipa:PersonalInformationProcessing ;
+    rdfs:label "Collection and Use"@en , "수집·이용"@ko .
+
+pipa:ThirdPartyProvision a owl:Class ;
+    rdfs:subClassOf pipa:PersonalInformationProcessing ;
+    rdfs:label "Third-Party Provision"@en , "제3자 제공"@ko .
+
+pipa:Retention a owl:Class ;
+    rdfs:subClassOf pipa:PersonalInformationProcessing ;
+    rdfs:label "Retention"@en , "보유"@ko .
+
+pipa:Destruction a owl:Class ;
+    rdfs:subClassOf pipa:PersonalInformationProcessing ;
+    rdfs:label "Destruction"@en , "파기"@ko .
+
+pipa:EntrustedProcessing a owl:Class ;
+    rdfs:subClassOf pipa:PersonalInformationProcessing ;
+    rdfs:label "Entrusted Processing"@en , "처리위탁"@ko .
+
+pipa:CrossBorderTransfer a owl:Class ;
+    rdfs:subClassOf pipa:PersonalInformationProcessing ;
+    rdfs:label "Cross-Border Transfer"@en , "국외이전"@ko .
+
+pipa:ProcessingPurpose a owl:Class ;
+    rdfs:subClassOf pipa:LegalConcept ;
+    rdfs:label "Processing Purpose"@en , "처리목적"@ko .
+
+pipa:LegalBasis a owl:Class ;
+    rdfs:subClassOf pipa:LegalConcept ;
+    rdfs:label "Legal Basis"@en , "법적근거"@ko .
+
+pipa:Consent a owl:Class ;
+    rdfs:subClassOf pipa:LegalBasis ;
+    rdfs:label "Consent"@en , "동의"@ko .
+
+pipa:RetentionPeriod a owl:Class ;
+    rdfs:subClassOf pipa:LegalConcept ;
+    rdfs:label "Retention Period"@en , "보유기간"@ko .
+
+pipa:RetentionEndCondition a owl:Class ;
+    rdfs:subClassOf pipa:LegalConcept ;
+    rdfs:label "Retention End Condition"@en , "보유 종료조건"@ko .
+
+pipa:DestinationCountry a owl:Class ;
+    rdfs:subClassOf pipa:Location ;
+    rdfs:label "Destination Country"@en , "이전 대상 국가"@ko .
+
+pipa:DataSubjectRight a owl:Class ;
+    rdfs:subClassOf pipa:LegalConcept ;
+    rdfs:label "Data Subject Right"@en , "정보주체 권리"@ko .
+
+pipa:RightsExerciseProcedure a owl:Class ;
+    rdfs:subClassOf pipa:LegalConcept ;
+    rdfs:label "Rights Exercise Procedure"@en , "권리 행사절차"@ko .
+
+pipa:PIPAArticle a owl:Class ;
+    rdfs:subClassOf pipa:LegalSource ;
+    rdfs:label "PIPA Article"@en , "개인정보 보호법 조문"@ko .
+
+# Classes consumed by the frozen PoC2/PoC3 facts.
+pipa:DataBreachIncident a owl:Class ;
+    rdfs:subClassOf pipa:Incident ;
+    rdfs:label "Data Breach Incident"@en , "개인정보 유출등 사고"@ko .
+
+pipa:NotificationNotice a owl:Class ;
+    rdfs:subClassOf pipa:Document ;
+    rdfs:label "Notification Notice"@en , "유출등 통지문"@ko .
+
+pipa:IncidentResponseMeasure a owl:Class ;
+    rdfs:subClassOf pipa:Control ;
+    rdfs:label "Incident Response Measure"@en , "사고 대응조치"@ko .
+
+pipa:ConsentRequest a owl:Class ;
+    rdfs:subClassOf pipa:SystemConcept ;
+    rdfs:label "Consent Request"@en , "동의요청 설계"@ko .
+
+# Composite processing must be split into distinct activity individuals.
+[] a owl:AllDisjointClasses ;
+   owl:members (
+       pipa:CollectionAndUse
+       pipa:ThirdPartyProvision
+       pipa:Retention
+       pipa:Destruction
+       pipa:EntrustedProcessing
+       pipa:CrossBorderTransfer
+   ) .
+
+#################################################################
+# Object properties - process context is always attached to an activity
+#################################################################
+
+pipa:hasProcessingActivity a owl:ObjectProperty ;
+    owl:inverseOf pipa:performedByController ;
+    rdfs:domain pipa:PersonalInformationController ;
+    rdfs:range pipa:ProcessingActivity ;
+    rdfs:label "has processing activity"@en , "처리행위를 가짐"@ko .
+
+pipa:performedByController a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain pipa:ProcessingActivity ;
+    rdfs:range pipa:PersonalInformationController ;
+    rdfs:label "performed by controller"@en , "개인정보처리자가 수행함"@ko .
+
+pipa:hasPurpose a owl:ObjectProperty ;
+    rdfs:domain pipa:ProcessingActivity ;
+    rdfs:range pipa:ProcessingPurpose ;
+    rdfs:label "has purpose"@en , "처리목적"@ko .
+
+pipa:hasPersonalInformation a owl:ObjectProperty ;
+    owl:inverseOf pipa:inProcessingActivity ;
+    rdfs:domain pipa:ProcessingActivity ;
+    rdfs:range pipa:PersonalInformation ;
+    rdfs:label "has personal information"@en , "처리 개인정보"@ko .
+
+pipa:inProcessingActivity a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain pipa:PersonalInformation ;
+    rdfs:range pipa:ProcessingActivity ;
+    rdfs:label "in processing activity"@en , "귀속 처리행위"@ko ;
+    rdfs:comment "항목별 필수 여부와 설계사유가 다른 activity와 섞이지 않도록 개인정보 항목 인스턴스를 하나의 처리행위에 귀속시킨다."@ko .
+
+pipa:hasRecipient a owl:ObjectProperty ;
+    rdfs:domain pipa:ThirdPartyProvision ;
+    rdfs:range pipa:ThirdParty ;
+    rdfs:label "has recipient"@en , "제공받는 자"@ko .
+
+pipa:hasProcessor a owl:ObjectProperty ;
+    rdfs:domain pipa:EntrustedProcessing ;
+    rdfs:range pipa:EntrustedProcessor ;
+    rdfs:label "has processor"@en , "수탁자"@ko .
+
+pipa:hasLegalBasis a owl:ObjectProperty ;
+    rdfs:domain pipa:ProcessingActivity ;
+    rdfs:range pipa:LegalBasis ;
+    rdfs:label "has legal basis"@en , "법적근거"@ko .
+
+pipa:supportedByArticle a owl:ObjectProperty ;
+    rdfs:range pipa:PIPAArticle ;
+    rdfs:label "supported by article"@en , "근거 조문"@ko .
+
+pipa:hasRetention a owl:ObjectProperty ;
+    rdfs:domain pipa:PersonalInformationProcessing ;
+    rdfs:range pipa:Retention ;
+    rdfs:label "has retention"@en , "보유정보"@ko .
+
+pipa:hasRetentionPeriod a owl:ObjectProperty ;
+    rdfs:domain pipa:Retention ;
+    rdfs:range pipa:RetentionPeriod ;
+    rdfs:label "has retention period"@en , "보유기간"@ko .
+
+pipa:hasRetentionEndCondition a owl:ObjectProperty ;
+    rdfs:domain pipa:Retention ;
+    rdfs:range pipa:RetentionEndCondition ;
+    rdfs:label "has retention end condition"@en , "보유 종료조건"@ko .
+
+pipa:triggersDestruction a owl:ObjectProperty ;
+    rdfs:domain pipa:RetentionEndCondition ;
+    rdfs:range pipa:Destruction ;
+    rdfs:label "triggers destruction"@en , "파기를 촉발함"@ko .
+
+pipa:hasDestinationCountry a owl:ObjectProperty ;
+    rdfs:domain pipa:CrossBorderTransfer ;
+    rdfs:range pipa:DestinationCountry ;
+    rdfs:label "has destination country"@en , "이전 대상 국가"@ko .
+
+pipa:hasRight a owl:ObjectProperty ;
+    rdfs:domain pipa:DataSubject ;
+    rdfs:range pipa:DataSubjectRight ;
+    rdfs:label "has right"@en , "권리를 가짐"@ko .
+
+pipa:hasExerciseProcedure a owl:ObjectProperty ;
+    rdfs:domain pipa:DataSubjectRight ;
+    rdfs:range pipa:RightsExerciseProcedure ;
+    rdfs:label "has exercise procedure"@en , "행사절차"@ko .
+
+pipa:hasConsentRequest a owl:ObjectProperty ;
+    rdfs:domain pipa:CollectionAndUse ;
+    rdfs:range pipa:ConsentRequest ;
+    rdfs:label "has consent request"@en , "동의요청 설계"@ko .
+
+pipa:isDocumentedIn a owl:ObjectProperty ;
+    rdfs:domain pipa:ProcessingActivity ;
+    rdfs:range pipa:PrivacyPolicy ;
+    rdfs:label "is documented in"@en , "처리방침에 기재됨"@ko .
+
+pipa:describesController a owl:ObjectProperty ;
+    rdfs:domain pipa:PrivacyPolicy ;
+    rdfs:range pipa:PersonalInformationController ;
+    rdfs:label "describes controller"@en , "개인정보처리자를 설명함"@ko .
+
+pipa:hasNotificationNotice a owl:ObjectProperty ;
+    rdfs:domain pipa:DataBreachIncident ;
+    rdfs:range pipa:NotificationNotice ;
+    rdfs:label "has notification notice"@en , "통지문을 가짐"@ko .
+
+pipa:affectsPersonalInformation a owl:ObjectProperty ;
+    rdfs:domain pipa:DataBreachIncident ;
+    rdfs:range pipa:PersonalInformation ;
+    rdfs:label "affects personal information"@en , "실제 영향 개인정보"@ko .
+
+pipa:mentionsPersonalInformation a owl:ObjectProperty ;
+    rdfs:domain pipa:NotificationNotice ;
+    rdfs:range pipa:PersonalInformation ;
+    rdfs:label "mentions personal information"@en , "통지문 기재 개인정보"@ko .
+
+pipa:hasResponseMeasure a owl:ObjectProperty ;
+    rdfs:domain pipa:DataBreachIncident ;
+    rdfs:range pipa:IncidentResponseMeasure ;
+    rdfs:label "has response measure"@en , "대응조치"@ko .
+
+#################################################################
+# Data properties
+#################################################################
+
+pipa:hasName a owl:DatatypeProperty ;
+    rdfs:domain pipa:Actor ; rdfs:range xsd:string ;
+    rdfs:label "has name"@en , "명칭"@ko .
+
+pipa:hasItemName a owl:DatatypeProperty ;
+    rdfs:domain pipa:PersonalInformation ; rdfs:range xsd:string ;
+    rdfs:label "has item name"@en , "개인정보 항목명"@ko .
+
+pipa:hasPurposeDescription a owl:DatatypeProperty ;
+    rdfs:domain pipa:ProcessingPurpose ; rdfs:range xsd:string ;
+    rdfs:label "has purpose description"@en , "목적 설명"@ko .
+
+pipa:hasDurationValue a owl:DatatypeProperty ;
+    rdfs:domain pipa:RetentionPeriod ; rdfs:range xsd:string ;
+    rdfs:label "has duration value"@en , "기간 값"@ko .
+
+pipa:hasEndConditionDescription a owl:DatatypeProperty ;
+    rdfs:domain pipa:RetentionEndCondition ; rdfs:range xsd:string ;
+    rdfs:label "has end-condition description"@en , "종료조건 설명"@ko .
+
+pipa:hasDestructionMethod a owl:DatatypeProperty ;
+    rdfs:domain pipa:Destruction ; rdfs:range xsd:string ;
+    rdfs:label "has destruction method"@en , "파기 방법"@ko .
+
+pipa:hasCountryCode a owl:DatatypeProperty ;
+    rdfs:domain pipa:DestinationCountry ; rdfs:range xsd:string ;
+    rdfs:label "has country code"@en , "국가 코드"@ko .
+
+pipa:isRequired a owl:DatatypeProperty ;
+    rdfs:domain pipa:PersonalInformation ; rdfs:range xsd:boolean ;
+    rdfs:label "is required"@en , "필수 항목 여부"@ko .
+
+pipa:designRationale a owl:DatatypeProperty ;
+    rdfs:domain pipa:PersonalInformation ; rdfs:range xsd:string ;
+    rdfs:label "design rationale"@en , "항목별 최소수집 설계사유"@ko .
+
+pipa:deniesServiceOnOptionalRefusal a owl:DatatypeProperty ;
+    rdfs:domain pipa:ConsentRequest ; rdfs:range xsd:boolean ;
+    rdfs:label "denies service on optional refusal"@en , "선택정보 미동의 시 서비스 거부"@ko .
+
+pipa:incidentDate a owl:DatatypeProperty ;
+    rdfs:domain pipa:DataBreachIncident ; rdfs:range xsd:dateTime ;
+    rdfs:label "incident date"@en , "실제 사고 발생시점"@ko .
+
+pipa:detectionDate a owl:DatatypeProperty ;
+    rdfs:domain pipa:DataBreachIncident ; rdfs:range xsd:dateTime ;
+    rdfs:label "detection date"@en , "사고 인지시점"@ko .
+
+pipa:notificationDate a owl:DatatypeProperty ;
+    rdfs:domain pipa:DataBreachIncident ; rdfs:range xsd:dateTime ;
+    rdfs:label "notification date"@en , "통지시점"@ko .
+
+pipa:hasIncidentCircumstances a owl:DatatypeProperty ;
+    rdfs:domain pipa:NotificationNotice ; rdfs:range xsd:string ;
+    rdfs:label "has incident circumstances"@en , "통지문 기재 유출등 경위"@ko .
+
+pipa:hasProcedureDescription a owl:DatatypeProperty ;
+    rdfs:domain pipa:RightsExerciseProcedure ; rdfs:range xsd:string ;
+    rdfs:label "has procedure description"@en , "행사절차 설명"@ko .
+
+pipa:articleNumber a owl:DatatypeProperty ;
+    rdfs:domain pipa:PIPAArticle ; rdfs:range xsd:integer ;
+    rdfs:label "article number"@en , "조 번호"@ko .
+
+pipa:provisionIdentifier a owl:DatatypeProperty ;
+    rdfs:domain pipa:PIPAArticle ; rdfs:range xsd:string ;
+    rdfs:label "provision identifier"@en , "조항 식별자"@ko .
+
+#################################################################
+# Annotation properties for evidence and non-ontology rule metadata
+#################################################################
+
+pipa:hasSourceEvidence a owl:AnnotationProperty ; rdfs:label "source evidence"@en , "원문 근거"@ko .
+pipa:factId a owl:AnnotationProperty ; rdfs:label "fact ID"@en .
+pipa:ruleId a owl:AnnotationProperty ; rdfs:label "rule ID"@en .
+pipa:entrustedTaskText a owl:AnnotationProperty ;
+    rdfs:label "entrusted task text (system metadata)"@en ;
+    rdfs:comment "Fact Dictionary의 Rule 입력 보조 필드이며 OWL DatatypeProperty가 아니다."@ko .
+pipa:noticeIncidentTime a owl:AnnotationProperty ;
+    rdfs:label "notice incident time (system metadata)"@en ;
+    rdfs:comment "실제 incidentDate와 분리되는 통지문 원문 기반 Rule 입력 보조 필드이다."@ko .
+pipa:measureRole a owl:AnnotationProperty ;
+    rdfs:label "measure role (system metadata)"@en ;
+    rdfs:comment "data_subject_guidance, controller_response, remedy_procedure, post_incident_mitigation 중 하나를 기록한다."@ko .
+
+#################################################################
+# Structural OWL restrictions
+#################################################################
+
+pipa:ProcessingActivity rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty pipa:performedByController ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass pipa:PersonalInformationController ] .
+
+pipa:ThirdPartyProvision rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty pipa:hasRecipient ; owl:allValuesFrom pipa:ThirdParty ] .
+
+pipa:EntrustedProcessing rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty pipa:hasProcessor ; owl:allValuesFrom pipa:EntrustedProcessor ] .
+
+pipa:CrossBorderTransfer rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty pipa:hasDestinationCountry ; owl:allValuesFrom pipa:DestinationCountry ] .
+
+#################################################################
+# PIPA provisions referenced by P0 rules (metadata only)
+#################################################################
+
+pipa:PIPA_Art15_Para1 a pipa:PIPAArticle ; pipa:articleNumber 15 ; pipa:provisionIdentifier "제15조제1항" ; rdfs:label "개인정보 보호법 제15조제1항"@ko .
+pipa:PIPA_Art15_Para2_Item1 a pipa:PIPAArticle ; pipa:articleNumber 15 ; pipa:provisionIdentifier "제15조제2항제1호" ; rdfs:label "개인정보 보호법 제15조제2항제1호"@ko .
+pipa:PIPA_Art15_Para2_Item2 a pipa:PIPAArticle ; pipa:articleNumber 15 ; pipa:provisionIdentifier "제15조제2항제2호" ; rdfs:label "개인정보 보호법 제15조제2항제2호"@ko .
+pipa:PIPA_Art15_Para2_Item3 a pipa:PIPAArticle ; pipa:articleNumber 15 ; pipa:provisionIdentifier "제15조제2항제3호" ; rdfs:label "개인정보 보호법 제15조제2항제3호"@ko .
+pipa:PIPA_Art16_Para1 a pipa:PIPAArticle ; pipa:articleNumber 16 ; pipa:provisionIdentifier "제16조제1항" ; rdfs:label "개인정보 보호법 제16조제1항"@ko .
+pipa:PIPA_Art16_Para3 a pipa:PIPAArticle ; pipa:articleNumber 16 ; pipa:provisionIdentifier "제16조제3항" ; rdfs:label "개인정보 보호법 제16조제3항"@ko .
+pipa:PIPA_Art17 a pipa:PIPAArticle ; pipa:articleNumber 17 ; pipa:provisionIdentifier "제17조" ; rdfs:label "개인정보 보호법 제17조"@ko .
+pipa:PIPA_Art21 a pipa:PIPAArticle ; pipa:articleNumber 21 ; pipa:provisionIdentifier "제21조" ; rdfs:label "개인정보 보호법 제21조"@ko .
+pipa:PIPA_Art26 a pipa:PIPAArticle ; pipa:articleNumber 26 ; pipa:provisionIdentifier "제26조" ; rdfs:label "개인정보 보호법 제26조"@ko .
+pipa:PIPA_Art30_Para1_Item1 a pipa:PIPAArticle ; pipa:articleNumber 30 ; pipa:provisionIdentifier "제30조제1항제1호" ; rdfs:label "개인정보 보호법 제30조제1항제1호"@ko .
+pipa:PIPA_Art30_Para1_Item2 a pipa:PIPAArticle ; pipa:articleNumber 30 ; pipa:provisionIdentifier "제30조제1항제2호" ; rdfs:label "개인정보 보호법 제30조제1항제2호"@ko .
+pipa:PIPA_Art30_Para1_Item3 a pipa:PIPAArticle ; pipa:articleNumber 30 ; pipa:provisionIdentifier "제30조제1항제3호" ; rdfs:label "개인정보 보호법 제30조제1항제3호"@ko .
+pipa:PIPA_Art30_Para1_Item4 a pipa:PIPAArticle ; pipa:articleNumber 30 ; pipa:provisionIdentifier "제30조제1항제4호" ; rdfs:label "개인정보 보호법 제30조제1항제4호"@ko .
+pipa:PIPA_Art30_Para1_Item5 a pipa:PIPAArticle ; pipa:articleNumber 30 ; pipa:provisionIdentifier "제30조제1항제5호" ; rdfs:label "개인정보 보호법 제30조제1항제5호"@ko .
+pipa:PIPA_Art30_Para1_Item6 a pipa:PIPAArticle ; pipa:articleNumber 30 ; pipa:provisionIdentifier "제30조제1항제6호" ; rdfs:label "개인정보 보호법 제30조제1항제6호"@ko .
+pipa:PIPA_Art34_Para1 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisionIdentifier "제34조제1항" ; rdfs:label "개인정보 보호법 제34조제1항"@ko .
+pipa:PIPA_Art34_Para1_Item1 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisionIdentifier "제34조제1항제1호" ; rdfs:label "개인정보 보호법 제34조제1항제1호"@ko .
+pipa:PIPA_Art34_Para1_Item2 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisionIdentifier "제34조제1항제2호" ; rdfs:label "개인정보 보호법 제34조제1항제2호"@ko .
+pipa:PIPA_Art34_Para1_Item3 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisionIdentifier "제34조제1항제3호" ; rdfs:label "개인정보 보호법 제34조제1항제3호"@ko .
+pipa:PIPA_Art34_Para1_Item4 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisionIdentifier "제34조제1항제4호" ; rdfs:label "개인정보 보호법 제34조제1항제4호"@ko .
+pipa:PIPA_Art34_Para3 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisionIdentifier "제34조제3항" ; rdfs:label "개인정보 보호법 제34조제3항"@ko .
+pipa:PIPA_Art35 a pipa:PIPAArticle ; pipa:articleNumber 35 ; pipa:provisionIdentifier "제35조" ; rdfs:label "개인정보 보호법 제35조"@ko .
+pipa:PIPA_Art36 a pipa:PIPAArticle ; pipa:articleNumber 36 ; pipa:provisionIdentifier "제36조" ; rdfs:label "개인정보 보호법 제36조"@ko .
+pipa:PIPA_Art37 a pipa:PIPAArticle ; pipa:articleNumber 37 ; pipa:provisionIdentifier "제37조" ; rdfs:label "개인정보 보호법 제37조"@ko .
