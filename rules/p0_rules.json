@@ -8,7 +8,7 @@
       "poc": "PoC1",
       "title": "처리목적 명시",
       "rule_version": "1.0",
-      "applicability": "CollectionAndUse가 존재하면 적용",
+      "applicability": "항상",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제1호",
         "개인정보 보호법 제15조"
@@ -28,7 +28,7 @@
       "poc": "PoC1",
       "title": "처리·보유기간 명시",
       "rule_version": "1.0",
-      "applicability": "ProcessingActivity가 존재하면 적용",
+      "applicability": "항상",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제2호"
       ],
@@ -36,10 +36,13 @@
         "개인정보 보호법 제30조제1항제2호"
       ],
       "ontology_terms": [
-        "ProcessingActivity",
+        "PersonalInformationProcessing",
         "hasRetention",
+        "Retention",
+        "hasRetentionPeriod",
         "hasDurationValue",
-        "hasRetentionEndCondition"
+        "hasRetentionEndCondition",
+        "hasEndConditionDescription"
       ],
       "notes": []
     },
@@ -70,7 +73,7 @@
       "poc": "PoC1",
       "title": "파기 절차·방법 기재",
       "rule_version": "1.0",
-      "applicability": "처리방침의 파기 관련 Fact에 적용",
+      "applicability": "항상",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제3의2호",
         "개인정보 보호법 제21조"
@@ -104,6 +107,8 @@
       "ontology_terms": [
         "EntrustedProcessing",
         "hasProcessor",
+        "EntrustedProcessor",
+        "hasName",
         "entrustedTaskText"
       ],
       "notes": [
@@ -115,7 +120,7 @@
       "poc": "PoC1",
       "title": "정보주체 권리행사 방법",
       "rule_version": "1.0",
-      "applicability": "정보주체 권리행사 Fact에 적용",
+      "applicability": "항상",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제5호",
         "개인정보 보호법 제35조",
@@ -132,7 +137,9 @@
         "DataSubject",
         "hasRight",
         "DataSubjectRight",
-        "hasExerciseProcedure"
+        "hasExerciseProcedure",
+        "RightsExerciseProcedure",
+        "hasProcedureDescription"
       ],
       "notes": [
         "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
@@ -195,10 +202,7 @@
       "ontology_terms": [
         "NotificationNotice",
         "noticeIncidentTime",
-        "hasIncidentCircumstances",
-        "notificationDate",
-        "DataBreachIncident",
-        "detectionDate"
+        "hasIncidentCircumstances"
       ],
       "notes": []
     },
@@ -221,6 +225,7 @@
       "ontology_terms": [
         "DataBreachIncident",
         "hasResponseMeasure",
+        "IncidentResponseMeasure",
         "measureRole"
       ],
       "notes": []
@@ -300,8 +305,11 @@
         "hasLegalBasis",
         "hasConsentRequest",
         "hasRetention",
+        "Retention",
+        "hasRetentionPeriod",
         "hasDurationValue",
-        "hasRetentionEndCondition"
+        "hasRetentionEndCondition",
+        "hasEndConditionDescription"
       ],
       "notes": []
     },
@@ -310,7 +318,7 @@
       "poc": "PoC3",
       "title": "최소수집 설계 사유",
       "rule_version": "1.0",
-      "applicability": "필수 개인정보 항목 설계에 적용",
+      "applicability": "CollectionAndUse가 존재하면 적용",
       "legal_basis": [
         "개인정보 보호법 제16조제1항"
       ],
@@ -347,7 +355,7 @@
       "poc": "PoC3",
       "title": "보유종료→파기 설계",
       "rule_version": "1.0",
-      "applicability": "RetentionEndCondition 설계에 적용",
+      "applicability": "Retention 또는 RetentionEndCondition이 존재하면 적용",
       "legal_basis": [
         "개인정보 보호법 제21조"
       ],
@@ -377,6 +385,8 @@
       "ontology_terms": [
         "EntrustedProcessing",
         "hasProcessor",
+        "EntrustedProcessor",
+        "hasName",
         "entrustedTaskText"
       ],
       "notes": []
