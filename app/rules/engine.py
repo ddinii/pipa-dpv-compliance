@@ -306,13 +306,6 @@ class P0RuleEngine:
         recommendation = recommendations[0] if recommendations else "추가 조치가 필요하지 않습니다."
 
         implementation_notes = list(metadata.notes)
-        if rule_id == "P2-R01" and not self._ontology_term_exists("triggersNotificationObligation"):
-            implementation_notes.append(
-                "Ontology implementation gap: PIPA_Ontology_v1.0.ttl does not define "
-                "NotificationObligation/triggersNotificationObligation. The rule therefore "
-                "uses DataBreachIncident + affectsPersonalInformation as the frozen-scenario "
-                "compatibility signal and does not alter the ontology."
-            )
 
         return RuleResult(
             rule_id=rule_id,
@@ -816,56 +809,51 @@ class P0RuleEngine:
         incidents = self._instances(graph, PIPA.DataBreachIncident)
         if not incidents:
             return self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
+
         results = []
-        obligation_term_exists = self._ontology_term_exists("triggersNotificationObligation")
         for incident in incidents:
-            affected = self._objects(graph, incident, PIPA.affectsPersonalInformation)
-            notices = self._objects(graph, incident, PIPA.hasNotificationNotice)
+            raw_affected = self._objects(graph, incident, PIPA.affectsPersonalInformation)
+            affected = self._nonempty_values(graph, incident, PIPA.affectsPersonalInformation)
+            raw_obligations = self._objects(graph, incident, PIPA.triggersNotificationObligation)
+            obligations = self._nonempty_values(graph, incident, PIPA.triggersNotificationObligation)
+            raw_notices = self._objects(graph, incident, PIPA.hasNotificationNotice)
+            notices = self._nonempty_values(graph, incident, PIPA.hasNotificationNotice)
+
             evidence = self._assertion_evidence(graph, incident, PIPA.affectsPersonalInformation)
+            evidence += self._assertion_evidence(graph, incident, PIPA.triggersNotificationObligation)
             evidence += self._assertion_evidence(graph, incident, PIPA.hasNotificationNotice)
-            if not affected:
+
+            matched: list[str] = []
+            uncertain: list[str] = []
+            if affected:
+                matched.append(self._fact_key(incident, PIPA.affectsPersonalInformation))
+            else:
+                uncertain.append(self._fact_key(incident, PIPA.affectsPersonalInformation))
+
+            if obligations:
+                matched.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
+            else:
+                uncertain.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
+
+            if uncertain:
+                notes = []
+                if not raw_affected:
+                    notes.append(self._absence_evidence(incident, "affectsPersonalInformation", "실제 영향 개인정보 Fact를 확인하지 못함"))
+                if not raw_obligations:
+                    notes.append(self._absence_evidence(incident, "triggersNotificationObligation", "통지의무 Fact를 확인하지 못함"))
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
                         status=RuleStatus.AMBER,
-                        applicability=Applicability.UNKNOWN,
-                        uncertain_facts=[self._fact_key(incident, PIPA.affectsPersonalInformation)],
-                        evidence=self._dedupe_evidence(evidence) or [self._absence_evidence(incident, "affectsPersonalInformation", "개인정보 유출등 여부 판단 정보 부족")],
-                        reason="개인정보 유출등에 해당하는지 판단할 정보가 부족합니다.",
-                        recommendation="실제 영향 개인정보 항목을 확인하세요.",
+                        applicability=Applicability.TRUE,
+                        matched_facts=matched,
+                        uncertain_facts=uncertain,
+                        evidence=self._dedupe_evidence(evidence) + notes,
+                        reason="유출등 사고는 확인되지만 영향 개인정보 또는 통지의무 Fact가 UNKNOWN/모호합니다.",
+                        recommendation="affectsPersonalInformation과 triggersNotificationObligation을 명확히 구조화하세요.",
                     )
                 )
                 continue
-
-            matched = [self._fact_key(incident, PIPA.affectsPersonalInformation)]
-            if obligation_term_exists:
-                obligations = self._objects(graph, incident, PIPA.triggersNotificationObligation)
-                if not obligations:
-                    results.append(
-                        InstanceRuleResult(
-                            instance_id=str(incident),
-                            status=RuleStatus.AMBER,
-                            applicability=Applicability.UNKNOWN,
-                            matched_facts=matched,
-                            uncertain_facts=[self._fact_key(incident, PIPA.triggersNotificationObligation)],
-                            evidence=self._dedupe_evidence(evidence) + [self._absence_evidence(incident, "triggersNotificationObligation", "통지의무 연결을 확인하지 못함")],
-                            reason="유출등 사실은 있으나 통지의무 성립 Fact를 확인하지 못했습니다.",
-                            recommendation="통지의무 적용 여부 Fact를 확인하세요.",
-                        )
-                    )
-                    continue
-                matched.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
-            else:
-                matched.append("compatibility:DataBreachIncident+affectsPersonalInformation")
-                evidence.append(
-                    Evidence(
-                        evidence_type="structured_locator",
-                        subject=str(incident),
-                        predicate="ontology_compatibility_fallback",
-                        value="DataBreachIncident + affectsPersonalInformation",
-                        note="triggersNotificationObligation is absent from the frozen ontology implementation",
-                    )
-                )
 
             if notices:
                 matched.append(self._fact_key(incident, PIPA.hasNotificationNotice))
@@ -876,8 +864,21 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=matched,
                         evidence=self._dedupe_evidence(evidence),
-                        reason="통지 대상 사고로 평가되는 사실과 NotificationNotice가 확인됩니다.",
+                        reason="영향 개인정보, 통지의무, NotificationNotice가 모두 확인됩니다.",
                         recommendation="통지 사실 및 증거를 유지하세요.",
+                    )
+                )
+            elif raw_notices:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(incident),
+                        status=RuleStatus.AMBER,
+                        applicability=Applicability.TRUE,
+                        matched_facts=matched,
+                        uncertain_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
+                        evidence=self._dedupe_evidence(evidence),
+                        reason="통지의무는 확인되지만 NotificationNotice 값이 UNKNOWN/모호합니다.",
+                        recommendation="정보주체 통지 실시 여부와 통지문을 명확히 구조화하세요.",
                     )
                 )
             else:
@@ -888,8 +889,10 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=matched,
                         missing_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
-                        evidence=self._dedupe_evidence(evidence) + [self._absence_evidence(incident, "hasNotificationNotice", "통지문/통지 사실이 없음")],
-                        reason="통지 대상 사고가 확인되지만 NotificationNotice가 없습니다.",
+                        evidence=self._dedupe_evidence(evidence) + [
+                            self._absence_evidence(incident, "hasNotificationNotice", "통지의무가 확인되지만 통지문/통지 사실이 없음")
+                        ],
+                        reason="통지의무가 확인되지만 NotificationNotice가 없습니다.",
                         recommendation="정보주체 통지 실시 여부와 통지문을 확인하세요.",
                     )
                 )
@@ -911,15 +914,30 @@ class P0RuleEngine:
         for incident in incidents:
             notices = self._objects(graph, incident, PIPA.hasNotificationNotice)
             if not notices:
-                results.append(
-                    InstanceRuleResult(
-                        instance_id=str(incident),
-                        status=RuleStatus.NOT_APPLICABLE,
-                        applicability=Applicability.FALSE,
-                        reason="NotificationNotice가 없어 P2-R02 비교 대상이 없습니다.",
-                        recommendation="P2-R01 결과를 확인하세요.",
+                notice_state = self._explicit_state(graph, TEST.notificationNoticeState)
+                if notice_state == "confirmed_false":
+                    results.append(
+                        InstanceRuleResult(
+                            instance_id=str(incident),
+                            status=RuleStatus.NOT_APPLICABLE,
+                            applicability=Applicability.FALSE,
+                            matched_facts=["metadata:notificationNoticeState=confirmed_false"],
+                            reason="NotificationNotice가 없다고 명시적으로 확인되었습니다.",
+                            recommendation="P2-R01 결과와 함께 해당 없음 상태를 유지하세요.",
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        InstanceRuleResult(
+                            instance_id=str(incident),
+                            status=RuleStatus.AMBER,
+                            applicability=Applicability.UNKNOWN,
+                            uncertain_facts=["NotificationNotice"],
+                            evidence=[self._absence_evidence(incident, "hasNotificationNotice", "NotificationNotice의 존재/부재가 명시적으로 확정되지 않음")],
+                            reason="NotificationNotice가 추출되지 않았지만 명시적 부재도 확인되지 않아 적용 여부를 확정할 수 없습니다.",
+                            recommendation="NotificationNotice 존재 여부를 Fact로 명시하고 P2-R01 결과를 함께 확인하세요.",
+                        )
+                    )
                 continue
             actual_items = self._objects(graph, incident, PIPA.affectsPersonalInformation)
             actual_names, actual_complete = self._item_name_set(graph, actual_items)
@@ -980,15 +998,9 @@ class P0RuleEngine:
     def _p2_r03(self, graph: Graph) -> list[InstanceRuleResult]:
         notices = self._instances(graph, PIPA.NotificationNotice)
         if not notices:
-            return [
-                InstanceRuleResult(
-                    instance_id="__document__",
-                    status=RuleStatus.NOT_APPLICABLE,
-                    applicability=Applicability.FALSE,
-                    reason="NotificationNotice가 없어 통지문 기재사항 평가 대상이 없습니다.",
-                    recommendation="P2-R01 결과를 확인하세요.",
-                )
-            ]
+            if self._explicit_state(graph, TEST.dataBreachIncidentState) == "confirmed_false":
+                return self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
+            return self._conditional_no_targets(graph, TEST.notificationNoticeState, "NotificationNotice")
 
         results = []
         for notice in notices:

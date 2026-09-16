@@ -82,11 +82,11 @@ post_incident_mitigation
 
 P0 v1.0 Freeze에서 GREEN은 4개 역할이 모두 확인되는 경우입니다.
 
-### P2-R01 ontology compatibility
+### P2-R01 notification-obligation fact
 
-v1.0 Rule Specification은 `NotificationObligation / triggersNotificationObligation`을 참조하지만 frozen `PIPA_Ontology_v1.0.ttl`에는 해당 term이 없습니다.
+v1.0 Rule Specification의 P2-R01은 `affectsPersonalInformation + triggersNotificationObligation + hasNotificationNotice`를 필수 Fact로 평가합니다. frozen `PIPA_Ontology_v1.0.ttl`에는 `triggersNotificationObligation` 선언이 없지만, Rule Engine은 ontology를 수정하지 않고 입력 RDF에 있는 동일 URI Fact를 직접 확인합니다.
 
-따라서 현재 엔진은 ontology를 임의 변경하지 않고 `DataBreachIncident + affectsPersonalInformation`을 compatibility signal로 사용하며, 결과의 `implementation_notes`에 이 차이를 남깁니다.
+따라서 `triggersNotificationObligation`이 확인되지 않으면 compatibility fallback으로 GREEN 처리하지 않고 AMBER로 남깁니다.
 
 ## Setup
 

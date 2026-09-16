@@ -52,5 +52,5 @@ P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_proc
 
 - `app/rules/engine.py`가 18개 P0 Rule의 결정론적 판정을 담당합니다.
 - `rules/p0_rules.json`은 Rule ID, PoC, 법적 근거, applicability, ontology term metadata를 관리합니다.
-- frozen ontology에는 `NotificationObligation / triggersNotificationObligation`이 정의되어 있지 않으므로 P2-R01은 `DataBreachIncident + affectsPersonalInformation`을 compatibility signal로 사용하고 결과에 implementation note를 남깁니다. Ontology 파일 자체는 변경하지 않습니다.
+- P2-R01은 Freeze 명세대로 `triggersNotificationObligation`을 필수 Fact로 평가합니다. frozen ontology 파일에는 해당 term 선언이 없지만, Rule Engine은 입력 RDF의 동일 URI Fact를 직접 평가하며 ontology 파일 자체는 변경하지 않습니다.
 - `noticeIncidentTime`, `measureRole`, `entrustedTaskText`는 Rule 입력용 보조 metadata이며 ontology v1.0에서는 annotation property로만 정의되어 있습니다.

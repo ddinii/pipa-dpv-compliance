@@ -8,6 +8,7 @@
 
 sc:Incident_B24 a pipa:DataBreachIncident ;
     pipa:affectsPersonalInformation sc:Actual_EmailAddress ;
+    pipa:triggersNotificationObligation sc:NotificationObligation_B24 ;
     pipa:hasNotificationNotice sc:Notice_B24 ;
     pipa:hasResponseMeasure sc:ControllerResponse,
         sc:Guidance,

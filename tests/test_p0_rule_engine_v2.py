@@ -6,6 +6,7 @@ from app.rules.engine import P0RuleEngine
 
 BASE = Path(__file__).resolve().parent
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
+TEST = Namespace("https://example.org/pipa-test/metadata#")
 
 
 def load(name: str) -> Graph:
@@ -52,7 +53,7 @@ def test_sc_p02_expected_freeze_results():
         "P2-R08": "GREEN",
     }
     p2_r01 = next(item for item in results if item.rule_id == "P2-R01")
-    assert any("does not define" in note for note in p2_r01.implementation_notes)
+    assert any("requires triggersNotificationObligation" in note for note in p2_r01.implementation_notes)
 
 
 def test_sc_d01_expected_freeze_results():
@@ -345,3 +346,63 @@ def test_p2_r02_unknown_item_name_does_not_compare_as_green():
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
     assert result.status.value == "AMBER"
+
+
+def test_p2_r01_requires_notification_obligation_fact():
+    ex = Namespace("https://example.org/p2r01-obligation#")
+    graph = Graph()
+    incident = ex.incident
+    notice = ex.notice
+    item = ex.item
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, item))
+    graph.add((incident, PIPA.hasNotificationNotice, notice))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
+    assert result.status.value == "AMBER"
+    assert result.applicability.value == "TRUE"
+    assert any("triggersNotificationObligation" in fact for fact in result.uncertain_facts)
+
+
+def test_p2_r01_is_green_when_all_three_required_facts_exist():
+    ex = Namespace("https://example.org/p2r01-complete#")
+    graph = Graph()
+    incident = ex.incident
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+    graph.add((incident, PIPA.triggersNotificationObligation, ex.obligation))
+    graph.add((incident, PIPA.hasNotificationNotice, ex.notice))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
+    assert result.status.value == "GREEN"
+
+
+def test_p2_r02_missing_notice_is_amber_without_explicit_false():
+    ex = Namespace("https://example.org/p2r02-no-notice#")
+    graph = Graph()
+    incident = ex.incident
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
+    assert result.status.value == "AMBER"
+    assert result.applicability.value == "UNKNOWN"
+
+
+def test_p2_r03_missing_notice_is_amber_without_explicit_false():
+    graph = Graph()
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
+    assert result.status.value == "AMBER"
+    assert result.applicability.value == "UNKNOWN"
+
+
+def test_p2_r03_explicit_no_notice_can_be_not_applicable():
+    ex = Namespace("https://example.org/p2r03-explicit-none#")
+    graph = Graph()
+    controller = ex.controller
+    graph.add((controller, RDF.type, PIPA.PersonalInformationController))
+    graph.add((controller, TEST.notificationNoticeState, Literal("confirmed_false")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
+    assert result.status.value == "N/A"
+    assert result.applicability.value == "FALSE"
