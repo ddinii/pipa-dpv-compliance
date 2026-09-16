@@ -444,3 +444,20 @@ def test_p3_r11_unknown_task_is_amber():
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
     assert result.status.value == "AMBER"
+
+
+def test_p3_r08_unknown_destruction_method_is_amber():
+    ex = Namespace("https://example.org/p3r08-unknown#")
+    graph = Graph()
+    retention = ex.retention
+    end = ex.end
+    destruction = ex.destruction
+    graph.add((retention, RDF.type, PIPA.Retention))
+    graph.add((end, RDF.type, PIPA.RetentionEndCondition))
+    graph.add((destruction, RDF.type, PIPA.Destruction))
+    graph.add((retention, PIPA.hasRetentionEndCondition, end))
+    graph.add((end, PIPA.triggersDestruction, destruction))
+    graph.add((destruction, PIPA.hasDestructionMethod, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R08")
+    assert result.status.value == "AMBER"

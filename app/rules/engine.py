@@ -1753,7 +1753,11 @@ class P0RuleEngine:
                     )
                 )
                 continue
-            methods = [method for destruction in destructions for method in self._objects(graph, destruction, PIPA.hasDestructionMethod)]
+            methods = [
+                method
+                for destruction in destructions
+                for method in self._nonempty_values(graph, destruction, PIPA.hasDestructionMethod)
+            ]
             for destruction in destructions:
                 evidence += self._assertion_evidence(graph, destruction, PIPA.hasDestructionMethod)
             if methods:
