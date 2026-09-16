@@ -272,3 +272,76 @@ def test_rule_metadata_legal_basis_matches_frozen_spec():
     engine = P0RuleEngine()
     for metadata in engine.metadata.values():
         assert metadata.legal_basis == metadata.source_spec_legal_basis
+
+
+def test_p1_r04_unknown_destruction_method_is_amber():
+    ex = Namespace("https://example.org/p1r04-unknown#")
+    graph = Graph()
+    destruction = ex.destruction
+    graph.add((destruction, RDF.type, PIPA.Destruction))
+    graph.add((destruction, PIPA.hasDestructionMethod, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R04")
+    assert result.status.value == "AMBER"
+
+
+def test_p1_r06_unknown_task_or_processor_name_is_amber():
+    ex = Namespace("https://example.org/p1r06-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    processor = ex.processor
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((processor, PIPA.hasName, Literal("UNKNOWN")))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R06")
+    assert result.status.value == "AMBER"
+
+
+def test_p3_r05_unknown_design_rationale_is_amber():
+    ex = Namespace("https://example.org/p3r05-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    item = ex.item
+    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
+    graph.add((activity, PIPA.hasPersonalInformation, item))
+    graph.add((item, PIPA.hasItemName, Literal("이메일")))
+    graph.add((item, PIPA.isRequired, Literal(True)))
+    graph.add((item, PIPA.designRationale, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R05")
+    assert result.status.value == "AMBER"
+
+
+def test_p3_r05_unknown_required_flag_is_amber():
+    ex = Namespace("https://example.org/p3r05-flag-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    item = ex.item
+    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
+    graph.add((activity, PIPA.hasPersonalInformation, item))
+    graph.add((item, PIPA.hasItemName, Literal("이메일")))
+    graph.add((item, PIPA.isRequired, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R05")
+    assert result.status.value == "AMBER"
+
+
+def test_p2_r02_unknown_item_name_does_not_compare_as_green():
+    ex = Namespace("https://example.org/p2r02-item-unknown#")
+    graph = Graph()
+    incident = ex.incident
+    notice = ex.notice
+    actual = ex.actual
+    mentioned = ex.mentioned
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, actual))
+    graph.add((incident, PIPA.hasNotificationNotice, notice))
+    graph.add((notice, RDF.type, PIPA.NotificationNotice))
+    graph.add((notice, PIPA.mentionsPersonalInformation, mentioned))
+    graph.add((actual, PIPA.hasItemName, Literal("UNKNOWN")))
+    graph.add((mentioned, PIPA.hasItemName, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
+    assert result.status.value == "AMBER"
