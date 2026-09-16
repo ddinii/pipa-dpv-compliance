@@ -86,6 +86,8 @@ def check_p02(graph, errors):
     print("\n[SC-P02 개인정보 침해사고 통지 요건 검토 지원]")
     incident = P02.Incident_B24
     notice = P02.Notice_B24
+    obligation = values(graph, incident, PIPA.triggersNotificationObligation)
+    require(bool(obligation), "P2-R01: 통지의무 Fact가 연결됨", errors)
     linked_notice = notice in values(graph, incident, PIPA.hasNotificationNotice)
     require(linked_notice, "P2-R01: 사고에 별도 NotificationNotice가 연결됨", errors)
 
