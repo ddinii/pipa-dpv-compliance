@@ -406,3 +406,41 @@ def test_p2_r03_explicit_no_notice_can_be_not_applicable():
     result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
     assert result.status.value == "N/A"
     assert result.applicability.value == "FALSE"
+
+
+def test_p3_r11_does_not_require_processor_name():
+    ex = Namespace("https://example.org/p3r11-no-name#")
+    graph = Graph()
+    activity = ex.activity
+    processor = ex.processor
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("고객 문의 처리")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
+    assert result.status.value == "GREEN"
+
+
+def test_p1_r06_still_requires_processor_name():
+    ex = Namespace("https://example.org/p1r06-no-name#")
+    graph = Graph()
+    activity = ex.activity
+    processor = ex.processor
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("고객 문의 처리")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R06")
+    assert result.status.value == "RED"
+
+
+def test_p3_r11_unknown_task_is_amber():
+    ex = Namespace("https://example.org/p3r11-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, ex.processor))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
+    assert result.status.value == "AMBER"
