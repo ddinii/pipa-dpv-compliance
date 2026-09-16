@@ -1,3 +1,11 @@
+# Legacy Document Notice
+
+> 이 문서는 초기 Article 17 SHACL 프로토타입용 임시 명세입니다. 현재 P0 구현 기준은 `PIPA Rule Specification v1.0 (Freeze)`의 18개 Rule이며, 개발용 요약은 [`P0_RULE_MATRIX.md`](P0_RULE_MATRIX.md)를 참고하세요.
+>
+> 이 파일의 내용은 삭제하지 않고 legacy 흐름 추적용으로 보존합니다.
+
+---
+
 # Temporary Specification
 
 ## 1. 구현 목적
