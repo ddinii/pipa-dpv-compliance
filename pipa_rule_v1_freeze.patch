@@ -1,0 +1,1492 @@
+diff --git a/README.md b/README.md
+index 4c6e0cb..2751c6e 100644
+--- a/README.md
++++ b/README.md
+@@ -1,211 +1,191 @@
+ # PIPA-DPV Compliance Prototype
+ 
+-개인정보 처리 사실을 공통 데이터 모델로 변환하고,
+-RDF 및 SHACL을 이용하여 개인정보 보호법 관련 규칙을 검증하는 프로토타입입니다.
++개인정보보호법(PIPA) 관련 사실을 RDF로 구조화하고, frozen ontology와 결정론적 Machine-Readable Rule을 이용해 컴플라이언스 요건의 **기계판독 가능 여부**를 점검하는 프로토타입입니다.
+ 
+-현재 구현 범위는 개인정보 보호법 제17조의 동의 기반 제3자 제공 규칙입니다.
++> GREEN/AMBER/RED는 법률 위반 또는 적법성의 최종 판단이 아닙니다. 입력 문서·사고 사실·설계정보에서 v1.0 Rule이 요구하는 Fact가 확인되는지를 나타냅니다.
+ 
+-## Architecture
++## Current Scope
+ 
+-```text
+-JSON Input
+-    ↓
+-ProcessingFact
+-    ↓
+-RDF Graph
+-    ↓
+-SHACL Rules
+-    ↓
+-pySHACL Validation
+-    ↓
+-Result Builder
+-    ↓
+-FastAPI Response
+-```
++현재 P0 Rule Engine은 **18개 Rule**을 구현합니다.
++
++- PoC1 개인정보 처리방침 준수점검: 6개
++- PoC2 침해사고 통지 요건 검토 지원: 4개
++- PoC3 Privacy-by-Design 개발지원: 8개
++
++Rule 요약은 [`docs/P0_RULE_MATRIX.md`](docs/P0_RULE_MATRIX.md)에서 빠르게 볼 수 있습니다.
++
++### Status
++
++- `GREEN`: Applicability=TRUE이고 필수 Fact가 명시적으로 확인됨
++- `AMBER`: Applicability 또는 필수 Fact가 UNKNOWN/모호하여 자동 확정 불가
++- `RED`: Applicability=TRUE이고 필수 Fact의 명시적 부재 또는 금지조건이 확인됨
++- `N/A`: Applicability=FALSE가 명시적으로 확인됨. 단순 결측/미추출은 N/A가 아님
+ 
+-## Current Rule
++동일 Rule 대상 인스턴스가 여러 개면 인스턴스별 결과를 유지하고 대표 상태는 `RED > AMBER > GREEN` 순으로 요약합니다.
+ 
+-현재 구현된 대표 규칙:
++## P0 Rule Engine Architecture
+ 
+ ```text
+-PIPA-17-CONSENT-001
++RDF Facts
++   ↓
++PIPA_Ontology_v1.0.ttl
++   +
++rules/p0_rules.json
++   ↓
++app.rules.P0RuleEngine
++   ↓
++RuleResult
++(GREEN / AMBER / RED / N/A + evidence + legal basis)
+ ```
+ 
+-적용 조건:
++핵심 파일:
+ 
+ ```text
+-processingType = ThirdPartyTransfer
+-legalBasis = Consent
++app/rules/
++├─ engine.py       # P0 18개 결정론적 Rule 판정
++├─ models.py       # RuleResult / Evidence / Status
++├─ metadata.py     # rules/p0_rules.json 로딩
++└─ cli.py          # Turtle RDF CLI 실행
++
++rules/
++├─ p0_rules.json   # P0 Rule metadata
++└─ article17_consent.ttl  # legacy SHACL prototype
++
++ontology/
++├─ PIPA_Ontology_v1.0.ttl # frozen P0 ontology
++└─ pipa-dpv.ttl           # legacy prototype ontology
++
++tests/
++├─ test_p0_rule_engine_v2.py
++├─ SC-P01_FINAL_Protege.ttl
++├─ SC-P02_FINAL_Protege.ttl
++├─ SC-D01_FINAL_Protege.ttl
++└─ validate_final_scenarios.py
+ ```
+ 
+-검사 항목:
++## Important Implementation Notes
+ 
+-- 제공받는 자
+-- 제공 목적
+-- 제공 개인정보 항목
+-- 보유 및 이용 기간
+-- 동의 거부 권리 및 불이익 관련 고지
++### P2-R03
+ 
+-근거 조항:
++통지문에 기재된 유출등 시점인 `noticeIncidentTime`과 실제 사고의 `incidentDate`는 분리합니다. 실제 사고시각만 존재하는 경우 P2-R03을 GREEN으로 처리하지 않습니다.
++
++### P2-R08
++
++`IncidentResponseMeasure`의 `measureRole`은 다음 4개 역할을 구분합니다.
+ 
+ ```text
+-개인정보 보호법 제17조제1항제1호 및 제2항
++data_subject_guidance
++controller_response
++remedy_procedure
++post_incident_mitigation
+ ```
+ 
+-## Validation Status
+-
+-### PASS
++P0 v1.0 Freeze에서 GREEN은 4개 역할이 모두 확인되는 경우입니다.
+ 
+-현재 구현된 형식적 검사 항목을 충족한 상태입니다.
++### P2-R01 ontology compatibility
+ 
+-최종적인 법률상 적법성을 의미하지 않습니다.
++v1.0 Rule Specification은 `NotificationObligation / triggersNotificationObligation`을 참조하지만 frozen `PIPA_Ontology_v1.0.ttl`에는 해당 term이 없습니다.
+ 
+-### FAIL
++따라서 현재 엔진은 ontology를 임의 변경하지 않고 `DataBreachIncident + affectsPersonalInformation`을 compatibility signal로 사용하며, 결과의 `implementation_notes`에 이 차이를 남깁니다.
+ 
+-명확한 위반 규칙을 위해 예약된 상태입니다.
++## Setup
+ 
+-현재 프로토타입에서는 사용하지 않습니다.
++PowerShell:
+ 
+-### NEEDS_INFORMATION
++```powershell
++python -m venv .venv
++.\.venv\Scripts\Activate.ps1
++python -m pip install --upgrade pip
++python -m pip install -r requirements.txt
++```
+ 
+-검증에 필요한 정보가 누락된 상태입니다.
++## Run P0 Rules
+ 
+-### HUMAN_REVIEW_REQUIRED
++PoC1:
+ 
+-현재 구현된 규칙만으로 판단할 수 없는 상태입니다.
++```powershell
++python -m app.rules.cli tests\SC-P01_FINAL_Protege.ttl --poc poc1
++```
+ 
+-## Project Structure
++PoC2:
+ 
+-```text
+-pipa-dpv-compliance/
+-├── app/
+-│   ├── api/
+-│   │   └── validate.py
+-│   ├── core/
+-│   │   └── config.py
+-│   ├── models/
+-│   │   ├── request.py
+-│   │   └── response.py
+-│   ├── services/
+-│   │   ├── rdf_mapper.py
+-│   │   ├── rule_loader.py
+-│   │   ├── validator.py
+-│   │   └── result_builder.py
+-│   └── main.py
+-├── ontology/
+-│   └── pipa-dpv.ttl
+-├── rules/
+-│   └── article17_consent.ttl
+-├── examples/
+-│   ├── article17_pass.json
+-│   ├── article17_missing.json
+-│   └── article17_review.json
+-├── tests/
+-│   ├── test_mapper.py
+-│   └── test_validator.py
+-├── docs/
+-│   └── temporary_spec.md
+-├── requirements.txt
+-└── README.md
++```powershell
++python -m app.rules.cli tests\SC-P02_FINAL_Protege.ttl --poc poc2
+ ```
+ 
+-## Setup
+-
+-가상환경 생성:
++PoC3:
+ 
+ ```powershell
+-python -m venv .venv
++python -m app.rules.cli tests\SC-D01_FINAL_Protege.ttl --poc poc3
+ ```
+ 
+-가상환경 활성화:
++전체 18개 Rule:
+ 
+ ```powershell
+-.\.venv\Scripts\Activate.ps1
++python -m app.rules.cli tests\SC-D01_FINAL_Protege.ttl
+ ```
+ 
+-패키지 설치:
++## Test
++
++P0 Rule Engine만 빠르게 확인:
+ 
+ ```powershell
+-pip install -r requirements.txt
++python -m pytest -q tests\test_p0_rule_engine_v2.py
+ ```
+ 
+-## Run
++전체 테스트:
+ 
+ ```powershell
+-uvicorn app.main:app --reload
++python -m pytest -q
+ ```
+ 
+-Swagger UI:
++Freeze 시나리오 구조 검증:
+ 
+-```text
+-http://127.0.0.1:8000/docs
++```powershell
++python tests\validate_final_scenarios.py
+ ```
+ 
+-Health Check:
++Windows batch 파일:
+ 
+-```text
+-GET /health
++```powershell
++.\tests\run_validation_windows.bat
+ ```
+ 
+-Validation API:
++## Legacy FastAPI / SHACL Prototype
++
++현재 저장소에는 초기 Article 17 SHACL 프로토타입도 남아 있습니다.
+ 
+ ```text
+ POST /api/v1/validate
+ ```
+ 
+-## Example Request
+-
+-```json
+-{
+-  "processingType": "ThirdPartyTransfer",
+-  "personalData": [
+-    "EmailAddress"
+-  ],
+-  "purpose": "Advertising",
+-  "recipient": "외부 광고업체",
+-  "recipientRole": "ThirdParty",
+-  "legalBasis": "Consent",
+-  "retentionPeriod": "1년",
+-  "noticeItems": [
+-    "recipient",
+-    "purpose",
+-    "personalData",
+-    "retentionPeriod",
+-    "refusalRight"
+-  ]
+-}
+-```
++이 endpoint는 현재 `app/services/validator.py`와 `rules/article17_consent.ttl`을 사용하는 **legacy SHACL flow**입니다. 위의 P0 18-rule `P0RuleEngine`과 동일한 실행 경로가 아닙니다.
+ 
+-## Example Response
+-
+-```json
+-{
+-  "status": "PASS",
+-  "appliedRules": [
+-    {
+-      "ruleId": "PIPA-17-CONSENT-001",
+-      "legalBasis": "개인정보 보호법 제17조제1항제1호 및 제2항"
+-    }
+-  ],
+-  "missingInformation": [],
+-  "humanReviewRequired": false
+-}
++Legacy API 실행:
++
++```powershell
++uvicorn app.main:app --reload
+ ```
+ 
+-## Test
++Swagger UI:
+ 
+-```powershell
+-python -m pytest -q
++```text
++http://127.0.0.1:8000/docs
+ ```
+ 
+-현재 테스트 시나리오:
++## Rule Metadata
++
++`rules/p0_rules.json`에서 다음 metadata를 관리합니다.
++
++- Rule ID / PoC / version
++- applicability
++- legal basis
++- source-spec legal basis
++- ontology terms
++- implementation notes
+ 
+-- RDF 변환
+-- Article 17 PASS
+-- Article 17 NEEDS_INFORMATION
+-- 미구현 규칙 HUMAN_REVIEW_REQUIRED
++일부 조문 번호는 Freeze 문서 작성 후 재확인된 법률 metadata와 차이가 있을 수 있으므로 `source_spec_legal_basis`를 별도로 보존합니다.
+ 
+ ## Disclaimer
+ 
+-본 프로젝트의 `PASS` 결과는 현재 구현된 규칙의 형식적 검사 항목을 충족했다는 의미이며,
+-최종적인 법률상 적법성 판단을 의미하지 않습니다.
+\ No newline at end of file
++본 프로젝트의 Rule 결과는 **입력상 기계판독 가능한 요건의 확인 여부**를 나타냅니다. GREEN은 전체 법적 준수 인증이 아니며 RED 역시 법 위반 확정을 의미하지 않습니다. 최종 법적 판단은 별도의 사람 검토가 필요합니다.
+diff --git a/app/rules/engine.py b/app/rules/engine.py
+index e6221e0..20c7bf2 100644
+--- a/app/rules/engine.py
++++ b/app/rules/engine.py
+@@ -145,6 +145,49 @@ class P0RuleEngine:
+     def _objects(self, graph: Graph, subject: Node, predicate: URIRef) -> list[Node]:
+         return sorted(set(graph.objects(subject, predicate)), key=str)
+ 
++    def _nonempty_values(self, graph: Graph, subject: Node, predicate: URIRef) -> list[Node]:
++        values: list[Node] = []
++        for value in self._objects(graph, subject, predicate):
++            if isinstance(value, Literal):
++                text = str(value).strip()
++                if not text or text.lower() in {"unknown", "null", "none"}:
++                    continue
++            values.append(value)
++        return values
++
++    def _class_is_subclass_of(self, graph: Graph, child: URIRef, parent: URIRef) -> bool:
++        frontier: list[URIRef] = [child]
++        seen: set[URIRef] = set()
++        while frontier:
++            current = frontier.pop()
++            if current in seen:
++                continue
++            seen.add(current)
++            if current == parent:
++                return True
++            frontier.extend(
++                candidate
++                for candidate in graph.objects(current, RDFS.subClassOf)
++                if isinstance(candidate, URIRef)
++            )
++        return False
++
++    def _is_instance_of(self, graph: Graph, node: Node, target_class: URIRef) -> bool:
++        for node_type in graph.objects(node, RDF.type):
++            if node_type == target_class:
++                return True
++            if isinstance(node_type, URIRef) and self._class_is_subclass_of(graph, node_type, target_class):
++                return True
++        return False
++
++    def _has_specific_legal_basis_type(self, graph: Graph, basis: Node) -> bool:
++        for basis_type in graph.objects(basis, RDF.type):
++            if not isinstance(basis_type, URIRef) or basis_type == PIPA.LegalBasis:
++                continue
++            if self._class_is_subclass_of(graph, basis_type, PIPA.LegalBasis):
++                return True
++        return False
++
+     def _source_evidence(self, graph: Graph, subject: Node) -> list[Evidence]:
+         evidence: list[Evidence] = []
+         for value in graph.objects(subject, PIPA.hasSourceEvidence):
+@@ -401,14 +444,18 @@ class P0RuleEngine:
+                 matched.append(self._fact_key(retention, PIPA.hasRetentionPeriod))
+                 evidence.extend(self._assertion_evidence(graph, retention, PIPA.hasRetentionPeriod))
+                 for period in periods:
+-                    if self._objects(graph, period, PIPA.hasDurationValue):
++                    evidence.extend(self._assertion_evidence(graph, period, PIPA.hasDurationValue))
++                    if self._nonempty_values(graph, period, PIPA.hasDurationValue):
+                         matched.append(self._fact_key(period, PIPA.hasDurationValue))
+-                        evidence.extend(self._assertion_evidence(graph, period, PIPA.hasDurationValue))
+                         return True, self._dedupe_evidence(evidence), matched
+             if ends:
+                 matched.append(self._fact_key(retention, PIPA.hasRetentionEndCondition))
+                 evidence.extend(self._assertion_evidence(graph, retention, PIPA.hasRetentionEndCondition))
+-                return True, self._dedupe_evidence(evidence), matched
++                for end in ends:
++                    evidence.extend(self._assertion_evidence(graph, end, PIPA.hasEndConditionDescription))
++                    if self._nonempty_values(graph, end, PIPA.hasEndConditionDescription):
++                        matched.append(self._fact_key(end, PIPA.hasEndConditionDescription))
++                        return True, self._dedupe_evidence(evidence), matched
+         return False, self._dedupe_evidence(evidence), matched
+ 
+     def _p1_r02(self, graph: Graph) -> list[InstanceRuleResult]:
+@@ -617,20 +664,48 @@ class P0RuleEngine:
+                     recommendation="권리 종류와 행사 방법·절차를 명시하세요.",
+                 )
+             ]
++
+         results = []
+         for subject in subjects:
+             rights = self._objects(graph, subject, PIPA.hasRight)
+-            procedures = [procedure for right in rights for procedure in self._objects(graph, right, PIPA.hasExerciseProcedure)]
+-            descriptions = [
+-                value for procedure in procedures for value in self._objects(graph, procedure, PIPA.hasProcedureDescription)
+-            ]
+-            complete = bool(rights) and len(procedures) >= len(rights) and bool(descriptions)
+             evidence = self._assertion_evidence(graph, subject, PIPA.hasRight)
++
++            if not rights:
++                results.append(
++                    InstanceRuleResult(
++                        instance_id=str(subject),
++                        status=RuleStatus.RED,
++                        applicability=Applicability.TRUE,
++                        missing_facts=[self._fact_key(subject, PIPA.hasRight)],
++                        evidence=[self._absence_evidence(subject, "hasRight", "권리행사 정보 미기재")],
++                        reason="권리행사 방법·절차가 확인되지 않습니다.",
++                        recommendation="권리 종류와 행사 방법을 명시하세요.",
++                    )
++                )
++                continue
++
++            rights_with_procedure = 0
++            complete_rights = 0
++            incomplete_rights: list[Node] = []
++
+             for right in rights:
++                procedures = self._objects(graph, right, PIPA.hasExerciseProcedure)
+                 evidence += self._assertion_evidence(graph, right, PIPA.hasExerciseProcedure)
+-            for procedure in procedures:
+-                evidence += self._assertion_evidence(graph, procedure, PIPA.hasProcedureDescription)
+-            if complete:
++                if procedures:
++                    rights_with_procedure += 1
++
++                described = False
++                for procedure in procedures:
++                    evidence += self._assertion_evidence(graph, procedure, PIPA.hasProcedureDescription)
++                    if self._nonempty_values(graph, procedure, PIPA.hasProcedureDescription):
++                        described = True
++
++                if described:
++                    complete_rights += 1
++                else:
++                    incomplete_rights.append(right)
++
++            if complete_rights == len(rights):
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(subject),
+@@ -645,28 +720,40 @@ class P0RuleEngine:
+                         recommendation="현재 권리행사 안내를 유지하세요.",
+                     )
+                 )
+-            elif rights or procedures:
++            elif rights_with_procedure == 0:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(subject),
+-                        status=RuleStatus.AMBER,
++                        status=RuleStatus.RED,
+                         applicability=Applicability.TRUE,
+-                        uncertain_facts=["DataSubjectRight.hasExerciseProcedure"],
+-                        evidence=self._dedupe_evidence(evidence) or [self._absence_evidence(subject, "hasExerciseProcedure", "일부 권리/절차 연결이 불완전")],
+-                        reason="권리 또는 절차가 일부만 확인됩니다.",
+-                        recommendation="모든 권리에 행사 방법·절차를 연결하세요.",
++                        matched_facts=[self._fact_key(subject, PIPA.hasRight)],
++                        missing_facts=[self._fact_key(right, PIPA.hasExerciseProcedure) for right in rights],
++                        evidence=self._dedupe_evidence(evidence) + [
++                            self._absence_evidence(right, "hasExerciseProcedure", "권리는 있으나 행사 방법·절차가 없음")
++                            for right in rights
++                        ],
++                        reason="권리는 확인되지만 행사 방법·절차가 확인되지 않습니다.",
++                        recommendation="각 권리에 행사 방법·절차를 연결하세요.",
+                     )
+                 )
+             else:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(subject),
+-                        status=RuleStatus.RED,
++                        status=RuleStatus.AMBER,
+                         applicability=Applicability.TRUE,
+-                        missing_facts=[self._fact_key(subject, PIPA.hasRight)],
+-                        evidence=[self._absence_evidence(subject, "hasRight", "권리행사 정보 미기재")],
+-                        reason="권리행사 방법·절차가 확인되지 않습니다.",
+-                        recommendation="권리 종류와 행사 방법을 명시하세요.",
++                        matched_facts=[self._fact_key(subject, PIPA.hasRight)],
++                        uncertain_facts=[self._fact_key(right, PIPA.hasExerciseProcedure) for right in incomplete_rights],
++                        evidence=self._dedupe_evidence(evidence) + [
++                            self._absence_evidence(
++                                right,
++                                "hasExerciseProcedure/hasProcedureDescription",
++                                "일부 권리의 절차가 누락되거나 모호함",
++                            )
++                            for right in incomplete_rights
++                        ],
++                        reason="일부 권리의 행사 방법·절차만 확인되거나 내용이 모호합니다.",
++                        recommendation="모든 권리에 구체적인 행사 방법·절차를 연결하세요.",
+                     )
+                 )
+         return results
+@@ -852,12 +939,16 @@ class P0RuleEngine:
+                     recommendation="P2-R01 결과를 확인하세요.",
+                 )
+             ]
++
+         results = []
+         for notice in notices:
+-            notice_time = self._objects(graph, notice, PIPA.noticeIncidentTime)
+-            circumstances = self._objects(graph, notice, PIPA.hasIncidentCircumstances)
++            raw_notice_time = self._objects(graph, notice, PIPA.noticeIncidentTime)
++            raw_circumstances = self._objects(graph, notice, PIPA.hasIncidentCircumstances)
++            notice_time = self._nonempty_values(graph, notice, PIPA.noticeIncidentTime)
++            circumstances = self._nonempty_values(graph, notice, PIPA.hasIncidentCircumstances)
+             evidence = self._assertion_evidence(graph, notice, PIPA.noticeIncidentTime)
+             evidence += self._assertion_evidence(graph, notice, PIPA.hasIncidentCircumstances)
++
+             if notice_time and circumstances:
+                 results.append(
+                     InstanceRuleResult(
+@@ -873,35 +964,54 @@ class P0RuleEngine:
+                         recommendation="실제 incidentDate와 통지문 기재시점의 분리를 유지하세요.",
+                     )
+                 )
+-            elif notice_time or circumstances:
+-                missing = "hasIncidentCircumstances" if notice_time else "noticeIncidentTime"
++                continue
++
++            missing_predicates: list[URIRef] = []
++            if not raw_notice_time:
++                missing_predicates.append(PIPA.noticeIncidentTime)
++            if not raw_circumstances:
++                missing_predicates.append(PIPA.hasIncidentCircumstances)
++
++            if missing_predicates:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(notice),
+-                        status=RuleStatus.AMBER,
++                        status=RuleStatus.RED,
+                         applicability=Applicability.TRUE,
+-                        uncertain_facts=[self._fact_key(notice, missing)],
+-                        evidence=self._dedupe_evidence(evidence) + [self._absence_evidence(notice, missing, "통지문 시점·경위 중 하나가 불완전")],
+-                        reason="통지문 시점 또는 경위 중 하나만 확인됩니다.",
+-                        recommendation="통지문에 유출등 시점과 경위를 모두 명시하세요.",
++                        matched_facts=[
++                            self._fact_key(notice, predicate)
++                            for predicate in (PIPA.noticeIncidentTime, PIPA.hasIncidentCircumstances)
++                            if predicate not in missing_predicates
++                        ],
++                        missing_facts=[self._fact_key(notice, predicate) for predicate in missing_predicates],
++                        evidence=self._dedupe_evidence(evidence) + [
++                            self._absence_evidence(
++                                notice,
++                                _local_name(predicate),
++                                "통지문 필수 기재사항이 명시적으로 부재",
++                            )
++                            for predicate in missing_predicates
++                        ],
++                        reason="통지문에서 유출등 시점 또는 경위 중 하나 이상을 확인하지 못했습니다.",
++                        recommendation="통지문에 유출등 시점과 경위를 모두 기재하세요.",
+                     )
+                 )
+             else:
++                uncertain_predicates: list[URIRef] = []
++                if not notice_time:
++                    uncertain_predicates.append(PIPA.noticeIncidentTime)
++                if not circumstances:
++                    uncertain_predicates.append(PIPA.hasIncidentCircumstances)
++
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(notice),
+-                        status=RuleStatus.RED,
++                        status=RuleStatus.AMBER,
+                         applicability=Applicability.TRUE,
+-                        missing_facts=[
+-                            self._fact_key(notice, PIPA.noticeIncidentTime),
+-                            self._fact_key(notice, PIPA.hasIncidentCircumstances),
+-                        ],
+-                        evidence=[
+-                            self._absence_evidence(notice, "noticeIncidentTime", "통지문 기재 시점 없음"),
+-                            self._absence_evidence(notice, "hasIncidentCircumstances", "통지문 기재 경위 없음"),
+-                        ],
+-                        reason="통지문 자체에서 유출등 시점과 경위를 확인하지 못했습니다.",
+-                        recommendation="통지문에 유출등 시점과 경위를 기재하세요.",
++                        uncertain_facts=[self._fact_key(notice, predicate) for predicate in uncertain_predicates],
++                        evidence=self._dedupe_evidence(evidence),
++                        reason="통지문 시점 또는 경위 값이 UNKNOWN/모호하여 자동 확정할 수 없습니다.",
++                        recommendation="통지문에 유출등 시점과 경위를 구체적으로 명시하세요.",
+                     )
+                 )
+         return results
+@@ -910,6 +1020,7 @@ class P0RuleEngine:
+         incidents = self._instances(graph, PIPA.DataBreachIncident)
+         if not incidents:
+             return self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
++
+         required_roles = {
+             "data_subject_guidance",
+             "controller_response",
+@@ -921,13 +1032,18 @@ class P0RuleEngine:
+             measures = self._objects(graph, incident, PIPA.hasResponseMeasure)
+             role_map: dict[str, list[Node]] = {}
+             evidence = self._assertion_evidence(graph, incident, PIPA.hasResponseMeasure)
++
+             for measure in measures:
+                 evidence += self._source_evidence(graph, measure)
+-                for role_value in self._objects(graph, measure, PIPA.measureRole):
+-                    role_map.setdefault(str(role_value), []).append(measure)
++                for role_value in self._nonempty_values(graph, measure, PIPA.measureRole):
++                    role = str(role_value).strip()
++                    role_map.setdefault(role, []).append(measure)
+                     evidence += self._assertion_evidence(graph, measure, PIPA.measureRole)
++
+             found_roles = set(role_map)
+-            if found_roles == required_roles:
++            confirmed_required_roles = required_roles & found_roles
++
++            if required_roles.issubset(found_roles):
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(incident),
+@@ -939,19 +1055,20 @@ class P0RuleEngine:
+                         recommendation="역할별 대응정보와 원문 근거를 유지하세요.",
+                     )
+                 )
+-            elif found_roles:
+-                missing_roles = sorted(required_roles - found_roles)
++            elif measures:
++                missing_roles = sorted(required_roles - confirmed_required_roles)
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(incident),
+                         status=RuleStatus.AMBER,
+                         applicability=Applicability.TRUE,
+-                        matched_facts=[f"measure_role:{role}" for role in sorted(found_roles)],
++                        matched_facts=[f"measure_role:{role}" for role in sorted(confirmed_required_roles)],
+                         uncertain_facts=[f"measure_role:{role}" for role in missing_roles],
+                         evidence=self._dedupe_evidence(evidence) + [
+-                            self._absence_evidence(incident, "measureRole", f"미확인 역할: {role}") for role in missing_roles
++                            self._absence_evidence(incident, "measureRole", f"미확인 역할: {role}")
++                            for role in missing_roles
+                         ],
+-                        reason="대응정보의 일부 역할만 확인됩니다.",
++                        reason="대응정보는 존재하지만 필수 4개 역할 중 일부가 누락되거나 역할 분류가 모호합니다.",
+                         recommendation="정보주체 안내, 처리자 대응, 피해구제절차, 사고 후 피해 최소화 조치를 각각 구분해 명시하세요.",
+                     )
+                 )
+@@ -977,49 +1094,69 @@ class P0RuleEngine:
+         return self._instances(graph, PIPA.CollectionAndUse)
+ 
+     def _is_consent_basis(self, graph: Graph, basis: Node) -> bool:
+-        if (basis, RDF.type, PIPA.Consent) in graph:
+-            return True
+-        basis_types = set(graph.objects(basis, RDF.type))
+-        return PIPA.Consent in basis_types
++        return self._is_instance_of(graph, basis, PIPA.Consent)
+ 
+     def _consent_applicability(self, graph: Graph, activity: Node) -> tuple[Applicability, list[Node]]:
+         bases = self._objects(graph, activity, PIPA.hasLegalBasis)
+         if not bases:
+             return Applicability.UNKNOWN, []
++
+         consent_bases = [basis for basis in bases if self._is_consent_basis(graph, basis)]
+         if consent_bases:
+             return Applicability.TRUE, consent_bases
+-        return Applicability.FALSE, bases
++
++        if all(self._has_specific_legal_basis_type(graph, basis) for basis in bases):
++            return Applicability.FALSE, bases
++
++        return Applicability.UNKNOWN, bases
+ 
+     def _p3_r01(self, graph: Graph) -> list[InstanceRuleResult]:
+         activities = self._collection_activities(graph)
+         if not activities:
+             return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
++
+         results = []
+         for activity in activities:
+             bases = self._objects(graph, activity, PIPA.hasLegalBasis)
+-            if bases:
++            if not bases:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(activity),
+-                        status=RuleStatus.GREEN,
++                        status=RuleStatus.RED,
++                        applicability=Applicability.TRUE,
++                        missing_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
++                        evidence=[self._absence_evidence(activity, "hasLegalBasis", "법적근거 미지정")],
++                        reason="수집·이용 처리행위의 법적근거가 지정되지 않았습니다.",
++                        recommendation="해당 처리행위에 법적근거를 명시하세요.",
++                    )
++                )
++                continue
++
++            evidence = self._assertion_evidence(graph, activity, PIPA.hasLegalBasis)
++            unknown_bases = [basis for basis in bases if not self._has_specific_legal_basis_type(graph, basis)]
++            if unknown_bases:
++                results.append(
++                    InstanceRuleResult(
++                        instance_id=str(activity),
++                        status=RuleStatus.AMBER,
+                         applicability=Applicability.TRUE,
+                         matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
+-                        evidence=self._assertion_evidence(graph, activity, PIPA.hasLegalBasis),
+-                        reason="수집·이용 처리행위의 법적근거가 명시되어 있습니다.",
+-                        recommendation="법적근거와 원문 근거를 유지하세요.",
++                        uncertain_facts=[f"legal_basis_type:{_local_name(basis)}" for basis in unknown_bases],
++                        evidence=self._dedupe_evidence(evidence),
++                        reason="법적근거 연결은 있으나 근거 유형이 UNKNOWN/모호합니다.",
++                        recommendation="법적근거의 구체적인 유형을 명시하세요.",
+                     )
+                 )
+             else:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(activity),
+-                        status=RuleStatus.RED,
++                        status=RuleStatus.GREEN,
+                         applicability=Applicability.TRUE,
+-                        missing_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
+-                        evidence=[self._absence_evidence(activity, "hasLegalBasis", "법적근거 미지정")],
+-                        reason="수집·이용 처리행위의 법적근거가 지정되지 않았습니다.",
+-                        recommendation="해당 처리행위에 법적근거를 명시하세요.",
++                        matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
++                        evidence=self._dedupe_evidence(evidence),
++                        reason="수집·이용 처리행위의 법적근거 유형이 명시되어 있습니다.",
++                        recommendation="법적근거와 원문 근거를 유지하세요.",
+                     )
+                 )
+         return results
+@@ -1031,13 +1168,16 @@ class P0RuleEngine:
+         required_predicates: tuple[URIRef, ...],
+         title: str,
+         recommendation: str,
++        detail_requirements: tuple[tuple[URIRef, URIRef], ...] = (),
+     ) -> list[InstanceRuleResult]:
+         activities = self._collection_activities(graph)
+         if not activities:
+             return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
++
+         results = []
+         for activity in activities:
+-            applicability, bases = self._consent_applicability(graph, activity)
++            applicability, _ = self._consent_applicability(graph, activity)
++
+             if applicability == Applicability.FALSE:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1051,6 +1191,7 @@ class P0RuleEngine:
+                     )
+                 )
+                 continue
++
+             if applicability == Applicability.UNKNOWN:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1058,9 +1199,11 @@ class P0RuleEngine:
+                         status=RuleStatus.AMBER,
+                         applicability=Applicability.UNKNOWN,
+                         uncertain_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
+-                        evidence=[self._absence_evidence(activity, "hasLegalBasis", "동의 기반 여부를 확인할 수 없음")],
++                        evidence=self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) or [
++                            self._absence_evidence(activity, "hasLegalBasis", "동의 기반 여부를 확인할 수 없음")
++                        ],
+                         reason="동의 기반 처리 여부가 불명확합니다.",
+-                        recommendation="법적근거를 먼저 명시하세요.",
++                        recommendation="법적근거 유형을 먼저 명시하세요.",
+                     )
+                 )
+                 continue
+@@ -1069,42 +1212,82 @@ class P0RuleEngine:
+             evidence = self._assertion_evidence(graph, activity, PIPA.hasLegalBasis)
+             for predicate in required_predicates:
+                 evidence += self._assertion_evidence(graph, activity, predicate)
+-            if not missing:
++
++            if missing:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(activity),
+-                        status=RuleStatus.GREEN,
++                        status=RuleStatus.RED,
+                         applicability=Applicability.TRUE,
+                         matched_facts=[
+-                            self._fact_key(activity, PIPA.hasLegalBasis),
+-                            *[self._fact_key(activity, predicate) for predicate in required_predicates],
++                            self._fact_key(activity, predicate)
++                            for predicate in required_predicates
++                            if predicate not in missing
+                         ],
+-                        evidence=self._dedupe_evidence(evidence),
+-                        reason=f"동의 기반 처리의 {title} 요건이 구조화되어 있습니다.",
+-                        recommendation="현재 동의 설계 연결을 유지하세요.",
++                        missing_facts=[self._fact_key(activity, predicate) for predicate in missing],
++                        evidence=self._dedupe_evidence(evidence) + [
++                            self._absence_evidence(
++                                activity,
++                                _local_name(predicate),
++                                f"동의 기반 {title} 요건 누락",
++                            )
++                            for predicate in missing
++                        ],
++                        reason=f"동의 기반 처리의 {title} 요건이 누락되었습니다.",
++                        recommendation=recommendation,
+                     )
+                 )
+-            else:
++                continue
++
++            ambiguous: list[tuple[Node, URIRef]] = []
++            for relation, detail_predicate in detail_requirements:
++                for linked in self._objects(graph, activity, relation):
++                    evidence += self._assertion_evidence(graph, linked, detail_predicate)
++                    if not self._nonempty_values(graph, linked, detail_predicate):
++                        ambiguous.append((linked, detail_predicate))
++
++            if ambiguous:
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=str(activity),
+-                        status=RuleStatus.RED,
++                        status=RuleStatus.AMBER,
+                         applicability=Applicability.TRUE,
+-                        matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
+-                        missing_facts=[self._fact_key(activity, predicate) for predicate in missing],
++                        matched_facts=[self._fact_key(activity, predicate) for predicate in required_predicates],
++                        uncertain_facts=[self._fact_key(linked, predicate) for linked, predicate in ambiguous],
+                         evidence=self._dedupe_evidence(evidence) + [
+-                            self._absence_evidence(activity, _local_name(predicate), f"동의 기반 {title} 요건 누락") for predicate in missing
++                            self._absence_evidence(
++                                linked,
++                                _local_name(predicate),
++                                f"동의 기반 {title} 값이 포괄적이거나 모호함",
++                            )
++                            for linked, predicate in ambiguous
+                         ],
+-                        reason=f"동의 기반 처리의 {title} 요건이 누락되었습니다.",
++                        reason=f"동의 기반 처리의 {title} 연결은 있으나 구체 값이 모호합니다.",
+                         recommendation=recommendation,
+                     )
+                 )
++            else:
++                results.append(
++                    InstanceRuleResult(
++                        instance_id=str(activity),
++                        status=RuleStatus.GREEN,
++                        applicability=Applicability.TRUE,
++                        matched_facts=[
++                            self._fact_key(activity, PIPA.hasLegalBasis),
++                            *[self._fact_key(activity, predicate) for predicate in required_predicates],
++                        ],
++                        evidence=self._dedupe_evidence(evidence),
++                        reason=f"동의 기반 처리의 {title} 요건이 구조화되어 있습니다.",
++                        recommendation="현재 동의 설계 연결을 유지하세요.",
++                    )
++                )
+         return results
+ 
+     def _p3_r02(self, graph: Graph) -> list[InstanceRuleResult]:
+         return self._consent_rule(
+             graph,
+             required_predicates=(PIPA.hasConsentRequest, PIPA.hasPurpose),
++            detail_requirements=((PIPA.hasPurpose, PIPA.hasPurposeDescription),),
+             title="처리목적 고지 설계",
+             recommendation="ConsentRequest와 구체적 처리목적을 해당 CollectionAndUse에 연결하세요.",
+         )
+@@ -1113,6 +1296,7 @@ class P0RuleEngine:
+         return self._consent_rule(
+             graph,
+             required_predicates=(PIPA.hasConsentRequest, PIPA.hasPersonalInformation),
++            detail_requirements=((PIPA.hasPersonalInformation, PIPA.hasItemName),),
+             title="개인정보 항목 고지 설계",
+             recommendation="ConsentRequest와 구체적 개인정보 항목을 해당 CollectionAndUse에 연결하세요.",
+         )
+@@ -1121,9 +1305,11 @@ class P0RuleEngine:
+         activities = self._collection_activities(graph)
+         if not activities:
+             return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
++
+         results = []
+         for activity in activities:
+             applicability, _ = self._consent_applicability(graph, activity)
++
+             if applicability == Applicability.FALSE:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1137,6 +1323,7 @@ class P0RuleEngine:
+                     )
+                 )
+                 continue
++
+             if applicability == Applicability.UNKNOWN:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1144,13 +1331,21 @@ class P0RuleEngine:
+                         status=RuleStatus.AMBER,
+                         applicability=Applicability.UNKNOWN,
+                         uncertain_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
+-                        evidence=[self._absence_evidence(activity, "hasLegalBasis", "동의 기반 여부 불명")],
++                        evidence=self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) or [
++                            self._absence_evidence(activity, "hasLegalBasis", "동의 기반 여부 불명")
++                        ],
+                         reason="동의 기반 처리 여부가 불명확합니다.",
+-                        recommendation="법적근거를 먼저 명시하세요.",
++                        recommendation="법적근거 유형을 먼저 명시하세요.",
+                     )
+                 )
+                 continue
++
++            retentions = self._objects(graph, activity, PIPA.hasRetention)
+             complete, evidence, matched = self._retention_complete(graph, activity)
++            combined_evidence = self._dedupe_evidence(
++                self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) + evidence
++            )
++
+             if complete:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1158,11 +1353,32 @@ class P0RuleEngine:
+                         status=RuleStatus.GREEN,
+                         applicability=Applicability.TRUE,
+                         matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis), *matched],
+-                        evidence=self._dedupe_evidence(self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) + evidence),
+-                        reason="동의 기반 처리의 보유기간 또는 종료조건이 설계되어 있습니다.",
++                        evidence=combined_evidence,
++                        reason="동의 기반 처리의 보유기간 또는 식별 가능한 종료조건이 설계되어 있습니다.",
+                         recommendation="현재 보유기간 설계를 유지하세요.",
+                     )
+                 )
++                continue
++
++            has_partial_retention_structure = any(
++                self._objects(graph, retention, PIPA.hasRetentionPeriod)
++                or self._objects(graph, retention, PIPA.hasRetentionEndCondition)
++                for retention in retentions
++            )
++
++            if retentions and has_partial_retention_structure:
++                results.append(
++                    InstanceRuleResult(
++                        instance_id=str(activity),
++                        status=RuleStatus.AMBER,
++                        applicability=Applicability.TRUE,
++                        matched_facts=[self._fact_key(activity, PIPA.hasRetention)],
++                        uncertain_facts=["Retention.hasRetentionPeriod/hasRetentionEndCondition"],
++                        evidence=combined_evidence,
++                        reason="보유정보 연결은 있으나 기간 값 또는 식별 가능한 종료조건이 모호합니다.",
++                        recommendation="RetentionPeriod의 기간 값 또는 RetentionEndCondition의 구체적 종료조건을 명시하세요.",
++                    )
++                )
+             else:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1170,7 +1386,7 @@ class P0RuleEngine:
+                         status=RuleStatus.RED,
+                         applicability=Applicability.TRUE,
+                         missing_facts=[self._fact_key(activity, PIPA.hasRetention)],
+-                        evidence=self._dedupe_evidence(self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) + evidence) + [
++                        evidence=combined_evidence + [
+                             self._absence_evidence(activity, "hasRetention", "동의 기반 보유기간/종료조건 미설계")
+                         ],
+                         reason="동의 기반 처리의 보유기간 또는 종료조건이 설계되지 않았습니다.",
+@@ -1274,15 +1490,19 @@ class P0RuleEngine:
+         activities = self._collection_activities(graph)
+         if not activities:
+             return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
++
+         optional_items: list[tuple[Node, Node]] = []
+         unknown_items: list[tuple[Node, Node]] = []
++
+         for activity in activities:
+             for item in self._objects(graph, activity, PIPA.hasPersonalInformation):
+                 flags = self._objects(graph, item, PIPA.isRequired)
+-                if not flags or all(_as_bool(flag) is None for flag in flags):
++                parsed_flags = [_as_bool(flag) for flag in flags]
++                if not flags or all(value is None for value in parsed_flags):
+                     unknown_items.append((activity, item))
+-                elif any(_as_bool(flag) is False for flag in flags):
++                elif any(value is False for value in parsed_flags):
+                     optional_items.append((activity, item))
++
+         if not optional_items:
+             if unknown_items:
+                 return [
+@@ -1291,11 +1511,15 @@ class P0RuleEngine:
+                         status=RuleStatus.AMBER,
+                         applicability=Applicability.UNKNOWN,
+                         uncertain_facts=[self._fact_key(item, PIPA.isRequired) for _, item in unknown_items],
+-                        evidence=[self._absence_evidence(item, "isRequired", "선택항목 존재 여부 확인 불가") for _, item in unknown_items],
++                        evidence=[
++                            self._absence_evidence(item, "isRequired", "선택항목 존재 여부 확인 불가")
++                            for _, item in unknown_items
++                        ],
+                         reason="필수·선택 구분이 불완전하여 규칙 적용 여부를 확정할 수 없습니다.",
+                         recommendation="각 개인정보 항목의 isRequired 값을 명시하세요.",
+                     )
+                 ]
++
+             return [
+                 InstanceRuleResult(
+                     instance_id="__document__",
+@@ -1312,6 +1536,7 @@ class P0RuleEngine:
+             requests = self._objects(graph, activity, PIPA.hasConsentRequest)
+             evidence = self._assertion_evidence(graph, item, PIPA.isRequired)
+             evidence += self._assertion_evidence(graph, activity, PIPA.hasConsentRequest)
++
+             if not requests:
+                 results.append(
+                     InstanceRuleResult(
+@@ -1320,16 +1545,25 @@ class P0RuleEngine:
+                         applicability=Applicability.TRUE,
+                         matched_facts=[self._fact_key(item, PIPA.isRequired)],
+                         uncertain_facts=[self._fact_key(activity, PIPA.hasConsentRequest)],
+-                        evidence=self._dedupe_evidence(evidence) + [self._absence_evidence(activity, "hasConsentRequest", "선택항목의 동의요청 설계 연결 불명")],
++                        evidence=self._dedupe_evidence(evidence) + [
++                            self._absence_evidence(activity, "hasConsentRequest", "선택항목의 동의요청 설계 연결 불명")
++                        ],
+                         reason="선택항목은 확인되지만 동의요청 설계 연결이 불명확합니다.",
+                         recommendation="선택항목이 속한 CollectionAndUse에 ConsentRequest를 연결하세요.",
+                     )
+                 )
+                 continue
+-            values = [value for request in requests for value in self._objects(graph, request, PIPA.deniesServiceOnOptionalRefusal)]
++
++            values = [
++                value
++                for request in requests
++                for value in self._objects(graph, request, PIPA.deniesServiceOnOptionalRefusal)
++            ]
+             for request in requests:
+                 evidence += self._assertion_evidence(graph, request, PIPA.deniesServiceOnOptionalRefusal)
++
+             bool_values = [_as_bool(value) for value in values]
++
+             if any(value is True for value in bool_values):
+                 results.append(
+                     InstanceRuleResult(
+@@ -1345,7 +1579,7 @@ class P0RuleEngine:
+                         recommendation="선택정보 미동의 시 서비스 거부가 발생하지 않도록 설계를 수정하세요.",
+                     )
+                 )
+-            elif values and all(value is False for value in bool_values if value is not None):
++            elif values and all(value is False for value in bool_values):
+                 results.append(
+                     InstanceRuleResult(
+                         instance_id=f"{activity}|{item}",
+@@ -1368,10 +1602,17 @@ class P0RuleEngine:
+                         applicability=Applicability.TRUE,
+                         matched_facts=[self._fact_key(item, PIPA.isRequired)],
+                         uncertain_facts=[
+-                            *[self._fact_key(request, PIPA.deniesServiceOnOptionalRefusal) for request in requests]
++                            *[
++                                self._fact_key(request, PIPA.deniesServiceOnOptionalRefusal)
++                                for request in requests
++                            ]
+                         ],
+                         evidence=self._dedupe_evidence(evidence) + [
+-                            self._absence_evidence(activity, "deniesServiceOnOptionalRefusal", "값이 없거나 UNKNOWN")
++                            self._absence_evidence(
++                                activity,
++                                "deniesServiceOnOptionalRefusal",
++                                "값이 없거나 UNKNOWN",
++                            )
+                         ],
+                         reason="선택정보 미동의 시 서비스 거부 여부가 불명확합니다.",
+                         recommendation="deniesServiceOnOptionalRefusal을 true/false로 명시하세요.",
+diff --git a/docs/P0_RULE_MATRIX.md b/docs/P0_RULE_MATRIX.md
+new file mode 100644
+index 0000000..c771694
+--- /dev/null
++++ b/docs/P0_RULE_MATRIX.md
+@@ -0,0 +1,56 @@
++# P0 Rule Matrix (v1.0 Freeze)
++
++이 문서는 `PIPA Rule Specification v1.0 FINAL`을 코드에서 빠르게 확인하기 위한 개발용 요약입니다.
++법률 판단 문서가 아니라 Rule Engine 구현/테스트용 매트릭스입니다.
++
++## 공통 상태
++
++- `GREEN`: Applicability=TRUE이고 필수 Fact가 명시적으로 확인됨
++- `AMBER`: Applicability 또는 필수 Fact가 UNKNOWN/모호하여 자동 확정 불가
++- `RED`: Applicability=TRUE이고 필수 Fact의 명시적 부재 또는 금지조건이 확인됨
++- `N/A`: Applicability=FALSE가 명시적으로 확인됨. 단순 결측은 N/A로 처리하지 않음
++- 동일 Rule의 여러 인스턴스는 `RED > AMBER > GREEN` 우선순위로 대표 상태를 요약하며 N/A 인스턴스는 적용 대상 집계에서 제외
++
++## PoC1
++
++| Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
++|---|---|---|---|---|---|
++| P1-R01 처리목적 명시 | 항상 | `CollectionAndUse.hasPurpose` | 처리행위별 목적 식별 가능 | 목적 문구는 있으나 연결/의미 모호 | 목적 미확인 |
++| P1-R02 처리·보유기간 명시 | 항상 | `hasRetention -> Retention`, period 또는 identifiable end condition | 기간 또는 식별 가능한 종료조건 | 종료시점/대상 activity 연결 모호 | 기간·종료조건 미확인 |
++| P1-R03 제3자 제공 기재 | `ThirdPartyProvision=TRUE` | recipient + personal information + purpose | 3요소 모두 확인 | 제공 여부/일부 값 모호 | 제공 확인 + 필수요소 누락 |
++| P1-R04 파기 절차·방법 | 항상 | `Destruction.hasDestructionMethod` | 구체적 방법 | 파기 언급은 있으나 방법 모호 | 방법 미확인 |
++| P1-R06 처리위탁 | `EntrustedProcessing=TRUE` | processor + processor name + entrusted task text | 수탁자/업무 확인 | 일부 모호 | 위탁 확인 + 수탁자/업무 부재 |
++| P1-R07 권리행사 방법 | 항상 | rights + exercise procedure | 권리와 행사절차 확인 | 일부 권리/절차만 확인 또는 모호 | 행사 방법·절차 미확인 |
++
++## PoC2
++
++| Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
++|---|---|---|---|---|---|
++| P2-R01 통지 실시 여부 | 개인정보 유출등 사고 TRUE | affected PI + notification obligation + notice | 통지 대상 사고 + notice | 유출등/통지 사실 일부 UNKNOWN | 통지 대상 사고 + notice 부재 |
++| P2-R02 통지 항목 완전성 | `NotificationNotice=TRUE` | incident affected items vs notice mentioned items | 실제 영향 항목 모두 포함 | 포괄표현 등으로 집합 비교 불가 | 실제 영향 항목 누락 |
++| P2-R03 통지 시점·경위 | `NotificationNotice=TRUE` | `noticeIncidentTime` + `hasIncidentCircumstances` | 통지문 자체에 둘 다 확인 | 둘 중 하나가 UNKNOWN/모호 | 둘 중 하나 이상 명시적 부재 |
++| P2-R08 피해 최소화·대응·구제 | `DataBreachIncident=TRUE` | response measure 4 roles | 4개 역할 모두 확인 | 일부 역할/내용 모호 | 필수 대응정보 부재 |
++
++P2-R03의 `noticeIncidentTime`은 실제 `incidentDate`와 분리합니다. 실제 사고시각이 있다는 이유만으로 GREEN 처리하지 않습니다.
++
++P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_procedure`, `post_incident_mitigation` 4종입니다.
++
++## PoC3
++
++| Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
++|---|---|---|---|---|---|
++| P3-R01 법적근거 | `CollectionAndUse=TRUE` | `hasLegalBasis` | 구체 법적근거 유형 명시 | 유형 UNKNOWN/모호 | 근거 미지정 |
++| P3-R02 동의 목적 | `LegalBasis=Consent` | consent request + purpose | 동의 맥락 목적 구체적 | 포괄/연결 모호 | 목적 미지정 |
++| P3-R03 동의 항목 | `LegalBasis=Consent` | consent request + PI items | 동의 대상 항목 특정 | 포괄 범주/일부 모호 | 항목 미지정 |
++| P3-R04 동의 보유기간 | `LegalBasis=Consent` | retention + period 또는 identifiable end condition | 기간/종료조건 설계 | 조건/연결 모호 | 기간·종료조건 미설계 |
++| P3-R05 최소수집 사유 | `CollectionAndUse=TRUE` | item name + `isRequired` + `designRationale` | 필수항목마다 사유 | 일부 사유 모호/누락 | 필수 지정 항목에 사유 부재 |
++| P3-R06 선택항목 거부금지 | optional item 존재 | `deniesServiceOnOptionalRefusal` | `false` | UNKNOWN | `true` |
++| P3-R08 보유종료→파기 | retention/end condition TRUE | end condition -> destruction -> method | 파기+방법 연결 | 연결/방법 일부 모호 | 종료조건 있으나 파기 연결 부재 |
++| P3-R11 처리위탁 설계 | `EntrustedProcessing=TRUE` | processor + task text | 수탁자/업무 확인 | 일부 미정/모호 | 수탁자 또는 업무 부재 |
++
++## 구현 메모
++
++- `app/rules/engine.py`가 18개 P0 Rule의 결정론적 판정을 담당합니다.
++- `rules/p0_rules.json`은 Rule ID, PoC, 법적 근거, applicability, ontology term metadata를 관리합니다.
++- frozen ontology에는 `NotificationObligation / triggersNotificationObligation`이 정의되어 있지 않으므로 P2-R01은 `DataBreachIncident + affectsPersonalInformation`을 compatibility signal로 사용하고 결과에 implementation note를 남깁니다. Ontology 파일 자체는 변경하지 않습니다.
++- `noticeIncidentTime`, `measureRole`, `entrustedTaskText`는 Rule 입력용 보조 metadata이며 ontology v1.0에서는 annotation property로만 정의되어 있습니다.
+diff --git a/docs/temporary_spec.md b/docs/temporary_spec.md
+index d0f1d7f..35b407a 100644
+--- a/docs/temporary_spec.md
++++ b/docs/temporary_spec.md
+@@ -1,3 +1,11 @@
++# Legacy Document Notice
++
++> 이 문서는 초기 Article 17 SHACL 프로토타입용 임시 명세입니다. 현재 P0 구현 기준은 `PIPA Rule Specification v1.0 (Freeze)`의 18개 Rule이며, 개발용 요약은 [`P0_RULE_MATRIX.md`](P0_RULE_MATRIX.md)를 참고하세요.
++>
++> 이 파일의 내용은 삭제하지 않고 legacy 흐름 추적용으로 보존합니다.
++
++---
++
+ # Temporary Specification
+ 
+ ## 1. 구현 목적
+diff --git a/rules/p0_rules.json b/rules/p0_rules.json
+index f7c5e1d..e7e2f6c 100644
+--- a/rules/p0_rules.json
++++ b/rules/p0_rules.json
+@@ -8,7 +8,7 @@
+       "poc": "PoC1",
+       "title": "처리목적 명시",
+       "rule_version": "1.0",
+-      "applicability": "CollectionAndUse가 존재하면 적용",
++      "applicability": "항상",
+       "legal_basis": [
+         "개인정보 보호법 제30조제1항제1호",
+         "개인정보 보호법 제15조"
+@@ -28,7 +28,7 @@
+       "poc": "PoC1",
+       "title": "처리·보유기간 명시",
+       "rule_version": "1.0",
+-      "applicability": "ProcessingActivity가 존재하면 적용",
++      "applicability": "항상",
+       "legal_basis": [
+         "개인정보 보호법 제30조제1항제2호"
+       ],
+@@ -36,10 +36,13 @@
+         "개인정보 보호법 제30조제1항제2호"
+       ],
+       "ontology_terms": [
+-        "ProcessingActivity",
++        "PersonalInformationProcessing",
+         "hasRetention",
++        "Retention",
++        "hasRetentionPeriod",
+         "hasDurationValue",
+-        "hasRetentionEndCondition"
++        "hasRetentionEndCondition",
++        "hasEndConditionDescription"
+       ],
+       "notes": []
+     },
+@@ -70,7 +73,7 @@
+       "poc": "PoC1",
+       "title": "파기 절차·방법 기재",
+       "rule_version": "1.0",
+-      "applicability": "처리방침의 파기 관련 Fact에 적용",
++      "applicability": "항상",
+       "legal_basis": [
+         "개인정보 보호법 제30조제1항제3의2호",
+         "개인정보 보호법 제21조"
+@@ -104,6 +107,8 @@
+       "ontology_terms": [
+         "EntrustedProcessing",
+         "hasProcessor",
++        "EntrustedProcessor",
++        "hasName",
+         "entrustedTaskText"
+       ],
+       "notes": [
+@@ -115,7 +120,7 @@
+       "poc": "PoC1",
+       "title": "정보주체 권리행사 방법",
+       "rule_version": "1.0",
+-      "applicability": "정보주체 권리행사 Fact에 적용",
++      "applicability": "항상",
+       "legal_basis": [
+         "개인정보 보호법 제30조제1항제5호",
+         "개인정보 보호법 제35조",
+@@ -132,7 +137,9 @@
+         "DataSubject",
+         "hasRight",
+         "DataSubjectRight",
+-        "hasExerciseProcedure"
++        "hasExerciseProcedure",
++        "RightsExerciseProcedure",
++        "hasProcedureDescription"
+       ],
+       "notes": [
+         "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
+@@ -195,10 +202,7 @@
+       "ontology_terms": [
+         "NotificationNotice",
+         "noticeIncidentTime",
+-        "hasIncidentCircumstances",
+-        "notificationDate",
+-        "DataBreachIncident",
+-        "detectionDate"
++        "hasIncidentCircumstances"
+       ],
+       "notes": []
+     },
+@@ -221,6 +225,7 @@
+       "ontology_terms": [
+         "DataBreachIncident",
+         "hasResponseMeasure",
++        "IncidentResponseMeasure",
+         "measureRole"
+       ],
+       "notes": []
+@@ -300,8 +305,11 @@
+         "hasLegalBasis",
+         "hasConsentRequest",
+         "hasRetention",
++        "Retention",
++        "hasRetentionPeriod",
+         "hasDurationValue",
+-        "hasRetentionEndCondition"
++        "hasRetentionEndCondition",
++        "hasEndConditionDescription"
+       ],
+       "notes": []
+     },
+@@ -310,7 +318,7 @@
+       "poc": "PoC3",
+       "title": "최소수집 설계 사유",
+       "rule_version": "1.0",
+-      "applicability": "필수 개인정보 항목 설계에 적용",
++      "applicability": "CollectionAndUse가 존재하면 적용",
+       "legal_basis": [
+         "개인정보 보호법 제16조제1항"
+       ],
+@@ -347,7 +355,7 @@
+       "poc": "PoC3",
+       "title": "보유종료→파기 설계",
+       "rule_version": "1.0",
+-      "applicability": "RetentionEndCondition 설계에 적용",
++      "applicability": "Retention 또는 RetentionEndCondition이 존재하면 적용",
+       "legal_basis": [
+         "개인정보 보호법 제21조"
+       ],
+@@ -377,6 +385,8 @@
+       "ontology_terms": [
+         "EntrustedProcessing",
+         "hasProcessor",
++        "EntrustedProcessor",
++        "hasName",
+         "entrustedTaskText"
+       ],
+       "notes": []
+diff --git a/tests/test_p0_rule_engine_v2.py b/tests/test_p0_rule_engine_v2.py
+index 8382522..4e31ab3 100644
+--- a/tests/test_p0_rule_engine_v2.py
++++ b/tests/test_p0_rule_engine_v2.py
+@@ -1,6 +1,6 @@
+ from pathlib import Path
+ 
+-from rdflib import Graph, Namespace, RDF
++from rdflib import Graph, Literal, Namespace, RDF
+ 
+ from app.rules.engine import P0RuleEngine
+ 
+@@ -95,3 +95,174 @@ def test_rule_engine_does_not_mix_facts_across_activities():
+     result = P0RuleEngine().evaluate_rule(graph, "P1-R03")
+     assert result.status.value != "GREEN"
+     assert len(result.instance_results) == 2
++
++def test_p1_r07_partial_right_procedures_are_amber_not_green():
++    ex = Namespace("https://example.org/right-partial#")
++    graph = Graph()
++    subject = ex.subject
++    right1 = ex.right1
++    right2 = ex.right2
++    procedure = ex.procedure
++
++    graph.add((subject, RDF.type, PIPA.DataSubject))
++    graph.add((subject, PIPA.hasRight, right1))
++    graph.add((subject, PIPA.hasRight, right2))
++    graph.add((right1, RDF.type, PIPA.DataSubjectRight))
++    graph.add((right2, RDF.type, PIPA.DataSubjectRight))
++    graph.add((right1, PIPA.hasExerciseProcedure, procedure))
++    graph.add((procedure, RDF.type, PIPA.RightsExerciseProcedure))
++    graph.add((procedure, PIPA.hasProcedureDescription, Literal("온라인 신청")))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P1-R07")
++    assert result.status.value == "AMBER"
++
++
++def test_p1_r07_rights_with_no_procedure_are_red():
++    ex = Namespace("https://example.org/right-missing#")
++    graph = Graph()
++    subject = ex.subject
++    right = ex.right
++    graph.add((subject, RDF.type, PIPA.DataSubject))
++    graph.add((subject, PIPA.hasRight, right))
++    graph.add((right, RDF.type, PIPA.DataSubjectRight))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P1-R07")
++    assert result.status.value == "RED"
++
++
++def test_p2_r03_missing_one_required_notice_fact_is_red():
++    ex = Namespace("https://example.org/p2r03#")
++    graph = Graph()
++    notice = ex.notice
++    graph.add((notice, RDF.type, PIPA.NotificationNotice))
++    graph.add((notice, PIPA.noticeIncidentTime, Literal("2026-09-05T14:30:00+09:00")))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
++    assert result.status.value == "RED"
++
++
++def test_p2_r08_all_required_roles_plus_extra_role_is_green():
++    ex = Namespace("https://example.org/p2r08#")
++    graph = Graph()
++    incident = ex.incident
++    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
++
++    roles = [
++        "data_subject_guidance",
++        "controller_response",
++        "remedy_procedure",
++        "post_incident_mitigation",
++        "internal_tracking",
++    ]
++    for index, role in enumerate(roles):
++        measure = ex[f"measure{index}"]
++        graph.add((measure, RDF.type, PIPA.IncidentResponseMeasure))
++        graph.add((measure, PIPA.measureRole, Literal(role)))
++        graph.add((incident, PIPA.hasResponseMeasure, measure))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P2-R08")
++    assert result.status.value == "GREEN"
++
++
++def test_p2_r08_unclassified_response_measure_is_amber():
++    ex = Namespace("https://example.org/p2r08-unclassified#")
++    graph = Graph()
++    incident = ex.incident
++    measure = ex.measure
++    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
++    graph.add((measure, RDF.type, PIPA.IncidentResponseMeasure))
++    graph.add((incident, PIPA.hasResponseMeasure, measure))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P2-R08")
++    assert result.status.value == "AMBER"
++
++
++def test_p3_r01_untyped_legal_basis_is_amber():
++    ex = Namespace("https://example.org/p3r01#")
++    graph = Graph()
++    activity = ex.activity
++    basis = ex.basis
++    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
++    graph.add((activity, PIPA.hasLegalBasis, basis))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P3-R01")
++    assert result.status.value == "AMBER"
++
++
++def test_p3_r02_purpose_without_description_is_amber():
++    ex = Namespace("https://example.org/p3r02#")
++    graph = Graph()
++    activity = ex.activity
++    basis = ex.consent
++    request = ex.request
++    purpose = ex.purpose
++
++    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
++    graph.add((basis, RDF.type, PIPA.Consent))
++    graph.add((request, RDF.type, PIPA.ConsentRequest))
++    graph.add((purpose, RDF.type, PIPA.ProcessingPurpose))
++    graph.add((activity, PIPA.hasLegalBasis, basis))
++    graph.add((activity, PIPA.hasConsentRequest, request))
++    graph.add((activity, PIPA.hasPurpose, purpose))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P3-R02")
++    assert result.status.value == "AMBER"
++
++
++def test_p3_r03_personal_information_without_item_name_is_amber():
++    ex = Namespace("https://example.org/p3r03#")
++    graph = Graph()
++    activity = ex.activity
++    basis = ex.consent
++    request = ex.request
++    item = ex.item
++
++    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
++    graph.add((basis, RDF.type, PIPA.Consent))
++    graph.add((request, RDF.type, PIPA.ConsentRequest))
++    graph.add((item, RDF.type, PIPA.PersonalInformation))
++    graph.add((activity, PIPA.hasLegalBasis, basis))
++    graph.add((activity, PIPA.hasConsentRequest, request))
++    graph.add((activity, PIPA.hasPersonalInformation, item))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P3-R03")
++    assert result.status.value == "AMBER"
++
++
++def test_p3_r04_unidentified_end_condition_is_amber():
++    ex = Namespace("https://example.org/p3r04#")
++    graph = Graph()
++    activity = ex.activity
++    basis = ex.consent
++    retention = ex.retention
++    end = ex.end
++
++    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
++    graph.add((basis, RDF.type, PIPA.Consent))
++    graph.add((retention, RDF.type, PIPA.Retention))
++    graph.add((end, RDF.type, PIPA.RetentionEndCondition))
++    graph.add((activity, PIPA.hasLegalBasis, basis))
++    graph.add((activity, PIPA.hasRetention, retention))
++    graph.add((retention, PIPA.hasRetentionEndCondition, end))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P3-R04")
++    assert result.status.value == "AMBER"
++
++
++def test_p3_r06_unknown_refusal_value_does_not_become_green():
++    ex = Namespace("https://example.org/p3r06#")
++    graph = Graph()
++    activity = ex.activity
++    item = ex.item
++    request = ex.request
++
++    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
++    graph.add((item, RDF.type, PIPA.PersonalInformation))
++    graph.add((request, RDF.type, PIPA.ConsentRequest))
++    graph.add((activity, PIPA.hasPersonalInformation, item))
++    graph.add((activity, PIPA.hasConsentRequest, request))
++    graph.add((item, PIPA.isRequired, Literal(False)))
++    graph.add((request, PIPA.deniesServiceOnOptionalRefusal, Literal("UNKNOWN")))
++
++    result = P0RuleEngine().evaluate_rule(graph, "P3-R06")
++    assert result.status.value == "AMBER"
