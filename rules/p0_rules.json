@@ -75,7 +75,7 @@
       "rule_version": "1.0",
       "applicability": "항상",
       "legal_basis": [
-        "개인정보 보호법 제30조제1항제3의2호",
+        "개인정보 보호법 제30조제1항제4호",
         "개인정보 보호법 제21조"
       ],
       "source_spec_legal_basis": [
@@ -86,9 +86,7 @@
         "Destruction",
         "hasDestructionMethod"
       ],
-      "notes": [
-        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
-      ]
+      "notes": []
     },
     {
       "rule_id": "P1-R06",
@@ -97,7 +95,7 @@
       "rule_version": "1.0",
       "applicability": "EntrustedProcessing 존재 여부에 따라 적용",
       "legal_basis": [
-        "개인정보 보호법 제30조제1항제4호",
+        "개인정보 보호법 제30조제1항제5호",
         "개인정보 보호법 제26조"
       ],
       "source_spec_legal_basis": [
@@ -111,9 +109,7 @@
         "hasName",
         "entrustedTaskText"
       ],
-      "notes": [
-        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
-      ]
+      "notes": []
     },
     {
       "rule_id": "P1-R07",
@@ -122,7 +118,7 @@
       "rule_version": "1.0",
       "applicability": "항상",
       "legal_basis": [
-        "개인정보 보호법 제30조제1항제5호",
+        "개인정보 보호법 제30조제1항제6호",
         "개인정보 보호법 제35조",
         "개인정보 보호법 제36조",
         "개인정보 보호법 제37조"
@@ -141,16 +137,14 @@
         "RightsExerciseProcedure",
         "hasProcedureDescription"
       ],
-      "notes": [
-        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
-      ]
+      "notes": []
     },
     {
       "rule_id": "P2-R01",
       "poc": "PoC2",
       "title": "유출등 통지 실시 여부",
       "rule_version": "1.0",
-      "applicability": "DataBreachIncident 및 영향 개인정보가 확인되면 적용",
+      "applicability": "DataBreachIncident가 존재하면 적용",
       "legal_basis": [
         "개인정보 보호법 제34조제1항"
       ],
@@ -160,10 +154,11 @@
       "ontology_terms": [
         "DataBreachIncident",
         "affectsPersonalInformation",
+        "triggersNotificationObligation",
         "hasNotificationNotice"
       ],
       "notes": [
-        "Frozen rule spec references NotificationObligation/triggersNotificationObligation, but the current frozen ontology implementation does not define those terms. The engine uses a compatibility fallback without modifying PIPA_Ontology_v1.0.ttl."
+        "Freeze rule requires triggersNotificationObligation. The evaluator reads this fact URI directly without modifying PIPA_Ontology_v1.0.ttl."
       ]
     },
     {
@@ -385,8 +380,6 @@
       "ontology_terms": [
         "EntrustedProcessing",
         "hasProcessor",
-        "EntrustedProcessor",
-        "hasName",
         "entrustedTaskText"
       ],
       "notes": []

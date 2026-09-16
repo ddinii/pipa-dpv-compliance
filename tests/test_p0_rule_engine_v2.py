@@ -6,6 +6,7 @@ from app.rules.engine import P0RuleEngine
 
 BASE = Path(__file__).resolve().parent
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
+TEST = Namespace("https://example.org/pipa-test/metadata#")
 
 
 def load(name: str) -> Graph:
@@ -52,7 +53,7 @@ def test_sc_p02_expected_freeze_results():
         "P2-R08": "GREEN",
     }
     p2_r01 = next(item for item in results if item.rule_id == "P2-R01")
-    assert any("does not define" in note for note in p2_r01.implementation_notes)
+    assert any("requires triggersNotificationObligation" in note for note in p2_r01.implementation_notes)
 
 
 def test_sc_d01_expected_freeze_results():
@@ -265,4 +266,198 @@ def test_p3_r06_unknown_refusal_value_does_not_become_green():
     graph.add((request, PIPA.deniesServiceOnOptionalRefusal, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R06")
+    assert result.status.value == "AMBER"
+
+
+def test_rule_metadata_legal_basis_matches_frozen_spec():
+    engine = P0RuleEngine()
+    for metadata in engine.metadata.values():
+        assert metadata.legal_basis == metadata.source_spec_legal_basis
+
+
+def test_p1_r04_unknown_destruction_method_is_amber():
+    ex = Namespace("https://example.org/p1r04-unknown#")
+    graph = Graph()
+    destruction = ex.destruction
+    graph.add((destruction, RDF.type, PIPA.Destruction))
+    graph.add((destruction, PIPA.hasDestructionMethod, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R04")
+    assert result.status.value == "AMBER"
+
+
+def test_p1_r06_unknown_task_or_processor_name_is_amber():
+    ex = Namespace("https://example.org/p1r06-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    processor = ex.processor
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((processor, PIPA.hasName, Literal("UNKNOWN")))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R06")
+    assert result.status.value == "AMBER"
+
+
+def test_p3_r05_unknown_design_rationale_is_amber():
+    ex = Namespace("https://example.org/p3r05-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    item = ex.item
+    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
+    graph.add((activity, PIPA.hasPersonalInformation, item))
+    graph.add((item, PIPA.hasItemName, Literal("이메일")))
+    graph.add((item, PIPA.isRequired, Literal(True)))
+    graph.add((item, PIPA.designRationale, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R05")
+    assert result.status.value == "AMBER"
+
+
+def test_p3_r05_unknown_required_flag_is_amber():
+    ex = Namespace("https://example.org/p3r05-flag-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    item = ex.item
+    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
+    graph.add((activity, PIPA.hasPersonalInformation, item))
+    graph.add((item, PIPA.hasItemName, Literal("이메일")))
+    graph.add((item, PIPA.isRequired, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R05")
+    assert result.status.value == "AMBER"
+
+
+def test_p2_r02_unknown_item_name_does_not_compare_as_green():
+    ex = Namespace("https://example.org/p2r02-item-unknown#")
+    graph = Graph()
+    incident = ex.incident
+    notice = ex.notice
+    actual = ex.actual
+    mentioned = ex.mentioned
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, actual))
+    graph.add((incident, PIPA.hasNotificationNotice, notice))
+    graph.add((notice, RDF.type, PIPA.NotificationNotice))
+    graph.add((notice, PIPA.mentionsPersonalInformation, mentioned))
+    graph.add((actual, PIPA.hasItemName, Literal("UNKNOWN")))
+    graph.add((mentioned, PIPA.hasItemName, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
+    assert result.status.value == "AMBER"
+
+
+def test_p2_r01_requires_notification_obligation_fact():
+    ex = Namespace("https://example.org/p2r01-obligation#")
+    graph = Graph()
+    incident = ex.incident
+    notice = ex.notice
+    item = ex.item
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, item))
+    graph.add((incident, PIPA.hasNotificationNotice, notice))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
+    assert result.status.value == "AMBER"
+    assert result.applicability.value == "TRUE"
+    assert any("triggersNotificationObligation" in fact for fact in result.uncertain_facts)
+
+
+def test_p2_r01_is_green_when_all_three_required_facts_exist():
+    ex = Namespace("https://example.org/p2r01-complete#")
+    graph = Graph()
+    incident = ex.incident
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+    graph.add((incident, PIPA.triggersNotificationObligation, ex.obligation))
+    graph.add((incident, PIPA.hasNotificationNotice, ex.notice))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
+    assert result.status.value == "GREEN"
+
+
+def test_p2_r02_missing_notice_is_amber_without_explicit_false():
+    ex = Namespace("https://example.org/p2r02-no-notice#")
+    graph = Graph()
+    incident = ex.incident
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
+    assert result.status.value == "AMBER"
+    assert result.applicability.value == "UNKNOWN"
+
+
+def test_p2_r03_missing_notice_is_amber_without_explicit_false():
+    graph = Graph()
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
+    assert result.status.value == "AMBER"
+    assert result.applicability.value == "UNKNOWN"
+
+
+def test_p2_r03_explicit_no_notice_can_be_not_applicable():
+    ex = Namespace("https://example.org/p2r03-explicit-none#")
+    graph = Graph()
+    controller = ex.controller
+    graph.add((controller, RDF.type, PIPA.PersonalInformationController))
+    graph.add((controller, TEST.notificationNoticeState, Literal("confirmed_false")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
+    assert result.status.value == "N/A"
+    assert result.applicability.value == "FALSE"
+
+
+def test_p3_r11_does_not_require_processor_name():
+    ex = Namespace("https://example.org/p3r11-no-name#")
+    graph = Graph()
+    activity = ex.activity
+    processor = ex.processor
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("고객 문의 처리")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
+    assert result.status.value == "GREEN"
+
+
+def test_p1_r06_still_requires_processor_name():
+    ex = Namespace("https://example.org/p1r06-no-name#")
+    graph = Graph()
+    activity = ex.activity
+    processor = ex.processor
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("고객 문의 처리")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R06")
+    assert result.status.value == "RED"
+
+
+def test_p3_r11_unknown_task_is_amber():
+    ex = Namespace("https://example.org/p3r11-unknown#")
+    graph = Graph()
+    activity = ex.activity
+    graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
+    graph.add((activity, PIPA.hasProcessor, ex.processor))
+    graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
+    assert result.status.value == "AMBER"
+
+
+def test_p3_r08_unknown_destruction_method_is_amber():
+    ex = Namespace("https://example.org/p3r08-unknown#")
+    graph = Graph()
+    retention = ex.retention
+    end = ex.end
+    destruction = ex.destruction
+    graph.add((retention, RDF.type, PIPA.Retention))
+    graph.add((end, RDF.type, PIPA.RetentionEndCondition))
+    graph.add((destruction, RDF.type, PIPA.Destruction))
+    graph.add((retention, PIPA.hasRetentionEndCondition, end))
+    graph.add((end, PIPA.triggersDestruction, destruction))
+    graph.add((destruction, PIPA.hasDestructionMethod, Literal("UNKNOWN")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R08")
     assert result.status.value == "AMBER"
