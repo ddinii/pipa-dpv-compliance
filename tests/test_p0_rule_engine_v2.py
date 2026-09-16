@@ -266,3 +266,9 @@ def test_p3_r06_unknown_refusal_value_does_not_become_green():
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R06")
     assert result.status.value == "AMBER"
+
+
+def test_rule_metadata_legal_basis_matches_frozen_spec():
+    engine = P0RuleEngine()
+    for metadata in engine.metadata.values():
+        assert metadata.legal_basis == metadata.source_spec_legal_basis

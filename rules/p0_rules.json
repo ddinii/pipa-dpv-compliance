@@ -75,7 +75,7 @@
       "rule_version": "1.0",
       "applicability": "항상",
       "legal_basis": [
-        "개인정보 보호법 제30조제1항제3의2호",
+        "개인정보 보호법 제30조제1항제4호",
         "개인정보 보호법 제21조"
       ],
       "source_spec_legal_basis": [
@@ -86,9 +86,7 @@
         "Destruction",
         "hasDestructionMethod"
       ],
-      "notes": [
-        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
-      ]
+      "notes": []
     },
     {
       "rule_id": "P1-R06",
@@ -97,7 +95,7 @@
       "rule_version": "1.0",
       "applicability": "EntrustedProcessing 존재 여부에 따라 적용",
       "legal_basis": [
-        "개인정보 보호법 제30조제1항제4호",
+        "개인정보 보호법 제30조제1항제5호",
         "개인정보 보호법 제26조"
       ],
       "source_spec_legal_basis": [
@@ -111,9 +109,7 @@
         "hasName",
         "entrustedTaskText"
       ],
-      "notes": [
-        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
-      ]
+      "notes": []
     },
     {
       "rule_id": "P1-R07",
@@ -122,7 +118,7 @@
       "rule_version": "1.0",
       "applicability": "항상",
       "legal_basis": [
-        "개인정보 보호법 제30조제1항제5호",
+        "개인정보 보호법 제30조제1항제6호",
         "개인정보 보호법 제35조",
         "개인정보 보호법 제36조",
         "개인정보 보호법 제37조"
@@ -141,9 +137,7 @@
         "RightsExerciseProcedure",
         "hasProcedureDescription"
       ],
-      "notes": [
-        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
-      ]
+      "notes": []
     },
     {
       "rule_id": "P2-R01",
