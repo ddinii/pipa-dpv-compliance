@@ -1,0 +1,385 @@
+{
+  "ontology_version": "1.0",
+  "rule_version": "1.0",
+  "fact_schema_version": "1.0",
+  "rules": [
+    {
+      "rule_id": "P1-R01",
+      "poc": "PoC1",
+      "title": "처리목적 명시",
+      "rule_version": "1.0",
+      "applicability": "CollectionAndUse가 존재하면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제1호",
+        "개인정보 보호법 제15조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제1호",
+        "개인정보 보호법 제15조"
+      ],
+      "ontology_terms": [
+        "CollectionAndUse",
+        "hasPurpose"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P1-R02",
+      "poc": "PoC1",
+      "title": "처리·보유기간 명시",
+      "rule_version": "1.0",
+      "applicability": "ProcessingActivity가 존재하면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제2호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제2호"
+      ],
+      "ontology_terms": [
+        "ProcessingActivity",
+        "hasRetention",
+        "hasDurationValue",
+        "hasRetentionEndCondition"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P1-R03",
+      "poc": "PoC1",
+      "title": "제3자 제공 기재",
+      "rule_version": "1.0",
+      "applicability": "ThirdPartyProvision 존재 여부에 따라 적용",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제3호",
+        "개인정보 보호법 제17조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제3호",
+        "개인정보 보호법 제17조"
+      ],
+      "ontology_terms": [
+        "ThirdPartyProvision",
+        "hasRecipient",
+        "hasPersonalInformation",
+        "hasPurpose"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P1-R04",
+      "poc": "PoC1",
+      "title": "파기 절차·방법 기재",
+      "rule_version": "1.0",
+      "applicability": "처리방침의 파기 관련 Fact에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제3의2호",
+        "개인정보 보호법 제21조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제4호",
+        "개인정보 보호법 제21조"
+      ],
+      "ontology_terms": [
+        "Destruction",
+        "hasDestructionMethod"
+      ],
+      "notes": [
+        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
+      ]
+    },
+    {
+      "rule_id": "P1-R06",
+      "poc": "PoC1",
+      "title": "처리위탁 기재",
+      "rule_version": "1.0",
+      "applicability": "EntrustedProcessing 존재 여부에 따라 적용",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제4호",
+        "개인정보 보호법 제26조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제5호",
+        "개인정보 보호법 제26조"
+      ],
+      "ontology_terms": [
+        "EntrustedProcessing",
+        "hasProcessor",
+        "entrustedTaskText"
+      ],
+      "notes": [
+        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
+      ]
+    },
+    {
+      "rule_id": "P1-R07",
+      "poc": "PoC1",
+      "title": "정보주체 권리행사 방법",
+      "rule_version": "1.0",
+      "applicability": "정보주체 권리행사 Fact에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제5호",
+        "개인정보 보호법 제35조",
+        "개인정보 보호법 제36조",
+        "개인정보 보호법 제37조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제6호",
+        "개인정보 보호법 제35조",
+        "개인정보 보호법 제36조",
+        "개인정보 보호법 제37조"
+      ],
+      "ontology_terms": [
+        "DataSubject",
+        "hasRight",
+        "DataSubjectRight",
+        "hasExerciseProcedure"
+      ],
+      "notes": [
+        "Freeze specification article-number notation differs from the legal-basis metadata rechecked on 2026-09-16; both are retained for traceability."
+      ]
+    },
+    {
+      "rule_id": "P2-R01",
+      "poc": "PoC2",
+      "title": "유출등 통지 실시 여부",
+      "rule_version": "1.0",
+      "applicability": "DataBreachIncident 및 영향 개인정보가 확인되면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제34조제1항"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제34조제1항"
+      ],
+      "ontology_terms": [
+        "DataBreachIncident",
+        "affectsPersonalInformation",
+        "hasNotificationNotice"
+      ],
+      "notes": [
+        "Frozen rule spec references NotificationObligation/triggersNotificationObligation, but the current frozen ontology implementation does not define those terms. The engine uses a compatibility fallback without modifying PIPA_Ontology_v1.0.ttl."
+      ]
+    },
+    {
+      "rule_id": "P2-R02",
+      "poc": "PoC2",
+      "title": "통지 개인정보 항목 완전성",
+      "rule_version": "1.0",
+      "applicability": "NotificationNotice가 존재하면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제34조제1항제1호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제34조제1항제1호"
+      ],
+      "ontology_terms": [
+        "DataBreachIncident",
+        "NotificationNotice",
+        "affectsPersonalInformation",
+        "mentionsPersonalInformation",
+        "hasItemName"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P2-R03",
+      "poc": "PoC2",
+      "title": "통지 시점·경위 기재",
+      "rule_version": "1.0",
+      "applicability": "NotificationNotice가 존재하면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제34조제1항제2호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제34조제1항제2호"
+      ],
+      "ontology_terms": [
+        "NotificationNotice",
+        "noticeIncidentTime",
+        "hasIncidentCircumstances",
+        "notificationDate",
+        "DataBreachIncident",
+        "detectionDate"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P2-R08",
+      "poc": "PoC2",
+      "title": "피해 최소화·대응·구제 정보",
+      "rule_version": "1.0",
+      "applicability": "DataBreachIncident가 존재하면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제34조제1항제3호",
+        "개인정보 보호법 제34조제1항제4호",
+        "개인정보 보호법 제34조제3항"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제34조제1항제3호",
+        "개인정보 보호법 제34조제1항제4호",
+        "개인정보 보호법 제34조제3항"
+      ],
+      "ontology_terms": [
+        "DataBreachIncident",
+        "hasResponseMeasure",
+        "measureRole"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R01",
+      "poc": "PoC3",
+      "title": "수집·이용 법적근거",
+      "rule_version": "1.0",
+      "applicability": "CollectionAndUse 설계가 존재하면 적용",
+      "legal_basis": [
+        "개인정보 보호법 제15조제1항"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제15조제1항"
+      ],
+      "ontology_terms": [
+        "CollectionAndUse",
+        "hasLegalBasis"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R02",
+      "poc": "PoC3",
+      "title": "동의 처리목적 고지 설계",
+      "rule_version": "1.0",
+      "applicability": "동의 기반 CollectionAndUse에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제15조제2항제1호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제15조제2항제1호"
+      ],
+      "ontology_terms": [
+        "CollectionAndUse",
+        "hasLegalBasis",
+        "hasConsentRequest",
+        "hasPurpose"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R03",
+      "poc": "PoC3",
+      "title": "동의 개인정보 항목 고지 설계",
+      "rule_version": "1.0",
+      "applicability": "동의 기반 CollectionAndUse에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제15조제2항제2호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제15조제2항제2호"
+      ],
+      "ontology_terms": [
+        "CollectionAndUse",
+        "hasLegalBasis",
+        "hasConsentRequest",
+        "hasPersonalInformation"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R04",
+      "poc": "PoC3",
+      "title": "동의 보유·이용기간 고지 설계",
+      "rule_version": "1.0",
+      "applicability": "동의 기반 CollectionAndUse에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제15조제2항제3호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제15조제2항제3호"
+      ],
+      "ontology_terms": [
+        "CollectionAndUse",
+        "hasLegalBasis",
+        "hasConsentRequest",
+        "hasRetention",
+        "hasDurationValue",
+        "hasRetentionEndCondition"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R05",
+      "poc": "PoC3",
+      "title": "최소수집 설계 사유",
+      "rule_version": "1.0",
+      "applicability": "필수 개인정보 항목 설계에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제16조제1항"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제16조제1항"
+      ],
+      "ontology_terms": [
+        "PersonalInformation",
+        "isRequired",
+        "designRationale"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R06",
+      "poc": "PoC3",
+      "title": "선택항목 미동의 서비스 거부 금지",
+      "rule_version": "1.0",
+      "applicability": "선택 개인정보 동의 설계에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제16조제3항"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제16조제3항"
+      ],
+      "ontology_terms": [
+        "ConsentRequest",
+        "deniesServiceOnOptionalRefusal"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R08",
+      "poc": "PoC3",
+      "title": "보유종료→파기 설계",
+      "rule_version": "1.0",
+      "applicability": "RetentionEndCondition 설계에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제21조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제21조"
+      ],
+      "ontology_terms": [
+        "RetentionEndCondition",
+        "triggersDestruction",
+        "Destruction",
+        "hasDestructionMethod"
+      ],
+      "notes": []
+    },
+    {
+      "rule_id": "P3-R11",
+      "poc": "PoC3",
+      "title": "처리위탁 설계",
+      "rule_version": "1.0",
+      "applicability": "EntrustedProcessing 설계에 적용",
+      "legal_basis": [
+        "개인정보 보호법 제26조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제26조"
+      ],
+      "ontology_terms": [
+        "EntrustedProcessing",
+        "hasProcessor",
+        "entrustedTaskText"
+      ],
+      "notes": []
+    }
+  ]
+}
