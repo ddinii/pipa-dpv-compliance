@@ -144,7 +144,7 @@
       "poc": "PoC2",
       "title": "유출등 통지 실시 여부",
       "rule_version": "1.0",
-      "applicability": "DataBreachIncident 및 영향 개인정보가 확인되면 적용",
+      "applicability": "DataBreachIncident가 존재하면 적용",
       "legal_basis": [
         "개인정보 보호법 제34조제1항"
       ],
@@ -154,10 +154,11 @@
       "ontology_terms": [
         "DataBreachIncident",
         "affectsPersonalInformation",
+        "triggersNotificationObligation",
         "hasNotificationNotice"
       ],
       "notes": [
-        "Frozen rule spec references NotificationObligation/triggersNotificationObligation, but the current frozen ontology implementation does not define those terms. The engine uses a compatibility fallback without modifying PIPA_Ontology_v1.0.ttl."
+        "Freeze rule requires triggersNotificationObligation. The evaluator reads this fact URI directly without modifying PIPA_Ontology_v1.0.ttl."
       ]
     },
     {
@@ -379,8 +380,6 @@
       "ontology_terms": [
         "EntrustedProcessing",
         "hasProcessor",
-        "EntrustedProcessor",
-        "hasName",
         "entrustedTaskText"
       ],
       "notes": []

@@ -1789,4 +1789,77 @@ class P0RuleEngine:
         return results
 
     def _p3_r11(self, graph: Graph) -> list[InstanceRuleResult]:
-        return self._p1_r06(graph)
+        activities = self._instances(graph, PIPA.EntrustedProcessing)
+        if not activities:
+            return self._conditional_no_targets(graph, TEST.entrustedProcessingState, "EntrustedProcessing")
+
+        results = []
+        for activity in activities:
+            raw_processors = self._objects(graph, activity, PIPA.hasProcessor)
+            processors = self._nonempty_values(graph, activity, PIPA.hasProcessor)
+            raw_task = self._objects(graph, activity, PIPA.entrustedTaskText)
+            task = self._nonempty_values(graph, activity, PIPA.entrustedTaskText)
+            evidence = self._assertion_evidence(graph, activity, PIPA.hasProcessor)
+            evidence += self._assertion_evidence(graph, activity, PIPA.entrustedTaskText)
+
+            missing_facts: list[str] = []
+            uncertain_facts: list[str] = []
+            matched_facts: list[str] = []
+
+            if processors:
+                matched_facts.append(self._fact_key(activity, PIPA.hasProcessor))
+            elif raw_processors:
+                uncertain_facts.append(self._fact_key(activity, PIPA.hasProcessor))
+            else:
+                missing_facts.append(self._fact_key(activity, PIPA.hasProcessor))
+
+            if task:
+                matched_facts.append(self._fact_key(activity, PIPA.entrustedTaskText))
+            elif raw_task:
+                uncertain_facts.append(self._fact_key(activity, PIPA.entrustedTaskText))
+            else:
+                missing_facts.append(self._fact_key(activity, PIPA.entrustedTaskText))
+
+            if missing_facts:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(activity),
+                        status=RuleStatus.RED,
+                        applicability=Applicability.TRUE,
+                        matched_facts=matched_facts,
+                        missing_facts=missing_facts,
+                        uncertain_facts=uncertain_facts,
+                        evidence=self._dedupe_evidence(evidence) + [
+                            self._absence_evidence(activity, fact.rsplit(":", 1)[-1], "처리위탁 설계 필수정보 누락")
+                            for fact in missing_facts
+                        ],
+                        reason="처리위탁 설계에서 수탁자 연결 또는 위탁업무가 누락되었습니다.",
+                        recommendation="hasProcessor와 entrustedTaskText를 모두 명시하세요.",
+                    )
+                )
+            elif uncertain_facts:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(activity),
+                        status=RuleStatus.AMBER,
+                        applicability=Applicability.TRUE,
+                        matched_facts=matched_facts,
+                        uncertain_facts=uncertain_facts,
+                        evidence=self._dedupe_evidence(evidence),
+                        reason="수탁자 연결 또는 위탁업무 값이 UNKNOWN/모호하여 자동 확정할 수 없습니다.",
+                        recommendation="수탁자 연결과 위탁업무 내용을 구체적으로 명시하세요.",
+                    )
+                )
+            else:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(activity),
+                        status=RuleStatus.GREEN,
+                        applicability=Applicability.TRUE,
+                        matched_facts=matched_facts,
+                        evidence=self._dedupe_evidence(evidence),
+                        reason="처리위탁 설계의 수탁자 연결과 위탁업무가 확인됩니다.",
+                        recommendation="현재 수탁자-위탁업무 설계를 유지하세요.",
+                    )
+                )
+        return results
