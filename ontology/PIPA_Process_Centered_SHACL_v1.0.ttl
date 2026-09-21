@@ -1,0 +1,78 @@
+@prefix pipa: <https://w3id.org/pipa-compliance/ontology#> .
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+pipa:ProcessingActivityShape a sh:NodeShape ;
+    sh:targetClass pipa:ProcessingActivity ;
+    sh:property [
+        sh:path pipa:performedByController ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class pipa:PersonalInformationController ;
+        sh:message "각 ProcessingActivity는 정확히 한 PersonalInformationController에 귀속되어야 한다."@ko
+    ] .
+
+pipa:ControllerNoDirectContextShape a sh:NodeShape ;
+    sh:targetClass pipa:PersonalInformationController ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Controller/서비스에 목적·개인정보·수신자·수탁자·법적근거·보유·국가를 직접 연결하지 말고 ProcessingActivity에 연결해야 한다."@ko ;
+        sh:select """
+            SELECT $this ?path ?value
+            WHERE {
+              $this ?path ?value .
+              FILTER (?path IN (
+                pipa:hasPurpose, pipa:hasPersonalInformation, pipa:hasRecipient,
+                pipa:hasProcessor, pipa:hasLegalBasis, pipa:hasRetention,
+                pipa:hasDestinationCountry
+              ))
+            }
+        """
+    ] .
+
+pipa:PrivacyPolicyNoDirectContextShape a sh:NodeShape ;
+    sh:targetClass pipa:PrivacyPolicy ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "PrivacyPolicy 문서 자체에 처리 맥락을 평면 연결하지 말고 독립 ProcessingActivity에 연결해야 한다."@ko ;
+        sh:select """
+            SELECT $this ?path ?value
+            WHERE {
+              $this ?path ?value .
+              FILTER (?path IN (
+                pipa:hasPurpose, pipa:hasPersonalInformation, pipa:hasRecipient,
+                pipa:hasProcessor, pipa:hasLegalBasis, pipa:hasRetention,
+                pipa:hasDestinationCountry
+              ))
+            }
+        """
+    ] .
+
+pipa:PersonalInformationActivityScopeShape a sh:NodeShape ;
+    sh:targetClass pipa:PersonalInformation ;
+    sh:property [
+        sh:path pipa:inProcessingActivity ;
+        sh:maxCount 1 ;
+        sh:class pipa:ProcessingActivity ;
+        sh:message "개인정보 항목 인스턴스는 하나의 ProcessingActivity에만 귀속시켜 activity별 속성 혼합을 막아야 한다."@ko
+    ] .
+
+pipa:ThirdPartyProvisionShape a sh:NodeShape ;
+    sh:targetClass pipa:ThirdPartyProvision ;
+    sh:property [ sh:path pipa:hasRecipient ; sh:class pipa:ThirdParty ] ;
+    sh:property [ sh:path pipa:hasPurpose ; sh:class pipa:ProcessingPurpose ] ;
+    sh:property [ sh:path pipa:hasPersonalInformation ; sh:class pipa:PersonalInformation ] .
+
+pipa:EntrustedProcessingShape a sh:NodeShape ;
+    sh:targetClass pipa:EntrustedProcessing ;
+    sh:property [ sh:path pipa:hasProcessor ; sh:class pipa:EntrustedProcessor ] .
+
+pipa:CrossBorderTransferShape a sh:NodeShape ;
+    sh:targetClass pipa:CrossBorderTransfer ;
+    sh:property [ sh:path pipa:hasDestinationCountry ; sh:class pipa:DestinationCountry ] .
+
+pipa:RetentionEndConditionShape a sh:NodeShape ;
+    sh:targetClass pipa:RetentionEndCondition ;
+    sh:property [ sh:path pipa:triggersDestruction ; sh:class pipa:Destruction ] .
