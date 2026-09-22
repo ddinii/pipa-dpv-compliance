@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P0 RuleResult 점검 콘솔</title>
+<style>
+  :root {
+    --green:#1a7f37; --amber:#9a6700; --red:#cf222e; --na:#6e7781;
+    --line:#d8dee4; --bg:#f6f8fa; --ink:#1f2328; --muted:#656d76;
+    --warn-bg:#fff8c5; --warn-line:#d4a72c;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:0 16px 64px; background:#fff; color:var(--ink);
+    font:14px/1.6 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  h1 { font-size:18px; margin:20px 0 4px; }
+  h2 { font-size:13px; margin:24px 0 8px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 16px; }
+  .panel { border:1px solid var(--line); border-radius:6px; padding:12px 14px; background:var(--bg); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button, select, input[type=text] {
+    font:inherit; padding:6px 10px; border:1px solid var(--line);
+    border-radius:6px; background:#fff; color:inherit;
+  }
+  button { cursor:pointer; }
+  button:hover { background:var(--bg); }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button.primary:hover { opacity:.85; }
+  textarea {
+    width:100%; min-height:140px; font:12px/1.5 ui-monospace, Consolas, monospace;
+    padding:8px; border:1px solid var(--line); border-radius:6px; resize:vertical;
+  }
+  details { margin-top:10px; }
+  summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; white-space:nowrap; width:1%; }
+  code { font:12px ui-monospace, Consolas, monospace; background:#fff; padding:1px 4px; border-radius:3px; border:1px solid var(--line); }
+  .badge {
+    display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px;
+    font-weight:700; color:#fff; white-space:nowrap;
+  }
+  .GREEN{background:var(--green)} .AMBER{background:var(--amber)}
+  .RED{background:var(--red)} .NA{background:var(--na)}
+  .ok  { color:var(--green); font-weight:600; }
+  .bad { color:var(--red); font-weight:600; }
+  .warn {
+    background:var(--warn-bg); border:1px solid var(--warn-line);
+    border-radius:6px; padding:8px 10px; margin:8px 0; font-size:13px;
+  }
+  .warn b { display:block; margin-bottom:2px; }
+  .card { border:1px solid var(--line); border-radius:6px; margin-bottom:12px; overflow:hidden; }
+  .card > header {
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--line);
+  }
+  .card > header .rid { font-weight:700; font-family:ui-monospace, Consolas, monospace; }
+  .card > header .phrase { color:var(--muted); font-size:13px; }
+  .card > div { padding:12px 14px; }
+  ul { margin:0; padding-left:18px; }
+  li { margin:2px 0; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); border-radius:99px; padding:1px 8px; font-size:12px; background:#fff; }
+  .chip.miss { border-color:var(--red); color:var(--red); }
+  .chip.unc  { border-color:var(--amber); color:var(--amber); }
+  .ev { border-left:3px solid var(--line); padding:4px 0 4px 10px; margin:6px 0; }
+  .ev.absence { border-left-color:var(--red); }
+  .ev .meta { color:var(--muted); font-size:12px; }
+  .counts { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+  .err { color:var(--red); white-space:pre-wrap; }
+  .muted { color:var(--muted); }
+  h4 { margin:14px 0 6px; font-size:13px; }
+</style>
+</head>
+<body>
+
+<h1>P0 RuleResult 점검 콘솔</h1>
+<p class="sub">
+  개발용 계약 검증 도구입니다. API-001/002/003의 구현이 아니며, Fact Extractor와 Fact&rarr;RDF 매퍼가 붙기 전까지
+  <code>RuleResult</code> DTO가 화면에서 성립하는지 확인하는 용도로만 씁니다.
+</p>
+
+<div class="panel">
+  <div class="row">
+    <strong>시나리오</strong>
+    <span id="scenarios" class="row"></span>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <label>PoC
+      <select id="poc">
+        <option value="">전체 18개</option>
+        <option value="poc1">poc1 (6)</option>
+        <option value="poc2">poc2 (4)</option>
+        <option value="poc3">poc3 (8)</option>
+      </select>
+    </label>
+    <label>source_document_id
+      <input type="text" id="sdid" placeholder="비워두면 null" size="22">
+    </label>
+    <button class="primary" id="run">Rule 실행</button>
+    <span id="status" class="muted"></span>
+  </div>
+
+  <details>
+    <summary>Turtle 직접 붙여넣기 &mdash; A 매퍼 출력 확인용</summary>
+    <textarea id="ttl" placeholder="@prefix pipa: &lt;https://w3id.org/pipa-compliance/ontology#&gt; . ..."></textarea>
+  </details>
+
+  <details>
+    <summary>RuleResult JSON 직접 붙여넣기 &mdash; B DTO 실험용 (엔진을 거치지 않음)</summary>
+    <textarea id="payload" placeholder='{"results": [ ... ]}'></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="render">이 JSON만 렌더</button>
+    </div>
+  </details>
+</div>
+
+<div id="out"></div>
+
+<script>
+"use strict";
+
+// 요구사항·기능 명세서 8장 RuleResult 필수 필드
+var RULE_RESULT_FIELDS = [
+  "rule_id", "rule_version", "status", "applicability",
+  "matched_facts", "missing_facts", "uncertain_facts", "evidence",
+  "legal_basis", "reason", "recommendation", "source_document_id", "evaluated_at"
+];
+
+// 9.1 공통 API 응답 필드
+var ENVELOPE_FIELDS = [
+  "analysis_id", "poc", "ontology_version", "rule_version", "fact_schema_version", "results"
+];
+
+// 8장 UI 문구 원칙: 법 위반 확정 / 준수 인증으로 읽히지 않게 고정 문구를 쓴다
+var PHRASE = {
+  "GREEN": "해당 기계판독 요건 확인",
+  "AMBER": "자동 판정 불가 · 사람 검토 필요",
+  "RED":   "보완 필요 · 준수요건 미충족 가능성 (추가 검토 필요)",
+  "N/A":   "적용 대상 아님 (명시적 확인)"
+};
+
+function $(id) { return document.getElementById(id); }
+
+function esc(v) {
+  var map = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
+  return String(v === null || v === undefined ? "" : v).replace(/[&<>"']/g, function (c) { return map[c]; });
+}
+
+function cls(status) { return status === "N/A" ? "NA" : esc(status); }
+
+function localName(uri) {
+  var s = String(uri === null || uri === undefined ? "" : uri);
+  if (s.indexOf("#") === -1 && s.indexOf("/") === -1) return s;
+  if (s.indexOf("#") !== -1) return s.split("#").pop();
+  return s.replace(/\/+$/, "").split("/").pop();
+}
+
+// ---- 입력 ------------------------------------------------------------
+
+function loadScenarios() {
+  var box = $("scenarios");
+  fetch("/api/v1/dev/scenarios")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.scenarios || !data.scenarios.length) {
+        box.innerHTML = '<span class="muted">tests/에 SC-*.ttl 없음</span>';
+        return;
+      }
+      box.innerHTML = "";
+      data.scenarios.forEach(function (s) {
+        var b = document.createElement("button");
+        b.textContent = s.name.replace("_FINAL_Protege.ttl", "");
+        b.onclick = function () { pickScenario(s.name, b); };
+        box.appendChild(b);
+      });
+    })
+    .catch(function (e) {
+      box.innerHTML = '<span class="err">시나리오 목록 로드 실패: ' + esc(e.message) + "</span>";
+    });
+}
+
+function pickScenario(name, btn) {
+  $("status").textContent = name + " 불러오는 중…";
+  fetch("/api/v1/dev/scenarios/" + encodeURIComponent(name))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      $("ttl").value = data.turtle;
+      // 시나리오 이름으로 PoC 필터를 맞춰 준다
+      var guess = { "SC-P01": "poc1", "SC-P02": "poc2", "SC-D01": "poc3" };
+      Object.keys(guess).forEach(function (prefix) {
+        if (name.indexOf(prefix) === 0) $("poc").value = guess[prefix];
+      });
+      $("status").textContent = name + " 로드 완료. [Rule 실행]을 누르세요.";
+      if (btn) btn.blur();
+    })
+    .catch(function (e) {
+      $("status").innerHTML = '<span class="err">' + esc(e.message) + "</span>";
+    });
+}
+
+function run() {
+  var turtle = $("ttl").value.trim();
+  if (!turtle) {
+    $("status").innerHTML = '<span class="err">Turtle이 비어 있습니다. 시나리오를 고르거나 직접 붙여넣으세요.</span>';
+    return;
+  }
+  $("status").textContent = "평가 중…";
+  fetch("/api/v1/dev/evaluate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      turtle: turtle,
+      poc: $("poc").value || null,
+      source_document_id: $("sdid").value.trim() || null
+    })
+  })
+    .then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok) throw new Error(data.detail || r.statusText);
+        return data;
+      });
+    })
+    .then(function (data) {
+      $("status").textContent = "완료";
+      render(data);
+    })
+    .catch(function (e) {
+      $("status").innerHTML = '<span class="err">' + esc(e.message) + "</span>";
+    });
+}
+
+function renderPasted() {
+  try {
+    var data = JSON.parse($("payload").value);
+    $("status").textContent = "붙여넣은 JSON을 렌더했습니다 (엔진 미실행).";
+    render(data);
+  } catch (e) {
+    $("status").innerHTML = '<span class="err">JSON 파싱 실패: ' + esc(e.message) + "</span>";
+  }
+}
+
+// ---- 계약 점검 -------------------------------------------------------
+
+function contractPanel(data) {
+  var results = data.results || [];
+
+  var envMissing = ENVELOPE_FIELDS.filter(function (f) { return !(f in data); });
+
+  // RuleResult 하나라도 빠진 필드가 있으면 계약 위반으로 본다
+  var fieldMissing = RULE_RESULT_FIELDS.filter(function (f) {
+    return results.some(function (r) { return !(f in r); });
+  });
+
+  // Fact Dictionary 2장은 evidence를 text+offset 또는 field_path로 정의한다
+  var allEvidence = [];
+  results.forEach(function (r) { allEvidence = allEvidence.concat(r.evidence || []); });
+  var withText = allEvidence.filter(function (e) { return e.source_text; });
+  var withOffset = allEvidence.filter(function (e) {
+    return Object.keys(e).some(function (k) { return k.toLowerCase().indexOf("offset") !== -1; });
+  });
+
+  // COM-012: UI에서 어느 activity의 결과인지 식별 가능해야 한다
+  var allInstances = [];
+  results.forEach(function (r) { allInstances = allInstances.concat(r.instance_results || []); });
+  var withLabel = allInstances.filter(function (i) { return i.label || i.display_name; });
+
+  var h = '<h2>계약 점검</h2><div class="panel"><table><tbody>';
+
+  h += "<tr><th>9.1 응답 envelope</th><td>" + (envMissing.length
+    ? '<span class="bad">누락: ' + envMissing.map(function (f) { return "<code>" + esc(f) + "</code>"; }).join(", ") + "</span>"
+    : '<span class="ok">필드 6종 모두 존재</span>') + "</td></tr>";
+
+  h += "<tr><th>8장 RuleResult 필드</th><td>" + (fieldMissing.length
+    ? '<span class="bad">누락: ' + fieldMissing.map(function (f) { return "<code>" + esc(f) + "</code>"; }).join(", ") + "</span>"
+    : '<span class="ok">필수 13종 모두 존재</span>') + "</td></tr>";
+
+  h += "<tr><th>Evidence 원문 근거</th><td>evidence " + allEvidence.length + "건 중 source_text 보유 "
+    + (withText.length ? '<span class="ok">' + withText.length + "건</span>" : '<span class="bad">0건</span>')
+    + ", 그중 offset 보유 "
+    + (withOffset.length ? '<span class="ok">' + withOffset.length + "건</span>" : '<span class="bad">0건</span>')
+    + "</td></tr>";
+
+  h += "<tr><th>Instance 표시 label</th><td>instance " + allInstances.length + "개 중 label 보유 "
+    + (withLabel.length ? '<span class="ok">' + withLabel.length + "개</span>" : '<span class="bad">0개</span>')
+    + "</td></tr>";
+
+  h += "</tbody></table>";
+
+  if (fieldMissing.indexOf("source_document_id") !== -1) {
+    h += '<div class="warn"><b>source_document_id 누락 &mdash; 8장 필수 · NFR-04 · TST-010</b>'
+      + "RuleResult DTO에 입력 추적 ID가 없습니다. 현재는 응답 envelope에만 실려 있어, RuleResult 하나만 "
+      + "떼어내면 어느 문서의 판정인지 복원할 수 없습니다. <code>app/rules/models.py</code>의 "
+      + "<code>RuleResult</code>에 필드를 추가할지 Day 0에서 결정하세요.</div>";
+  }
+
+  if (allEvidence.length && !withText.length) {
+    h += '<div class="warn"><b>원문 근거(source_text)가 0건입니다 &mdash; COM-008 · P01-004</b>'
+      + "evidence " + allEvidence.length + "건이 전부 <code>rdf_assertion</code> 또는 <code>absence</code>입니다. "
+      + "즉 &ldquo;어느 property가 단언되었는가&rdquo;만 있고 &ldquo;처리방침 원문 어디에 적혀 있는가&rdquo;는 없습니다. "
+      + "입력 RDF에 <code>pipa:hasSourceEvidence</code>가 실려 있어야 채워집니다 &mdash; "
+      + "매퍼가 Fact envelope의 evidence를 이 property로 옮기는지 확인하세요.</div>";
+  }
+
+  if (withText.length && !withOffset.length) {
+    h += '<div class="warn"><b>Evidence에 원문 offset이 없습니다 &mdash; P01-004 · TST-004</b>'
+      + "Fact Dictionary 2장은 evidence를 <code>text+offset</code> 또는 <code>field_path</code>로 정의하지만, "
+      + "<code>Evidence</code>에는 <code>source_text</code>만 있습니다. 이 상태로는 화면에서 처리방침 원문을 "
+      + "하이라이트할 수 없습니다. Fact envelope &rarr; 매퍼 &rarr; 엔진 3계층을 모두 거치는 값이라 "
+      + "나중에 고칠수록 비쌉니다.</div>";
+  }
+
+  if (allInstances.length && !withLabel.length) {
+    h += '<div class="warn"><b>instance_id가 raw URI입니다 &mdash; COM-012</b>'
+      + "아래 카드 하단의 인스턴스 표를 보세요. 화면에 <code>https://example.org/…#Collection1</code>이 "
+      + "그대로 찍힙니다. &ldquo;어느 activity의 결과인지 식별 가능&rdquo;을 만족하려면 표시용 label을 "
+      + "어디서 실을지 &mdash; Fact envelope / 매퍼 / 엔진 &mdash; 정해야 합니다.</div>";
+  }
+
+  return h + "</div>";
+}
+
+// ---- 렌더 ------------------------------------------------------------
+
+function envelopePanel(data) {
+  function f(k) {
+    return (k in data)
+      ? "<code>" + esc(JSON.stringify(data[k])) + "</code>"
+      : '<span class="bad">없음</span>';
+  }
+  return "<h2>응답 envelope</h2><div class='panel'><table><tbody>"
+    + "<tr><th>analysis_id</th><td>" + f("analysis_id") + "</td></tr>"
+    + "<tr><th>poc</th><td>" + f("poc") + "</td></tr>"
+    + "<tr><th>source_document_id</th><td>" + f("source_document_id") + "</td></tr>"
+    + "<tr><th>ontology / rule / fact schema</th><td>"
+    + f("ontology_version") + " / " + f("rule_version") + " / " + f("fact_schema_version")
+    + "</td></tr></tbody></table></div>";
+}
+
+function summaryPanel(results) {
+  var counts = { "GREEN":0, "AMBER":0, "RED":0, "N/A":0 };
+  results.forEach(function (r) { if (r.status in counts) counts[r.status]++; });
+  var h = "<h2>상태 요약</h2><div class='panel'><div class='counts'>";
+  Object.keys(counts).forEach(function (k) {
+    h += "<span><span class='badge " + cls(k) + "'>" + esc(k) + "</span> " + counts[k] + "개</span>";
+  });
+  h += "<span class='muted'>총 " + results.length + "개 Rule</span></div>";
+  // P01-012: 준수율 같은 법적 인증 수치로 표현하지 않는다
+  h += "<div class='muted' style='margin-top:6px;font-size:12px'>"
+    + "개수만 표시합니다. 준수율 등 법적 인증 수치로 환산하지 않습니다 (P01-012).</div>";
+  return h + "</div>";
+}
+
+function evidenceList(items) {
+  if (!items || !items.length) return '<span class="muted">없음</span>';
+  return items.map(function (e) {
+    var absence = e.evidence_type === "absence";
+    var h = '<div class="ev' + (absence ? " absence" : "") + '">';
+    h += '<div class="meta"><code>' + esc(e.evidence_type) + "</code>";
+    if (e.subject) h += " · " + esc(localName(e.subject));
+    if (e.predicate) h += " · <code>" + esc(e.predicate) + "</code>";
+    h += "</div>";
+    if (e.source_text) h += "<div>" + esc(e.source_text) + "</div>";
+    if (e.value !== undefined && e.value !== null) h += "<div>값: <code>" + esc(e.value) + "</code></div>";
+    if (e.note) h += '<div class="muted">' + esc(e.note) + "</div>";
+    return h + "</div>";
+  }).join("");
+}
+
+function chips(items, kind) {
+  if (!items || !items.length) return '<span class="muted">없음</span>';
+  return '<div class="chips">' + items.map(function (i) {
+    return '<span class="chip ' + kind + '">' + esc(i) + "</span>";
+  }).join("") + "</div>";
+}
+
+function instanceTable(items) {
+  if (!items || !items.length) return "";
+  var h = "<h4>인스턴스별 결과 (COM-012)</h4><table><tbody>";
+  items.forEach(function (i) {
+    var id = i.instance_id === null || i.instance_id === undefined ? "" : i.instance_id;
+    var label = i.label || i.display_name;
+    var shown = label
+      ? esc(label)
+      : (id === "__document__" ? "<em>문서 전체</em>" : esc(localName(id)));
+    h += "<tr><th><span class='badge " + cls(i.status) + "'>" + esc(i.status) + "</span></th><td>"
+      + "<div>" + shown
+      + (label ? "" : ' <span class="muted" style="font-size:12px">(label 없음 · URI에서 추출)</span>')
+      + "</div>"
+      + "<div class='muted' style='font-size:12px'><code>" + esc(id) + "</code></div>"
+      + (i.reason ? "<div style='margin-top:4px'>" + esc(i.reason) + "</div>" : "")
+      + "</td></tr>";
+  });
+  return h + "</tbody></table>";
+}
+
+function ruleCard(r) {
+  var h = '<div class="card"><header>';
+  h += '<span class="rid">' + esc(r.rule_id) + "</span>";
+  h += '<span class="badge ' + cls(r.status) + '">' + esc(r.status) + "</span>";
+  h += '<span class="phrase">' + esc(PHRASE[r.status] || "") + "</span>";
+  h += "<span class='muted' style='margin-left:auto;font-size:12px'>applicability "
+    + esc(r.applicability) + " · rule v" + esc(r.rule_version) + "</span>";
+  h += "</header><div><table><tbody>";
+  h += "<tr><th>reason</th><td>" + esc(r.reason) + "</td></tr>";
+  h += "<tr><th>recommendation</th><td>" + esc(r.recommendation) + "</td></tr>";
+  h += "<tr><th>legal_basis</th><td>"
+    + (Array.isArray(r.legal_basis) ? r.legal_basis.map(esc).join("<br>") : esc(r.legal_basis))
+    + "</td></tr>";
+  h += "<tr><th>matched</th><td>" + chips(r.matched_facts, "") + "</td></tr>";
+  h += "<tr><th>missing</th><td>" + chips(r.missing_facts, "miss") + "</td></tr>";
+  h += "<tr><th>uncertain</th><td>" + chips(r.uncertain_facts, "unc") + "</td></tr>";
+  h += "<tr><th>evidence</th><td>" + evidenceList(r.evidence) + "</td></tr>";
+  if (r.implementation_notes && r.implementation_notes.length) {
+    h += "<tr><th>구현 메모</th><td><ul>"
+      + r.implementation_notes.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("")
+      + "</ul></td></tr>";
+  }
+  h += "<tr><th>evaluated_at</th><td><code>" + esc(r.evaluated_at) + "</code></td></tr>";
+  h += "</tbody></table>";
+  h += instanceTable(r.instance_results);
+  return h + "</div></div>";
+}
+
+function render(data) {
+  var results = data.results || [];
+  // TST-004: G/A/R 결과에서 evidence가 비어 있으면 테스트 실패로 처리한다
+  var noEvidence = results.filter(function (r) {
+    return r.status !== "N/A" && (!r.evidence || !r.evidence.length);
+  });
+
+  var h = envelopePanel(data) + contractPanel(data) + summaryPanel(results);
+
+  if (noEvidence.length) {
+    h += '<div class="warn"><b>evidence가 빈 G/A/R 결과 ' + noEvidence.length + "건 &mdash; TST-004 실패 조건</b>"
+      + noEvidence.map(function (r) { return esc(r.rule_id); }).join(", ") + "</div>";
+  }
+
+  h += "<h2>Rule 결과</h2>" + results.map(ruleCard).join("");
+  $("out").innerHTML = h;
+}
+
+$("run").onclick = run;
+$("render").onclick = renderPasted;
+loadScenarios();
+</script>
+</body>
+</html>
