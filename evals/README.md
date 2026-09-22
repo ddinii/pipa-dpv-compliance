@@ -4,13 +4,20 @@ LLM Fact Extractor의 정답지와 채점기입니다. Rule Engine이 아니라 
 
 ```text
 evals/
+├─ dataset.py                  # PoC별 평가 세트 탐색 (POC_DATASETS)
 ├─ score.py                    # Fact-level 채점기
 ├─ run_extraction.py           # 실제 추출 + 채점 (API 호출)
 └─ poc1/
    ├─ sc_p01_policy.txt        # 처리방침 원문 (가상)
    ├─ sc_p01_gold_facts.json   # gold Fact set (생성물)
-   └─ build_gold_facts.py      # 생성기
+   ├─ build_gold_facts.py      # 생성기
+   └─ variants/                # controlled variants 6개
 ```
+
+PoC를 늘릴 때는 `evals/dataset.py`의 `POC_DATASETS`에 `DatasetSpec` 한 줄,
+`run_extraction.py`의 `EXTRACTORS`에 Extractor 한 줄을 더합니다. 로더·러너·채점기
+본체는 손대지 않습니다. 등록만 해두고 파일이 없으면 즉시 실패하므로
+"0건 평가 통과"가 조용히 생기지 않습니다.
 
 ## 파이프라인
 
@@ -42,7 +49,7 @@ python -m pytest -q tests\test_gold_facts_poc1.py tests\test_facts.py
 
 ```powershell
 $env:ANTHROPIC_API_KEY = "sk-ant-..."
-python evals\run_extraction.py
+python evals\run_extraction.py                                      # 기본 --poc poc1
 python evals\run_extraction.py --case v6-no-third-party-provision   # 하나만
 python evals\run_extraction.py --model claude-sonnet-5 --no-cache   # 비교 실행
 ```
@@ -268,6 +275,37 @@ GREEN이 되면 준수한 것처럼 보이게 됩니다.
 `tests/test_eval_sweep.py::test_predicting_green_everywhere_is_caught_as_dangerous`에
 고정해 뒀습니다. 위험 오판율(그 경우 0.31)을 같이 봐야 합니다.
 
+## 프롬프트가 정본에서 낡지 않게 막습니다
+
+`tests/test_prompt_contract.py`
+
+프롬프트는 LLM에게 "이 Fact ID에는 이 `ontology_property`를 쓰라"고 지시합니다.
+정본 레지스트리가 바뀌면 그 지시만 조용히 낡고, **증상은 실제 API 실행 때 "추출은 됐는데
+검증에서 전부 reject"라는 형태로 처음 드러납니다.** 돈을 쓰고 나서야 알게 되는 자리입니다.
+
+실제로 그 상태였습니다. 통합 시점에 세 건이 어긋나 있었습니다.
+
+| Fact | 프롬프트가 지시하던 값 | 정본 |
+|---|---|---|
+| F1-03 | `hasRetentionPeriod` | `hasRetention` |
+| F1-04 | `hasRetentionEndCondition` | `hasRetention` |
+| F1-09 | `hasName` | `hasProcessor` |
+
+F1-12는 값 타입과 개수가 함께 틀려 있었습니다. "문자열 하나"로 안내했는데 엔진은 모든
+`DataSubjectRight`에 `hasExerciseProcedure`를 요구하므로, 시킨 대로 하나만 내면
+나머지 권리가 절차 없는 것으로 취급되어 P1-R07 판정이 뒤집힙니다.
+
+이제 카탈로그가 property 이름을 다시 적지 않고 `FACT_SPECS`에서 끌어옵니다.
+그리고 네 가지를 테스트로 고정했습니다.
+
+- 카탈로그 property == **정답지** property (레지스트리를 거치지 않는 대조)
+- 프롬프트 산문에 손으로 적은 property 이름도 훑기
+- 선언한 값 타입 == 정답지의 실제 값 타입 (F1-12 같은 사고를 잡는 자리)
+- 레지스트리에 Fact가 늘면 프롬프트도 늘어야 함
+
+F1-03과 F1-04가 같은 property를 쓰게 되었으므로, 값의 성격으로 둘을 가르는 규칙
+(기간이면 F1-03, 종료 사건이면 F1-04)을 PASS2 프롬프트에 명시했습니다.
+
 ## 아직 실행하지 않았습니다
 
 Extractor는 **실제 API로 한 번도 돌리지 않았습니다.** 자격증명이 없고, 모델 호출은 비용이
@@ -298,9 +336,24 @@ Pass 1은 처리행위뿐 아니라 **"하지 않는다"고 명시된 유형**�
 ## 다음 할 일
 
 1. 첫 실행 후 프롬프트 튜닝 (거부 사유 분포 기준)
-2. SC-P02 통지문 gold set (단, `triggersNotificationObligation` 결정 후)
+2. SC-P02 통지문 gold set. **매핑 쪽 선행 작업 2건이 끝나야 합니다** — 아래 참고
 3. 모델 비교 — `--model claude-sonnet-5`로 품질/비용 트레이드오프 측정
 4. 캐시 효과 실측 — `--no-cache`와 `usage.cache_read_input_tokens` 비교
+
+### PoC2가 막혀 있는 지점
+
+완전한 F2 Fact(F2-01/02/03/04/08/09/10 전부 confirmed)를 넣고 평가한 결과입니다.
+
+| Rule | 결과 | 이유 |
+|---|---|---|
+| P2-R01 | **AMBER** | `triggersNotificationObligation`을 실을 Fact ID가 레지스트리에 없음 |
+| P2-R02 | GREEN | |
+| P2-R03 | GREEN | `noticeIncidentTime` 수정 후 통과 |
+| P2-R08 | **AMBER** | `measure_role`이 `system_metadata`에만 남고 그래프에 없음 |
+
+둘 다 이미 고친 결함 4건과 같은 유형입니다 — 매핑은 통과하는데 Rule이 읽을 트리플이
+없어 판정이 상한에 걸립니다. `app/mapping` 담당(O_Jeon)의 수정이 필요하며, 그 전에
+gold set을 만들면 정답지의 `expected_rule_status`를 확정할 수 없습니다.
 
 ## PoC1 Controlled Variants (TST-003)
 
