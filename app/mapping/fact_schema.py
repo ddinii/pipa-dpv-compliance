@@ -18,6 +18,10 @@ SOURCE_TYPES = {
     "derived",
 }
 PIPA_NAMESPACE = "https://w3id.org/pipa-compliance/ontology#"
+
+# 처리행위 유형의 부재를 선언하는 Fact value의 키 (F1-00 / F2-00 / F3-00).
+# Fact Dictionary에 대응 ID가 없어 추가한 규약이며, 이 Fact가 있어야 N/A가 나온다.
+ABSENT_ACTIVITY_KEY = "activity_class_absent"
 FACT_TYPE_PATTERN = re.compile(r"^(F[123]-\d{2})(?:[-_:].+)?$")
 
 REQUIRED_FIELDS = {
