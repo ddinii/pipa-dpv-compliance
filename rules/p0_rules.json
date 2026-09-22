@@ -142,9 +142,9 @@
     {
       "rule_id": "P2-R01",
       "poc": "PoC2",
-      "title": "유출등 통지 실시 여부",
+      "title": "유출등 사고 사실·통지문 존재 검토",
       "rule_version": "1.0",
-      "applicability": "DataBreachIncident가 존재하면 적용",
+      "applicability": "DataBreachIncident가 존재하면 적용 (통지 대상 여부 자체는 자동판정하지 않음)",
       "legal_basis": [
         "개인정보 보호법 제34조제1항"
       ],
@@ -154,11 +154,12 @@
       "ontology_terms": [
         "DataBreachIncident",
         "affectsPersonalInformation",
-        "triggersNotificationObligation",
         "hasNotificationNotice"
       ],
       "notes": [
-        "Freeze rule requires triggersNotificationObligation. The evaluator reads this fact URI directly without modifying PIPA_Ontology_v1.0.ttl."
+        "v1 required facts are F2-01 DataBreachIncident, F2-02 affectsPersonalInformation, and F2-03 hasNotificationNotice.",
+        "P2-R01 does not determine whether an incident is legally subject to notification; it reviews the provided incident facts and NotificationNotice presence.",
+        "Notification/reporting thresholds and ReportingObligation are outside v1 scope. triggersNotificationObligation is not used."
       ]
     },
     {
@@ -199,7 +200,9 @@
         "noticeIncidentTime",
         "hasIncidentCircumstances"
       ],
-      "notes": []
+      "notes": [
+        "F2-08 notice_incident_time is the time stated in the NotificationNotice and must remain distinct from the actual DataBreachIncident.incidentDate (F2-05)."
+      ]
     },
     {
       "rule_id": "P2-R08",
@@ -223,7 +226,9 @@
         "IncidentResponseMeasure",
         "measureRole"
       ],
-      "notes": []
+      "notes": [
+        "measure_role is frozen to exactly four v1 values: data_subject_guidance, controller_response, remedy_procedure, post_incident_mitigation."
+      ]
     },
     {
       "rule_id": "P3-R01",

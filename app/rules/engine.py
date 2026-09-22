@@ -814,47 +814,36 @@ class P0RuleEngine:
         for incident in incidents:
             raw_affected = self._objects(graph, incident, PIPA.affectsPersonalInformation)
             affected = self._nonempty_values(graph, incident, PIPA.affectsPersonalInformation)
-            raw_obligations = self._objects(graph, incident, PIPA.triggersNotificationObligation)
-            obligations = self._nonempty_values(graph, incident, PIPA.triggersNotificationObligation)
             raw_notices = self._objects(graph, incident, PIPA.hasNotificationNotice)
             notices = self._nonempty_values(graph, incident, PIPA.hasNotificationNotice)
 
             evidence = self._assertion_evidence(graph, incident, PIPA.affectsPersonalInformation)
-            evidence += self._assertion_evidence(graph, incident, PIPA.triggersNotificationObligation)
             evidence += self._assertion_evidence(graph, incident, PIPA.hasNotificationNotice)
 
-            matched: list[str] = []
-            uncertain: list[str] = []
-            if affected:
-                matched.append(self._fact_key(incident, PIPA.affectsPersonalInformation))
-            else:
-                uncertain.append(self._fact_key(incident, PIPA.affectsPersonalInformation))
-
-            if obligations:
-                matched.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
-            else:
-                uncertain.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
-
-            if uncertain:
+            if not affected:
                 notes = []
                 if not raw_affected:
-                    notes.append(self._absence_evidence(incident, "affectsPersonalInformation", "실제 영향 개인정보 Fact를 확인하지 못함"))
-                if not raw_obligations:
-                    notes.append(self._absence_evidence(incident, "triggersNotificationObligation", "통지의무 Fact를 확인하지 못함"))
+                    notes.append(
+                        self._absence_evidence(
+                            incident,
+                            "affectsPersonalInformation",
+                            "실제 영향 개인정보 Fact를 확인하지 못함",
+                        )
+                    )
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
                         status=RuleStatus.AMBER,
                         applicability=Applicability.TRUE,
-                        matched_facts=matched,
-                        uncertain_facts=uncertain,
+                        uncertain_facts=[self._fact_key(incident, PIPA.affectsPersonalInformation)],
                         evidence=self._dedupe_evidence(evidence) + notes,
-                        reason="유출등 사고는 확인되지만 영향 개인정보 또는 통지의무 Fact가 UNKNOWN/모호합니다.",
-                        recommendation="affectsPersonalInformation과 triggersNotificationObligation을 명확히 구조화하세요.",
+                        reason="DataBreachIncident는 확인되지만 실제 영향 개인정보 Fact가 UNKNOWN/모호합니다.",
+                        recommendation="F2-02 affectsPersonalInformation을 사고 사실에 맞게 구조화하세요.",
                     )
                 )
                 continue
 
+            matched = [self._fact_key(incident, PIPA.affectsPersonalInformation)]
             if notices:
                 matched.append(self._fact_key(incident, PIPA.hasNotificationNotice))
                 results.append(
@@ -864,8 +853,11 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=matched,
                         evidence=self._dedupe_evidence(evidence),
-                        reason="영향 개인정보, 통지의무, NotificationNotice가 모두 확인됩니다.",
-                        recommendation="통지 사실 및 증거를 유지하세요.",
+                        reason=(
+                            "DataBreachIncident, 실제 영향 개인정보, NotificationNotice 존재가 확인됩니다. "
+                            "P2-R01은 통지 대상 여부나 신고 threshold를 자동판정하지 않습니다."
+                        ),
+                        recommendation="사고 사실과 통지문 존재 근거를 유지하세요.",
                     )
                 )
             elif raw_notices:
@@ -877,8 +869,8 @@ class P0RuleEngine:
                         matched_facts=matched,
                         uncertain_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
                         evidence=self._dedupe_evidence(evidence),
-                        reason="통지의무는 확인되지만 NotificationNotice 값이 UNKNOWN/모호합니다.",
-                        recommendation="정보주체 통지 실시 여부와 통지문을 명확히 구조화하세요.",
+                        reason="사고 사실은 확인되지만 NotificationNotice 값이 UNKNOWN/모호합니다.",
+                        recommendation="F2-03 hasNotificationNotice의 존재 여부를 명확히 구조화하세요.",
                     )
                 )
             else:
@@ -890,10 +882,17 @@ class P0RuleEngine:
                         matched_facts=matched,
                         missing_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
                         evidence=self._dedupe_evidence(evidence) + [
-                            self._absence_evidence(incident, "hasNotificationNotice", "통지의무가 확인되지만 통지문/통지 사실이 없음")
+                            self._absence_evidence(
+                                incident,
+                                "hasNotificationNotice",
+                                "사고 사실은 확인되지만 NotificationNotice가 없음",
+                            )
                         ],
-                        reason="통지의무가 확인되지만 NotificationNotice가 없습니다.",
-                        recommendation="정보주체 통지 실시 여부와 통지문을 확인하세요.",
+                        reason=(
+                            "DataBreachIncident와 실제 영향 개인정보는 확인되지만 NotificationNotice가 없습니다. "
+                            "이 결과는 통지 의무 대상 여부 판정이 아닙니다."
+                        ),
+                        recommendation="제공된 사고 기록에 대응하는 NotificationNotice 존재 여부를 확인하세요.",
                     )
                 )
         return results
@@ -1104,8 +1103,10 @@ class P0RuleEngine:
 
             found_roles = set(role_map)
             confirmed_required_roles = required_roles & found_roles
+            missing_roles = sorted(required_roles - found_roles)
+            unexpected_roles = sorted(found_roles - required_roles)
 
-            if required_roles.issubset(found_roles):
+            if found_roles == required_roles:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
@@ -1113,25 +1114,37 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=[f"measure_role:{role}" for role in sorted(required_roles)],
                         evidence=self._dedupe_evidence(evidence),
-                        reason="필수 4개 역할의 대응·구제 정보가 모두 확인됩니다.",
+                        reason="v1에서 허용된 필수 4개 역할의 대응·구제 정보가 모두 확인됩니다.",
                         recommendation="역할별 대응정보와 원문 근거를 유지하세요.",
                     )
                 )
             elif measures:
-                missing_roles = sorted(required_roles - confirmed_required_roles)
+                uncertain_facts = [f"measure_role:{role}" for role in missing_roles]
+                uncertain_facts += [f"unexpected_measure_role:{role}" for role in unexpected_roles]
+                notes = [
+                    self._absence_evidence(incident, "measureRole", f"미확인 역할: {role}")
+                    for role in missing_roles
+                ]
+                notes += [
+                    self._absence_evidence(incident, "measureRole", f"v1 비허용 역할: {role}")
+                    for role in unexpected_roles
+                ]
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
                         status=RuleStatus.AMBER,
                         applicability=Applicability.TRUE,
                         matched_facts=[f"measure_role:{role}" for role in sorted(confirmed_required_roles)],
-                        uncertain_facts=[f"measure_role:{role}" for role in missing_roles],
-                        evidence=self._dedupe_evidence(evidence) + [
-                            self._absence_evidence(incident, "measureRole", f"미확인 역할: {role}")
-                            for role in missing_roles
-                        ],
-                        reason="대응정보는 존재하지만 필수 4개 역할 중 일부가 누락되거나 역할 분류가 모호합니다.",
-                        recommendation="정보주체 안내, 처리자 대응, 피해구제절차, 사고 후 피해 최소화 조치를 각각 구분해 명시하세요.",
+                        uncertain_facts=uncertain_facts,
+                        evidence=self._dedupe_evidence(evidence) + notes,
+                        reason=(
+                            "대응정보는 존재하지만 v1 필수 4개 역할 중 일부가 누락되었거나 "
+                            "허용되지 않은 역할 값이 포함되어 있습니다."
+                        ),
+                        recommendation=(
+                            "measure_role을 data_subject_guidance, controller_response, remedy_procedure, "
+                            "post_incident_mitigation 4종으로만 구분해 명시하세요."
+                        ),
                     )
                 )
             else:
