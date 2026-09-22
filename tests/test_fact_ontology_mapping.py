@@ -5,10 +5,11 @@ import unittest
 from pathlib import Path
 
 from pyshacl import validate
-from rdflib import Graph, Literal, Namespace, RDF
+from rdflib import Graph, Literal, Namespace, RDF, OWL
 
 from app.builders import build_poc3_facts
 from app.mapping import FactValidationError, OntologyMapper
+from app.mapping.mapping_registry import FACT_SPECS
 
 
 BASE = Path(__file__).resolve().parents[1]
@@ -66,7 +67,7 @@ class FactOntologyMappingTests(unittest.TestCase):
         self.assertTrue(any(graph.triples((None, PIPA.hasRight, None))))
         self.assertTrue(any(graph.triples((None, PIPA.hasExerciseProcedure, None))))
         self.assertEqual("entrusted_task_text", result.system_metadata[0]["field"])
-        self.assertFalse(any(graph.triples((None, PIPA.entrustedTaskText, None))))
+        self.assertTrue(any(graph.triples((None, PIPA.entrustedTaskText, None))))
 
     def test_poc3_form_to_fact_to_rdf_and_shacl(self):
         form = json.loads((BASE / "examples/SC-D01_form.json").read_text(encoding="utf-8"))
@@ -93,7 +94,10 @@ class FactOntologyMappingTests(unittest.TestCase):
             2,
             len([item for item in result.system_metadata if item["field"] == "entrusted_task_text"]),
         )
-        self.assertFalse(any(result.graph.triples((None, PIPA.entrustedTaskText, None))))
+        self.assertEqual(
+            2,
+            len(list(result.graph.triples((None, PIPA.entrustedTaskText, None)))),
+        )
 
         ontology = Graph().parse(BASE / "ontology/PIPA_Ontology_v1.0.ttl", format="turtle")
         shapes = Graph().parse(
@@ -302,8 +306,162 @@ class FactOntologyMappingTests(unittest.TestCase):
             },
             roles,
         )
-        self.assertFalse(any(result.graph.triples((notice, PIPA.noticeIncidentTime, None))))
-        self.assertFalse(any(result.graph.triples((None, PIPA.measureRole, None))))
+        self.assertTrue(any(result.graph.triples((notice, PIPA.noticeIncidentTime, None))))
+        graph_roles = {
+            str(role)
+            for measure in result.graph.objects(incident, PIPA.hasResponseMeasure)
+            for role in result.graph.objects(measure, PIPA.measureRole)
+        }
+        self.assertEqual(roles, graph_roles)
+
+    def test_p2_r01_v1_contract_uses_f2_01_f2_02_f2_03_only(self):
+        facts = [
+            fact(
+                "F2-01-001",
+                subject_id="incident",
+                activity_id="incident",
+                ontology_class="DataBreachIncident",
+                ontology_property=None,
+                value=None,
+                source_type="incident_record",
+            ),
+            fact(
+                "F2-02-001",
+                subject_id="incident",
+                activity_id="incident",
+                ontology_class="DataBreachIncident",
+                ontology_property="affectsPersonalInformation",
+                value=["이메일"],
+                source_type="incident_record",
+            ),
+            fact(
+                "F2-03-001",
+                subject_id="incident",
+                activity_id="incident",
+                ontology_class="DataBreachIncident",
+                ontology_property="hasNotificationNotice",
+                value={"notice_id": "notice"},
+                source_type="notification_notice",
+            ),
+        ]
+        graph = OntologyMapper("p2-r01-v1").map(facts).graph
+        incident = next(graph.subjects(RDF.type, PIPA.DataBreachIncident))
+        self.assertTrue(any(graph.objects(incident, PIPA.affectsPersonalInformation)))
+        self.assertTrue(any(graph.objects(incident, PIPA.hasNotificationNotice)))
+        self.assertFalse(
+            any(graph.triples((incident, PIPA.triggersNotificationObligation, None)))
+        )
+
+    def test_all_fact_specs_reference_frozen_ontology_and_mapper_handlers(self):
+        ontology = Graph().parse(BASE / "ontology/PIPA_Ontology_v1.0.ttl", format="turtle")
+        classes = set(ontology.subjects(RDF.type, OWL.Class))
+        properties = set(ontology.subjects(RDF.type, OWL.ObjectProperty))
+        properties.update(ontology.subjects(RDF.type, OWL.DatatypeProperty))
+        properties.update(ontology.subjects(RDF.type, OWL.AnnotationProperty))
+        self.assertEqual(35, len(FACT_SPECS))
+        mapper = OntologyMapper("contract", controller_id="controller")
+        for fact_type, spec in FACT_SPECS.items():
+            self.assertIn(PIPA[spec.subject_class], classes, fact_type)
+            if spec.ontology_property:
+                self.assertIn(PIPA[spec.ontology_property], properties, fact_type)
+            self.assertTrue(
+                callable(getattr(mapper, f"_map_{spec.mapping_kind}", None)), fact_type
+            )
+
+    def test_activity_scoped_fact_requires_activity_id(self):
+        bad = fact(
+            "F3-01-001",
+            subject_id="activity",
+            activity_id=None,
+            ontology_class="CollectionAndUse",
+            ontology_property=None,
+            value=None,
+            source_type="structured_form",
+        )
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("missing-activity", controller_id="controller").map([bad])
+
+    def test_empty_evidence_is_rejected(self):
+        bad = fact(
+            "F3-01-001",
+            subject_id="activity",
+            activity_id="activity",
+            ontology_class="CollectionAndUse",
+            ontology_property=None,
+            value=None,
+            source_type="structured_form",
+        )
+        bad["evidence"] = []
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("missing-evidence", controller_id="controller").map([bad])
+
+    def test_response_measure_role_enum_and_duplicates_are_rejected(self):
+        invalid = fact(
+            "F2-10-001",
+            subject_id="incident",
+            activity_id="incident",
+            ontology_class="DataBreachIncident",
+            ontology_property="hasResponseMeasure",
+            value=[{"role": "invalid_role", "text": "조치"}],
+            source_type="notification_notice",
+        )
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("invalid-role").map([invalid])
+
+        duplicate = dict(invalid)
+        duplicate["value"] = [
+            {"role": "controller_response", "text": "조치 1"},
+            {"role": "controller_response", "text": "조치 2"},
+        ]
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("duplicate-role").map([duplicate])
+
+    def test_poc2_incident_and_notice_source_types_are_enforced(self):
+        wrong_actual = fact(
+            "F2-02-001",
+            subject_id="incident",
+            activity_id="incident",
+            ontology_class="DataBreachIncident",
+            ontology_property="affectsPersonalInformation",
+            value=["이메일"],
+            source_type="notification_notice",
+        )
+        wrong_notice = fact(
+            "F2-04-001",
+            subject_id="notice",
+            activity_id="incident",
+            ontology_class="NotificationNotice",
+            ontology_property="mentionsPersonalInformation",
+            value=["이메일"],
+            source_type="incident_record",
+        )
+        for bad in (wrong_actual, wrong_notice):
+            with self.assertRaises(FactValidationError):
+                OntologyMapper("wrong-source").map([bad])
+
+    def test_destruction_is_not_inferred_across_activities(self):
+        facts = [
+            fact(
+                "F3-10-001",
+                subject_id="activity-a-retention",
+                activity_id="activity-a",
+                ontology_class="Retention",
+                ontology_property="hasRetentionEndCondition",
+                value="회원 탈퇴",
+                source_type="structured_form",
+            ),
+            fact(
+                "F1-08-001",
+                subject_id="activity-b-destruction",
+                activity_id="activity-b-destruction",
+                ontology_class="Destruction",
+                ontology_property="hasDestructionMethod",
+                value="안전 삭제",
+                source_type="policy_text",
+            ),
+        ]
+        graph = OntologyMapper("no-cross-link", controller_id="controller").map(facts).graph
+        self.assertFalse(any(graph.triples((None, PIPA.triggersDestruction, None))))
 
     def test_legacy_namespace_is_rejected(self):
         bad = fact(

@@ -19,7 +19,7 @@
 - 처리행위별 개인정보 Individual 분리
 - `confirmed/unknown/absent` 구분
 - PoC2 사고 사실/통지문 Fact 분리
-- 시스템 메타데이터와 RDF Ontology assertion 분리
+- 시스템 메타데이터와 RDF Annotation triple의 용도별 이중 보존
 - 기존 SHACL 구조 검증
 
 ## 디렉터리
@@ -75,7 +75,7 @@ py run_tests.py
 현재 SC-D01 예제는 다음을 생성한다.
 
 - Fact 43개
-- RDF triple 122개
+- RDF triple 124개
 - 위탁업무 시스템 메타데이터 2개
 
 ## 백엔드 연결 예시
@@ -138,7 +138,7 @@ OWL/RDF의 Open World Assumption 때문에 triple이 없다는 사실만으로 `
 - `measure_role`
 - `entrusted_task_text`
 
-이 값들은 `MappingResult.system_metadata`와 `generated/SC-D01_system_metadata.json`에 보관한다. 따라서 실제 사고시점 `incidentDate`와 통지문 기재시점 `notice_incident_time`이 합쳐지지 않는다.
+이 값들은 `MappingResult.system_metadata`에 원본 Rule 입력으로 보관하며, 현재 graph-only Rule Engine 및 골든 TTL과의 호환을 위해 각각 `pipa:noticeIncidentTime`, `pipa:measureRole`, `pipa:entrustedTaskText` Annotation triple도 생성한다. Fact의 `ontology_property`로 취급하거나 OWL DatatypeProperty로 승격하지 않는다. 따라서 실제 사고시점 `incidentDate`와 통지문 기재시점 `notice_incident_time`은 계속 분리된다.
 
 ### 네임스페이스
 
@@ -175,7 +175,7 @@ P0RuleEngine
 
 1. F1-01~F1-12가 모두 RDF 또는 시스템 메타데이터로 변환됨
 2. 실제 사고 개인정보와 통지문 기재 개인정보 Individual이 분리됨
-3. `notice_incident_time`과 `measure_role`이 RDF Property로 생성되지 않음
+3. 세 Rule 보조 metadata가 system metadata와 RDF Annotation triple 양쪽에 보존됨
 4. 같은 개인정보명도 다른 처리행위이면 다른 Individual로 생성됨
 5. `unknown/absent`가 확정 RDF assertion으로 생성되지 않음
 6. legacy namespace가 거부됨
@@ -189,4 +189,3 @@ P0RuleEngine
 2. `P0RuleEngine` 호출부가 `graph`, `facts`, `system_metadata`를 받도록 연결
 
 Rule Engine 조건과 API endpoint 자체는 B 담당 코드에서 연결해야 한다.
-

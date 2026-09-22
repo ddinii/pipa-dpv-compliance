@@ -21,6 +21,13 @@ from .mapping_registry import FACT_SPECS
 
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
 
+RESPONSE_MEASURE_ROLES = {
+    "data_subject_guidance",
+    "controller_response",
+    "remedy_procedure",
+    "post_incident_mitigation",
+}
+
 PROCESSING_CLASSES = {
     "ProcessingActivity",
     "PersonalInformationProcessing",
@@ -85,7 +92,6 @@ class OntologyMapper:
             self._map_confirmed(fact)
             trace_item["emitted"] = True
 
-        self._finalize_global_destruction_links()
         return MappingResult(
             graph=self.graph,
             facts=facts,
@@ -385,6 +391,7 @@ class OntologyMapper:
 
     def _map_response_measures(self, fact: dict[str, Any]) -> None:
         incident = self._incident(fact)
+        seen_roles: set[str] = set()
         for index, raw in enumerate(self._as_items(fact["value"])):
             if not isinstance(raw, dict):
                 raise FactValidationError(
@@ -396,10 +403,23 @@ class OntologyMapper:
                 raise FactValidationError(
                     f"{fact['fact_id']}: response measure에 role과 text가 필요함"
                 )
+            if role not in RESPONSE_MEASURE_ROLES:
+                raise FactValidationError(
+                    f"{fact['fact_id']}: 지원하지 않는 measure_role={role!r}"
+                )
+            if role in seen_roles:
+                raise FactValidationError(
+                    f"{fact['fact_id']}: 중복 measure_role={role!r}"
+                )
+            seen_roles.add(role)
             measure_id = raw.get("measure_id") or f"{fact['fact_id']}-measure-{index + 1}"
             measure = self._uri(str(measure_id))
             self.graph.add((measure, RDF.type, PIPA.IncidentResponseMeasure))
             self.graph.add((incident, PIPA.hasResponseMeasure, measure))
+            # P2-R08 reads the frozen measureRole annotation from each
+            # IncidentResponseMeasure.  Keep the same value in system_metadata
+            # as well so non-RDF consumers retain the original Fact payload.
+            self.graph.add((measure, PIPA.measureRole, Literal(str(role))))
             self.system_metadata.append(
                 {
                     "fact_id": fact["fact_id"],
@@ -495,18 +515,11 @@ class OntologyMapper:
         )
 
     def _map_entrusted_task_metadata(self, fact: dict[str, Any]) -> None:
-        self._ensure_activity(self._activity_id(fact), "EntrustedProcessing")
+        activity = self._ensure_activity(self._activity_id(fact), "EntrustedProcessing")
+        self.graph.add((activity, PIPA.entrustedTaskText, Literal(str(fact["value"]))))
         self._metadata(fact, "entrusted_task_text")
 
     def _map_notice_incident_time_metadata(self, fact: dict[str, Any]) -> None:
-        self._notice(fact)
+        notice = self._notice(fact)
+        self.graph.add((notice, PIPA.noticeIncidentTime, Literal(str(fact["value"]))))
         self._metadata(fact, "notice_incident_time")
-
-    def _finalize_global_destruction_links(self) -> None:
-        if not self._destructions:
-            return
-        default_destruction = self._destructions[0]
-        for end in self._end_conditions:
-            if not any(self.graph.objects(end, PIPA.triggersDestruction)):
-                self.graph.add((end, PIPA.triggersDestruction, default_destruction))
-
