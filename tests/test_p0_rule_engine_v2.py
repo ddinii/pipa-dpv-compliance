@@ -2,6 +2,7 @@ from pathlib import Path
 
 from rdflib import Graph, Literal, Namespace, RDF
 
+from app.mapping.ontology_mapper import OntologyMapper
 from app.rules.engine import P0RuleEngine
 
 BASE = Path(__file__).resolve().parent
@@ -15,6 +16,31 @@ def load(name: str) -> Graph:
 
 def statuses(results):
     return {result.rule_id: result.status.value for result in results}
+
+
+def frozen_fact(
+    fact_id,
+    *,
+    subject_id,
+    activity_id,
+    ontology_class,
+    ontology_property,
+    value,
+    value_state="confirmed",
+    source_type="structured_form",
+):
+    return {
+        "fact_id": fact_id,
+        "subject_id": subject_id,
+        "activity_id": activity_id,
+        "ontology_class": ontology_class,
+        "ontology_property": ontology_property,
+        "value": value,
+        "value_state": value_state,
+        "source_type": source_type,
+        "evidence": [{"field_path": f"test.{fact_id}"}],
+        "schema_version": "fact-1.0",
+    }
 
 
 def test_frozen_ontology_file_is_not_modified_by_rule_engine():
@@ -268,19 +294,44 @@ def test_p3_r04_unidentified_end_condition_is_amber():
     graph = Graph()
     activity = ex.activity
     basis = ex.consent
+    request = ex.request
     retention = ex.retention
     end = ex.end
 
     graph.add((activity, RDF.type, PIPA.CollectionAndUse))
     graph.add((basis, RDF.type, PIPA.Consent))
+    graph.add((request, RDF.type, PIPA.ConsentRequest))
     graph.add((retention, RDF.type, PIPA.Retention))
     graph.add((end, RDF.type, PIPA.RetentionEndCondition))
     graph.add((activity, PIPA.hasLegalBasis, basis))
+    graph.add((activity, PIPA.hasConsentRequest, request))
     graph.add((activity, PIPA.hasRetention, retention))
     graph.add((retention, PIPA.hasRetentionEndCondition, end))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R04")
     assert result.status.value == "AMBER"
+
+
+def test_p3_r04_requires_f3_03_consent_request():
+    ex = Namespace("https://example.org/p3r04-request#")
+    graph = Graph()
+    activity = ex.activity
+    basis = ex.consent
+    retention = ex.retention
+    period = ex.period
+
+    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
+    graph.add((basis, RDF.type, PIPA.Consent))
+    graph.add((retention, RDF.type, PIPA.Retention))
+    graph.add((period, RDF.type, PIPA.RetentionPeriod))
+    graph.add((activity, PIPA.hasLegalBasis, basis))
+    graph.add((activity, PIPA.hasRetention, retention))
+    graph.add((retention, PIPA.hasRetentionPeriod, period))
+    graph.add((period, PIPA.hasDurationValue, Literal("회원 탈퇴 시까지")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P3-R04")
+    assert result.status.value == "RED"
+    assert any("hasConsentRequest" in fact for fact in result.missing_facts)
 
 
 def test_p3_r06_unknown_refusal_value_does_not_become_green():
@@ -385,8 +436,11 @@ def test_p2_r01_v1_does_not_require_notification_obligation_fact():
     ex = Namespace("https://example.org/p2r01-v1#")
     graph = Graph()
     incident = ex.incident
+    item = ex.item
     graph.add((incident, RDF.type, PIPA.DataBreachIncident))
-    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+    graph.add((item, RDF.type, PIPA.PersonalInformation))
+    graph.add((item, PIPA.hasItemName, Literal("이메일")))
+    graph.add((incident, PIPA.affectsPersonalInformation, item))
     graph.add((incident, PIPA.hasNotificationNotice, ex.notice))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
@@ -401,8 +455,11 @@ def test_p2_r01_missing_notice_is_red_without_reporting_obligation_inference():
     ex = Namespace("https://example.org/p2r01-no-notice#")
     graph = Graph()
     incident = ex.incident
+    item = ex.item
     graph.add((incident, RDF.type, PIPA.DataBreachIncident))
-    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+    graph.add((item, RDF.type, PIPA.PersonalInformation))
+    graph.add((item, PIPA.hasItemName, Literal("이메일")))
+    graph.add((incident, PIPA.affectsPersonalInformation, item))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
     assert result.status.value == "RED"
@@ -441,7 +498,7 @@ def test_p2_r03_explicit_no_notice_can_be_not_applicable():
     assert result.applicability.value == "FALSE"
 
 
-def test_p3_r11_does_not_require_processor_name():
+def test_p3_r11_requires_processor_name_from_f3_12():
     ex = Namespace("https://example.org/p3r11-no-name#")
     graph = Graph()
     activity = ex.activity
@@ -451,7 +508,8 @@ def test_p3_r11_does_not_require_processor_name():
     graph.add((activity, PIPA.entrustedTaskText, Literal("고객 문의 처리")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
-    assert result.status.value == "GREEN"
+    assert result.status.value == "RED"
+    assert any("hasName" in fact for fact in result.missing_facts)
 
 
 def test_p1_r06_still_requires_processor_name():
@@ -471,12 +529,242 @@ def test_p3_r11_unknown_task_is_amber():
     ex = Namespace("https://example.org/p3r11-unknown#")
     graph = Graph()
     activity = ex.activity
+    processor = ex.processor
     graph.add((activity, RDF.type, PIPA.EntrustedProcessing))
-    graph.add((activity, PIPA.hasProcessor, ex.processor))
+    graph.add((activity, PIPA.hasProcessor, processor))
+    graph.add((processor, PIPA.hasName, Literal("고객센터 수탁자")))
     graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
     assert result.status.value == "AMBER"
+
+
+def test_p1_r01_requires_concrete_f1_02_purpose_value():
+    ex = Namespace("https://example.org/p1r01-detail#")
+    graph = Graph()
+    activity = ex.activity
+    purpose = ex.purpose
+    graph.add((activity, RDF.type, PIPA.CollectionAndUse))
+    graph.add((purpose, RDF.type, PIPA.ProcessingPurpose))
+    graph.add((activity, PIPA.hasPurpose, purpose))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R01")
+    assert result.status.value == "AMBER"
+    assert any("hasPurposeDescription" in fact for fact in result.uncertain_facts)
+
+
+def test_p1_r03_requires_concrete_frozen_values_not_only_links():
+    ex = Namespace("https://example.org/p1r03-detail#")
+    graph = Graph()
+    activity = ex.activity
+    graph.add((activity, RDF.type, PIPA.ThirdPartyProvision))
+    graph.add((activity, PIPA.hasRecipient, ex.recipient))
+    graph.add((activity, PIPA.hasPersonalInformation, ex.item))
+    graph.add((activity, PIPA.hasPurpose, ex.purpose))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R03")
+    assert result.status.value == "AMBER"
+    assert any("hasName" in fact for fact in result.uncertain_facts)
+    assert any("hasItemName" in fact for fact in result.uncertain_facts)
+    assert any("hasPurposeDescription" in fact for fact in result.uncertain_facts)
+
+
+def test_p2_r01_requires_concrete_f2_02_item_name():
+    ex = Namespace("https://example.org/p2r01-detail#")
+    graph = Graph()
+    incident = ex.incident
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+    graph.add((incident, PIPA.hasNotificationNotice, ex.notice))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
+    assert result.status.value == "AMBER"
+
+
+def test_strict_fact_contract_preserves_unknown_as_amber():
+    facts = [
+        frozen_fact(
+            "F3-01-001",
+            subject_id="act-001",
+            activity_id="act-001",
+            ontology_class="CollectionAndUse",
+            ontology_property=None,
+            value=None,
+        ),
+        frozen_fact(
+            "F3-02-001",
+            subject_id="act-001",
+            activity_id="act-001",
+            ontology_class="CollectionAndUse",
+            ontology_property="hasLegalBasis",
+            value=None,
+            value_state="unknown",
+        ),
+    ]
+    mapping = OntologyMapper("strict-unknown", controller_id="controller").map(facts)
+
+    result = P0RuleEngine().evaluate_rule(
+        mapping.graph,
+        "P3-R01",
+        facts=mapping.facts,
+    )
+    assert result.status.value == "AMBER"
+    assert "fact:F3-02:unknown" in result.uncertain_facts
+
+
+def test_strict_fact_contract_missing_required_fact_prevents_green():
+    facts = [
+        frozen_fact(
+            "F3-11-001",
+            subject_id="end-001",
+            activity_id="act-001",
+            ontology_class="RetentionEndCondition",
+            ontology_property="triggersDestruction",
+            value={
+                "end_condition": "회원 탈퇴",
+                "destruction_method": "복구 불가능한 방법으로 삭제",
+            },
+        )
+    ]
+    mapping = OntologyMapper("strict-coverage", controller_id="controller").map(facts)
+
+    # F3-11 mapping can materialize the retention/end-condition structure, so
+    # graph-only evaluation used to become GREEN even though frozen F3-10 was
+    # never supplied. Strict mode must keep that input-contract gap visible.
+    result = P0RuleEngine().evaluate_rule(
+        mapping.graph,
+        "P3-R08",
+        facts=mapping.facts,
+    )
+    assert result.status.value == "AMBER"
+    assert "fact:F3-10:missing_envelope" in result.uncertain_facts
+
+
+def test_strict_fact_contract_absent_required_fact_is_red():
+    facts = [
+        frozen_fact(
+            "F3-10-001",
+            subject_id="retention-001",
+            activity_id="act-001",
+            ontology_class="Retention",
+            ontology_property="hasRetentionEndCondition",
+            value=None,
+            value_state="absent",
+        ),
+        frozen_fact(
+            "F3-11-001",
+            subject_id="end-001",
+            activity_id="act-001",
+            ontology_class="RetentionEndCondition",
+            ontology_property="triggersDestruction",
+            value={
+                "end_condition": "회원 탈퇴",
+                "destruction_method": "복구 불가능한 방법으로 삭제",
+            },
+        ),
+    ]
+    mapping = OntologyMapper("strict-absent", controller_id="controller").map(facts)
+
+    result = P0RuleEngine().evaluate_rule(
+        mapping.graph,
+        "P3-R08",
+        facts=mapping.facts,
+    )
+    assert result.status.value == "RED"
+    assert "fact:F3-10:absent" in result.missing_facts
+
+
+def test_strict_fact_contract_keeps_confirmed_false_as_value():
+    facts = [
+        frozen_fact(
+            "F3-07-001",
+            subject_id="item-001",
+            activity_id="act-001",
+            ontology_class="PersonalInformation",
+            ontology_property="isRequired",
+            value={"item_name": "관심사", "is_required": False},
+        ),
+        frozen_fact(
+            "F3-09-001",
+            subject_id="request-001",
+            activity_id="act-001",
+            ontology_class="ConsentRequest",
+            ontology_property="deniesServiceOnOptionalRefusal",
+            value=False,
+        ),
+    ]
+    mapping = OntologyMapper("strict-false", controller_id="controller").map(facts)
+
+    result = P0RuleEngine().evaluate_rule(
+        mapping.graph,
+        "P3-R06",
+        facts=mapping.facts,
+    )
+    assert result.status.value == "GREEN"
+
+
+def test_strict_p1_r02_period_or_end_condition_allows_explicit_absent_alternative():
+    facts = [
+        frozen_fact(
+            "F1-03-001",
+            subject_id="act-001",
+            activity_id="act-001",
+            ontology_class="CollectionAndUse",
+            ontology_property="hasRetention",
+            value="1년",
+            source_type="policy_text",
+        ),
+        frozen_fact(
+            "F1-04-001",
+            subject_id="act-001",
+            activity_id="act-001",
+            ontology_class="CollectionAndUse",
+            ontology_property="hasRetention",
+            value=None,
+            value_state="absent",
+            source_type="policy_text",
+        ),
+    ]
+    mapping = OntologyMapper("strict-p1r02-or", controller_id="controller").map(facts)
+
+    result = P0RuleEngine().evaluate_rule(
+        mapping.graph,
+        "P1-R02",
+        facts=mapping.facts,
+    )
+    assert result.status.value == "GREEN"
+
+
+def test_strict_p1_r02_unknown_alternative_does_not_override_confirmed_period():
+    facts = [
+        frozen_fact(
+            "F1-03-001",
+            subject_id="act-001",
+            activity_id="act-001",
+            ontology_class="CollectionAndUse",
+            ontology_property="hasRetention",
+            value="1년",
+            source_type="policy_text",
+        ),
+        frozen_fact(
+            "F1-04-001",
+            subject_id="act-001",
+            activity_id="act-001",
+            ontology_class="CollectionAndUse",
+            ontology_property="hasRetention",
+            value=None,
+            value_state="unknown",
+            source_type="policy_text",
+        ),
+    ]
+    mapping = OntologyMapper("strict-p1r02-unknown-or", controller_id="controller").map(facts)
+
+    result = P0RuleEngine().evaluate_rule(
+        mapping.graph,
+        "P1-R02",
+        facts=mapping.facts,
+    )
+    assert result.status.value == "GREEN"
 
 
 def test_p3_r08_unknown_destruction_method_is_amber():
