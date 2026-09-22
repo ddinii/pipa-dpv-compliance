@@ -13,6 +13,12 @@ class FactSpec:
 
 
 FACT_SPECS: dict[str, FactSpec] = {
+    # 처리행위 유형의 명시적 부재 (N/A 판정). Fact Dictionary에 대응 ID가 없어
+    # 추가한 규약이다. ontology_class에 "없다고 확인된 유형"을 담고,
+    # subject_id는 개인정보처리자다. 단순 미기재(AMBER)와 구분된다.
+    "F1-00": FactSpec("PersonalInformationController", None, "activity_absence"),
+    "F2-00": FactSpec("PersonalInformationController", None, "activity_absence"),
+    "F3-00": FactSpec("PersonalInformationController", None, "activity_absence"),
     # PoC1
     "F1-01": FactSpec("CollectionAndUse", None, "class_assertion"),
     "F1-02": FactSpec("CollectionAndUse", "hasPurpose", "purpose"),
@@ -54,5 +60,5 @@ FACT_SPECS: dict[str, FactSpec] = {
 }
 
 
-SYSTEM_METADATA_FACTS = {"F1-10", "F2-08", "F3-13"}
+SYSTEM_METADATA_FACTS = {"F1-00", "F1-10", "F2-00", "F2-08", "F3-00", "F3-13"}
 
