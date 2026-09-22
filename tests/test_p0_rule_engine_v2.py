@@ -53,7 +53,10 @@ def test_sc_p02_expected_freeze_results():
         "P2-R08": "GREEN",
     }
     p2_r01 = next(item for item in results if item.rule_id == "P2-R01")
-    assert any("requires triggersNotificationObligation" in note for note in p2_r01.implementation_notes)
+    assert p2_r01.status.value == "GREEN"
+    assert all("triggersNotificationObligation" not in fact for fact in (
+        p2_r01.matched_facts + p2_r01.missing_facts + p2_r01.uncertain_facts
+    ))
 
 
 def test_sc_d01_expected_freeze_results():
@@ -72,15 +75,18 @@ def test_sc_d01_expected_freeze_results():
 
 def test_p2_r03_does_not_substitute_incident_time_for_notice_time():
     graph = Graph()
-    incident = Namespace("https://example.org/test#").incident
-    notice = Namespace("https://example.org/test#").notice
+    ex = Namespace("https://example.org/test#")
+    incident = ex.incident
+    notice = ex.notice
     graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.incidentDate, Literal("2026-09-05T14:30:00+09:00")))
     graph.add((incident, PIPA.hasNotificationNotice, notice))
     graph.add((notice, RDF.type, PIPA.NotificationNotice))
-    graph.add((notice, PIPA.hasIncidentCircumstances, Namespace("https://example.org/test#").circumstance))
+    graph.add((notice, PIPA.hasIncidentCircumstances, ex.circumstance))
     result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
     assert result.status.value in {"AMBER", "RED"}
     assert result.status.value != "GREEN"
+    assert any("noticeIncidentTime" in fact for fact in result.missing_facts + result.uncertain_facts)
 
 
 def test_rule_engine_does_not_mix_facts_across_activities():
@@ -142,7 +148,7 @@ def test_p2_r03_missing_one_required_notice_fact_is_red():
     assert result.status.value == "RED"
 
 
-def test_p2_r08_all_required_roles_plus_extra_role_is_green():
+def test_p2_r08_rejects_role_outside_frozen_four_as_amber():
     ex = Namespace("https://example.org/p2r08#")
     graph = Graph()
     incident = ex.incident
@@ -162,7 +168,8 @@ def test_p2_r08_all_required_roles_plus_extra_role_is_green():
         graph.add((incident, PIPA.hasResponseMeasure, measure))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R08")
-    assert result.status.value == "GREEN"
+    assert result.status.value == "AMBER"
+    assert "unexpected_measure_role:internal_tracking" in result.uncertain_facts
 
 
 def test_p2_r08_unclassified_response_measure_is_amber():
@@ -348,33 +355,33 @@ def test_p2_r02_unknown_item_name_does_not_compare_as_green():
     assert result.status.value == "AMBER"
 
 
-def test_p2_r01_requires_notification_obligation_fact():
-    ex = Namespace("https://example.org/p2r01-obligation#")
-    graph = Graph()
-    incident = ex.incident
-    notice = ex.notice
-    item = ex.item
-    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
-    graph.add((incident, PIPA.affectsPersonalInformation, item))
-    graph.add((incident, PIPA.hasNotificationNotice, notice))
-
-    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
-    assert result.status.value == "AMBER"
-    assert result.applicability.value == "TRUE"
-    assert any("triggersNotificationObligation" in fact for fact in result.uncertain_facts)
-
-
-def test_p2_r01_is_green_when_all_three_required_facts_exist():
-    ex = Namespace("https://example.org/p2r01-complete#")
+def test_p2_r01_v1_does_not_require_notification_obligation_fact():
+    ex = Namespace("https://example.org/p2r01-v1#")
     graph = Graph()
     incident = ex.incident
     graph.add((incident, RDF.type, PIPA.DataBreachIncident))
     graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
-    graph.add((incident, PIPA.triggersNotificationObligation, ex.obligation))
     graph.add((incident, PIPA.hasNotificationNotice, ex.notice))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
     assert result.status.value == "GREEN"
+    assert result.applicability.value == "TRUE"
+    assert all("triggersNotificationObligation" not in fact for fact in (
+        result.matched_facts + result.missing_facts + result.uncertain_facts
+    ))
+
+
+def test_p2_r01_missing_notice_is_red_without_reporting_obligation_inference():
+    ex = Namespace("https://example.org/p2r01-no-notice#")
+    graph = Graph()
+    incident = ex.incident
+    graph.add((incident, RDF.type, PIPA.DataBreachIncident))
+    graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
+    assert result.status.value == "RED"
+    assert any("hasNotificationNotice" in fact for fact in result.missing_facts)
+    assert "통지 의무 대상 여부 판정이 아닙니다" in result.instance_results[0].reason
 
 
 def test_p2_r02_missing_notice_is_amber_without_explicit_false():
