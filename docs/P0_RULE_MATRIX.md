@@ -26,14 +26,16 @@
 
 | Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
 |---|---|---|---|---|---|
-| P2-R01 통지 실시 여부 | 개인정보 유출등 사고 TRUE | affected PI + notification obligation + notice | 통지 대상 사고 + notice | 유출등/통지 사실 일부 UNKNOWN | 통지 대상 사고 + notice 부재 |
+| P2-R01 사고 사실·통지문 존재 검토 | `DataBreachIncident=TRUE` | `F2-01` incident + `F2-02` affected PI + `F2-03` notice | 사고·영향항목·notice 존재 확인 | 영향항목 또는 notice 값 UNKNOWN/모호 | 사고·영향항목 확인 + notice 부재 |
 | P2-R02 통지 항목 완전성 | `NotificationNotice=TRUE` | incident affected items vs notice mentioned items | 실제 영향 항목 모두 포함 | 포괄표현 등으로 집합 비교 불가 | 실제 영향 항목 누락 |
 | P2-R03 통지 시점·경위 | `NotificationNotice=TRUE` | `noticeIncidentTime` + `hasIncidentCircumstances` | 통지문 자체에 둘 다 확인 | 둘 중 하나가 UNKNOWN/모호 | 둘 중 하나 이상 명시적 부재 |
 | P2-R08 피해 최소화·대응·구제 | `DataBreachIncident=TRUE` | response measure 4 roles | 4개 역할 모두 확인 | 일부 역할/내용 모호 | 필수 대응정보 부재 |
 
-P2-R03의 `noticeIncidentTime`은 실제 `incidentDate`와 분리합니다. 실제 사고시각이 있다는 이유만으로 GREEN 처리하지 않습니다.
+P2-R01은 통지 대상 여부를 자동판정하지 않고, 제공된 사고 사실과 `NotificationNotice` 존재 여부만 검토합니다. 신고 threshold와 `ReportingObligation`은 v1 범위 밖입니다.
 
-P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_procedure`, `post_incident_mitigation` 4종입니다.
+P2-R03의 `noticeIncidentTime`은 system field `notice_incident_time`의 graph 호환 표현이며 실제 `incidentDate`와 분리합니다. 실제 사고시각이 있다는 이유만으로 GREEN 처리하지 않습니다.
+
+P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_procedure`, `post_incident_mitigation` 4종입니다. 이 4종 밖의 `measureRole` 값은 v1 Rule 입력으로 확정하지 않습니다.
 
 ## PoC3
 
@@ -52,5 +54,5 @@ P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_proc
 
 - `app/rules/engine.py`가 18개 P0 Rule의 결정론적 판정을 담당합니다.
 - `rules/p0_rules.json`은 Rule ID, PoC, 법적 근거, applicability, ontology term metadata를 관리합니다.
-- P2-R01은 Freeze 명세대로 `triggersNotificationObligation`을 필수 Fact로 평가합니다. frozen ontology 파일에는 해당 term 선언이 없지만, Rule Engine은 입력 RDF의 동일 URI Fact를 직접 평가하며 ontology 파일 자체는 변경하지 않습니다.
+- P2-R01은 v1에서 `F2-01 DataBreachIncident`, `F2-02 affectsPersonalInformation`, `F2-03 hasNotificationNotice`만 Required Fact로 사용합니다. 통지 대상 여부 자체, 신고 threshold, `ReportingObligation`, `triggersNotificationObligation` 자동판정은 범위 밖입니다.
 - `noticeIncidentTime`, `measureRole`, `entrustedTaskText`는 Rule 입력용 보조 metadata이며 ontology v1.0에서는 annotation property로만 정의되어 있습니다.
