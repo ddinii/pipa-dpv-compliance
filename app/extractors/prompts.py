@@ -15,20 +15,31 @@ offset은 LLM에게 시키지 않는다. 근거 문장을 원문 그대로 인�
 
 from __future__ import annotations
 
-# Fact Dictionary 3장 PoC1. (Fact ID, 설명, ontology_property, 값 타입)
+from app.mapping.mapping_registry import FACT_SPECS
+
+# Fact Dictionary 3장 PoC1. (Fact ID, 설명, 값 타입)
+#
+# ontology_property는 여기에 적지 않고 정본 레지스트리(app.mapping.mapping_registry)에서
+# 끌어온다. 이름을 다시 적어두면 레지스트리가 바뀔 때 프롬프트만 조용히 낡고, 증상은
+# "추출은 됐는데 검증에서 전부 reject"라는 형태로 실제 API 실행 때 처음 드러난다.
+_POC1_FACT_NOTES: list[tuple[str, str, str]] = [
+    ("F1-01", "수집·이용 처리행위의 존재", "없음 (Class assertion)"),
+    ("F1-02", "처리 목적", "문자열"),
+    ("F1-03", "보유 기간 (숫자 기간)", "문자열"),
+    ("F1-04", "보유 종료조건", "문자열"),
+    ("F1-05", "제3자 제공 받는 자", "문자열"),
+    ("F1-06", "제3자 제공 항목", "문자열 배열"),
+    ("F1-07", "제3자 제공 목적", "문자열"),
+    ("F1-08", "파기 방법", "문자열"),
+    ("F1-09", "위탁 수탁자명", "문자열"),
+    ("F1-10", "위탁업무 내용", "문자열 (시스템 필드)"),
+    ("F1-11", "정보주체 권리", "문자열 배열"),
+    ("F1-12", "권리 행사절차", '객체 {"right": 권리명, "procedure": 절차}'),
+]
+
 POC1_FACT_CATALOG: list[tuple[str, str, str | None, str]] = [
-    ("F1-01", "수집·이용 처리행위의 존재", None, "없음 (Class assertion)"),
-    ("F1-02", "처리 목적", "hasPurpose", "문자열"),
-    ("F1-03", "보유 기간 (숫자 기간)", "hasRetentionPeriod", "문자열"),
-    ("F1-04", "보유 종료조건", "hasRetentionEndCondition", "문자열"),
-    ("F1-05", "제3자 제공 받는 자", "hasRecipient", "문자열"),
-    ("F1-06", "제3자 제공 항목", "hasPersonalInformation", "문자열 배열"),
-    ("F1-07", "제3자 제공 목적", "hasPurpose", "문자열"),
-    ("F1-08", "파기 방법", "hasDestructionMethod", "문자열"),
-    ("F1-09", "위탁 수탁자명", "hasName", "문자열"),
-    ("F1-10", "위탁업무 내용", None, "문자열 (시스템 필드)"),
-    ("F1-11", "정보주체 권리", "hasRight", "문자열 배열"),
-    ("F1-12", "권리 행사절차", "hasExerciseProcedure", "문자열"),
+    (fact_id, description, FACT_SPECS[fact_id].ontology_property, value_type)
+    for fact_id, description, value_type in _POC1_FACT_NOTES
 ]
 
 # 명시적 부재를 단언할 수 있는 처리행위 유형.
@@ -157,6 +168,11 @@ PASS2_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스�
 6. 해당 처리행위에 해당하지 않는 Fact ID는 아예 출력하지 마십시오.
    예를 들어 EntrustedProcessing 처리행위에서는 F1-09와 F1-10만 나옵니다.
 
+7. **F1-03과 F1-04는 ontology_property가 같습니다.** 둘을 가르는 것은 값의 성격이지
+   property 이름이 아닙니다. "3년", "5년간"처럼 기간 자체가 적혀 있으면 F1-03이고,
+   "회원 탈퇴 시", "목적 달성 시"처럼 보유를 끝내는 사건이 적혀 있으면 F1-04입니다.
+   한 처리행위에 둘 다 적혀 있으면 둘 다 출력합니다.
+
 ## 처리행위 유형별로 기대되는 Fact
 
   - CollectionAndUse    : F1-01, F1-02, F1-03, F1-04
@@ -169,12 +185,19 @@ PASS2_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스�
 """
 
 
+def _rights_fact_table() -> str:
+    wanted = {"F1-11", "F1-12"}
+    return "\n".join(
+        line for line in _fact_catalog_table().splitlines()
+        if line.strip().split(" ", 2)[1] in wanted
+    )
+
+
 RIGHTS_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스템의 Fact 추출기입니다.
 
 개인정보 처리방침 원문에서 **정보주체의 권리와 행사절차**만 추출하십시오.
 
-  - F1-11 정보주체 권리 | ontology_property=hasRight | 문자열 배열
-  - F1-12 권리 행사절차 | ontology_property=hasExerciseProcedure | 문자열
+{_rights_fact_table()}
 
 ## 절대 규칙
 
@@ -184,8 +207,14 @@ RIGHTS_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스�
 2. F1-11의 value는 권리 문구의 배열이고, evidence_text는 권리 개수와 같은 개수를
    순서대로 제공합니다.
 
-3. F1-12는 행사 방법·절차를 서술한 부분입니다. 원문이 모든 권리에 공통 절차 하나만
-   기재하면 F1-12도 하나만 출력하십시오.
+3. **F1-12는 권리 하나당 하나씩 출력하십시오.** 원문이 모든 권리에 공통 절차 한 문장만
+   기재하더라도, F1-11에 담은 권리 수만큼 F1-12를 냅니다. 각각의 value는
+   `{{"right": 그 권리 문구, "procedure": 절차 서술}}` 형태로, 어느 권리에 대한
+   절차인지 스스로 밝혀야 합니다.
+
+   판정 엔진이 **모든 권리에** 행사절차가 붙어 있어야 준수로 보기 때문입니다. 절차를
+   하나만 내면 나머지 권리는 절차가 없는 것으로 취급되어 판정이 뒤집힙니다.
+   권리가 4개면 F1-12도 4개이고, 넷의 evidence_text는 같은 문장이어도 됩니다.
 
 4. evidence_text는 원문 그대로 인용합니다. 한 글자라도 다르면 버려집니다.
 """
