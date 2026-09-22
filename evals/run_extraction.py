@@ -1,10 +1,10 @@
-"""PoC1 Extractor를 평가 세트 전체에 돌리고 채점한다.
+"""Extractor를 한 PoC의 평가 세트 전체에 돌리고 채점한다.
 
     문서 ──LLM 2-pass──> Fact ──검증──> RDF ──> Rule Engine
                           │                        │
                      Fact-level 채점          Rule-level 비교
 
-평가 세트는 기준 처리방침 1개 + controlled variants 6개다. 기준 문서 하나로만 재면
+평가 세트는 기준 문서 1개 + controlled variants n개다. 기준 문서 하나로만 재면
 GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린다.
 
 이 스크립트는 Claude API를 호출하므로 비용이 발생한다.
@@ -13,10 +13,11 @@ GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린�
     python evals\\run_extraction.py
 
 옵션:
+    --poc        평가할 PoC (기본 poc1). evals/dataset.py의 POC_DATASETS 참고
     --model      기본 claude-opus-5
     --case       특정 케이스만 실행 (반복 지정 가능). 생략하면 전체
     --no-cache   원문 prompt caching 비활성화 (캐시 효과 측정용)
-    --out-dir    예측 Fact 저장 위치 (기본 evals/poc1/predictions)
+    --out-dir    예측 Fact 저장 위치 (기본 evals/<poc>/predictions)
 """
 
 from __future__ import annotations
@@ -36,7 +37,7 @@ from app.mapping.fact_schema import FactValidationError as FactMappingError  # n
 from app.facts.models import FactEnvelope  # noqa: E402
 from app.facts.validator import FactValidationError, validate_facts  # noqa: E402
 from app.rules.engine import P0RuleEngine  # noqa: E402
-from evals.dataset import EvalCase, load_poc1_cases  # noqa: E402
+from evals.dataset import POC_DATASETS, EvalCase, load_cases  # noqa: E402
 from evals.score import (  # noqa: E402
     RuleScore,
     Score,
@@ -45,7 +46,8 @@ from evals.score import (  # noqa: E402
     score_facts,
 )
 
-DEFAULT_OUT_DIR = ROOT / "evals" / "poc1" / "predictions"
+# PoC별 Extractor. PoC2가 생기면 여기에 한 줄 더한다.
+EXTRACTORS = {"poc1": PoC1Extractor}
 
 
 def run_case(
@@ -69,7 +71,7 @@ def run_case(
         json.dumps(
             {
                 "case": case.name,
-                "poc": "poc1",
+                "poc": case.poc,
                 "fact_schema_version": "fact-1.0",
                 "facts": result.facts,
             },
@@ -97,7 +99,7 @@ def run_case(
 
     statuses = {
         item.rule_id: item.status.value
-        for item in engine.evaluate_graph(graph, poc="poc1")
+        for item in engine.evaluate_graph(graph, poc=case.poc)
     }
     return {
         "case": case,
@@ -129,11 +131,16 @@ def summarize(rows: list[dict], fact_score: Score, rule_score: RuleScore) -> Non
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--poc", default="poc1", choices=sorted(POC_DATASETS))
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--case", action="append", default=None)
     parser.add_argument("--no-cache", action="store_true")
-    parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
+    parser.add_argument("--out-dir", type=Path, default=None)
     args = parser.parse_args()
+
+    if args.poc not in EXTRACTORS:
+        print(f"{args.poc}용 Extractor가 아직 없습니다. 있는 것: {sorted(EXTRACTORS)}")
+        return 2
 
     try:
         import anthropic
@@ -141,7 +148,8 @@ def main() -> int:
         print("anthropic SDK가 없습니다: python -m pip install anthropic")
         return 2
 
-    cases = load_poc1_cases()
+    out_dir = args.out_dir or POC_DATASETS[args.poc].prediction_directory
+    cases = load_cases(args.poc)
     if args.case:
         wanted = set(args.case)
         cases = [case for case in cases if case.name in wanted]
@@ -149,10 +157,10 @@ def main() -> int:
             print(f"해당 케이스가 없습니다: {sorted(wanted)}")
             return 2
 
-    print(f"평가 세트 {len(cases)}개 · model={args.model} "
+    print(f"[{args.poc}] 평가 세트 {len(cases)}개 · model={args.model} "
           f"· caching={'off' if args.no_cache else 'on'}")
 
-    extractor = PoC1Extractor(
+    extractor = EXTRACTORS[args.poc](
         anthropic.Anthropic().messages,
         model=args.model,
         cache_document=not args.no_cache,
@@ -164,7 +172,7 @@ def main() -> int:
     rule_score = RuleScore()
 
     for case in cases:
-        row = run_case(case, extractor, engine, args.out_dir)
+        row = run_case(case, extractor, engine, out_dir)
         rows.append(row)
 
         if row["facts"] is not None:
@@ -176,10 +184,11 @@ def main() -> int:
 
     summarize(rows, fact_score, rule_score)
 
-    report = args.out_dir / "report.json"
+    report = out_dir / "report.json"
     report.write_text(
         json.dumps(
             {
+                "poc": args.poc,
                 "model": args.model,
                 "cases": [row["case"].name for row in rows],
                 "fact_level": fact_score.as_dict(),

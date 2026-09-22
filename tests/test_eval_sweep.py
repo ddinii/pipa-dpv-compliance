@@ -21,7 +21,7 @@ from app.mapping.fact_schema import ABSENT_ACTIVITY_KEY
 from app.facts.models import FactEnvelope
 from app.facts.validator import validate_facts
 from app.rules.engine import P0RuleEngine
-from evals.dataset import load_poc1_cases
+from evals.dataset import POC_DATASETS, load_cases, load_poc1_cases
 from evals.run_extraction import _accumulate
 from evals.score import RuleScore, Score, score_facts
 
@@ -240,3 +240,31 @@ def test_prompt_documents_every_absence_eligible_class():
     assert "absent_activity_classes" in PASS1_SYSTEM
     # 미기재와 명시적 부재를 구분하라는 지침이 빠지면 N/A를 남발하게 된다
     assert "미기재" in PASS1_SYSTEM
+
+
+# --- PoC 등록 ------------------------------------------------------------
+
+
+def test_every_registered_poc_dataset_actually_loads():
+    """POC_DATASETS에 등록만 해두고 파일이 없으면 즉시 드러나야 한다.
+
+    조용히 빈 세트를 돌려주면 "0건 평가 통과"가 되어 채점이 무의미해진다.
+    """
+    for poc in POC_DATASETS:
+        cases = load_cases(poc)
+        assert cases, poc
+        assert all(case.poc == poc for case in cases)
+
+
+def test_unregistered_poc_fails_loudly():
+    with pytest.raises(ValueError, match="POC_DATASETS"):
+        load_cases("poc9")
+
+
+def test_runner_refuses_a_poc_without_an_extractor():
+    """평가 세트는 있는데 Extractor가 없는 PoC를 실수로 돌리지 않도록."""
+    from evals.run_extraction import EXTRACTORS
+
+    assert set(EXTRACTORS) <= set(POC_DATASETS)
+    for poc in EXTRACTORS:
+        assert load_cases(poc)
