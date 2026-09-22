@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from app.api.compliance import router as compliance_router
+from app.api.dev_console import router as dev_console_router
 from app.api.validate import router as validation_router
 
 
@@ -14,6 +16,8 @@ app = FastAPI(
 )
 
 app.include_router(validation_router)
+app.include_router(dev_console_router)
+app.include_router(compliance_router)
 
 
 @app.get("/health")

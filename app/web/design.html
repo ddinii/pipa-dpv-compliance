@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy-by-Design 사전점검</title>
+<style>
+  :root {
+    --green:#1a7f37; --amber:#9a6700; --red:#cf222e; --na:#6e7781;
+    --line:#d8dee4; --bg:#f6f8fa; --ink:#1f2328; --muted:#656d76; --accent:#0969da;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:0 16px 64px; background:#fff; color:var(--ink);
+    font:14px/1.6 -apple-system,"Segoe UI","Malgun Gothic",sans-serif;
+  }
+  h1 { font-size:18px; margin:20px 0 4px; }
+  h2 { font-size:13px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  h3 { font-size:14px; margin:0; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 16px; }
+  .layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+  @media (max-width:900px) { .layout { grid-template-columns:1fr; } }
+  .panel { border:1px solid var(--line); border-radius:6px; padding:14px; background:#fff; }
+  .panel + .panel { margin-top:14px; }
+  .act { border:1px solid var(--line); border-radius:6px; margin-bottom:12px; overflow:hidden; }
+  .act > header {
+    display:flex; gap:8px; align-items:center; padding:8px 12px;
+    background:var(--bg); border-bottom:1px solid var(--line);
+  }
+  .act > header input { flex:1; }
+  .act > div { padding:12px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:8px 0 2px; }
+  input[type=text], select, textarea {
+    font:inherit; width:100%; padding:5px 8px; border:1px solid var(--line);
+    border-radius:6px; background:#fff; color:inherit;
+  }
+  select { cursor:pointer; }
+  button {
+    font:inherit; padding:5px 10px; border:1px solid var(--line);
+    border-radius:6px; background:#fff; cursor:pointer;
+  }
+  button:hover { background:var(--bg); }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  button.danger { color:var(--red); border-color:var(--line); padding:2px 8px; }
+  button.small { font-size:12px; padding:3px 8px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { text-align:left; padding:4px 6px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  .badge {
+    display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px;
+    font-weight:700; color:#fff; white-space:nowrap;
+  }
+  .GREEN{background:var(--green)} .AMBER{background:var(--amber)}
+  .RED{background:var(--red)} .NA{background:var(--na)}
+  .check { border:1px solid var(--line); border-radius:6px; margin-bottom:10px; overflow:hidden; }
+  .check > header { display:flex; gap:10px; align-items:center; padding:8px 12px; background:var(--bg); flex-wrap:wrap; }
+  .check > header .rid { font:600 13px ui-monospace,Consolas,monospace; }
+  .check > header .title { flex:1; }
+  .check > div { padding:10px 12px; font-size:13px; }
+  .check .todo { color:var(--red); }
+  .check .law { color:var(--muted); font-size:12px; margin-top:6px; }
+  .counts { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  code { font:12px ui-monospace,Consolas,monospace; background:var(--bg); padding:1px 4px; border-radius:3px; }
+  .err { color:var(--red); white-space:pre-wrap; font-size:13px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .tri { max-width:220px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+  @media (max-width:640px) { .grid2 { grid-template-columns:1fr; } }
+  details.facts { margin-top:12px; }
+  details.facts pre { font:11px/1.5 ui-monospace,Consolas,monospace; background:var(--bg);
+    padding:10px; border-radius:6px; overflow:auto; max-height:320px; }
+</style>
+</head>
+<body>
+
+<h1>Privacy-by-Design 사전점검</h1>
+<p class="sub">
+  설계정보를 입력하면 P0 PoC3 Rule 8개로 사전점검합니다. LLM을 쓰지 않으므로 같은 입력은 항상 같은 결과를 냅니다.
+  결과는 기계판독 가능한 요건의 확인 여부이며 법적 준수 인증이 아닙니다.
+</p>
+
+<div class="row" style="margin-bottom:14px">
+  <button id="analyze" class="primary">사전점검 실행</button>
+  <button id="reset">예시 설계 다시 불러오기</button>
+  <button id="add-activity">+ 수집·이용 처리행위</button>
+  <button id="add-entrust">+ 위탁</button>
+  <span id="status" class="muted"></span>
+</div>
+
+<div class="layout">
+  <div>
+    <div class="panel">
+      <h2>기본 정보</h2>
+      <div class="grid2">
+        <div>
+          <label>시나리오 ID</label>
+          <input type="text" id="scenario_id">
+        </div>
+        <div>
+          <label>개인정보처리자</label>
+          <input type="text" id="controller_name">
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label>처리위탁 여부</label>
+          <select id="entrustment" class="tri"></select>
+        </div>
+        <div>
+          <label>제3자 제공 여부</label>
+          <select id="third_party_provision" class="tri"></select>
+        </div>
+      </div>
+      <div>
+        <label>국외 이전 여부</label>
+        <select id="cross_border_transfer" class="tri"></select>
+      </div>
+      <p class="muted" style="margin:10px 0 0">
+        &ldquo;없음&rdquo;과 &ldquo;미정&rdquo;은 다릅니다. 없음이 확인되어야 N/A가 되고, 미정은 AMBER로 남습니다.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>수집·이용 처리행위</h2>
+      <div id="activities"></div>
+    </div>
+
+    <div class="panel">
+      <h2>처리위탁</h2>
+      <div id="entrustments"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>PbD 체크리스트</h2>
+      <div id="result"><p class="muted">[사전점검 실행]을 누르세요.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+var TRI = [
+  { value: "null",  label: "미정 (확인 필요)" },
+  { value: "true",  label: "있음 / 예" },
+  { value: "false", label: "없음 / 아니오 (확인됨)" }
+];
+
+var PHRASE = {
+  "GREEN": "해당 기계판독 요건 확인",
+  "AMBER": "자동 판정 불가 · 확인 필요",
+  "RED":   "보완 필요 · 준수요건 미충족 가능성",
+  "N/A":   "적용 대상 아님 (확인됨)"
+};
+
+var RULE_TITLE = {
+  "P3-R01": "처리 법적근거",
+  "P3-R02": "동의 처리목적",
+  "P3-R03": "동의 수집항목",
+  "P3-R04": "동의 보유·이용기간",
+  "P3-R05": "최소수집 설계사유",
+  "P3-R06": "선택항목 거부 금지",
+  "P3-R08": "보유종료 → 파기 설계",
+  "P3-R11": "처리위탁 설계"
+};
+
+var EXAMPLE = null;   // 서버에서 받아온 예시
+var form = null;      // 현재 편집 중인 Form
+
+function $(id) { return document.getElementById(id); }
+
+function esc(v) {
+  var map = { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" };
+  return String(v === null || v === undefined ? "" : v).replace(/[&<>"']/g, function (c) { return map[c]; });
+}
+
+function cls(status) { return status === "N/A" ? "NA" : status; }
+
+function triValue(raw) {
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return null;
+}
+
+function triString(value) {
+  if (value === true) return "true";
+  if (value === false) return "false";
+  return "null";
+}
+
+function fillTri(select, value, labels) {
+  select.innerHTML = "";
+  TRI.forEach(function (option) {
+    var el = document.createElement("option");
+    el.value = option.value;
+    el.textContent = labels ? labels[option.value] : option.label;
+    select.appendChild(el);
+  });
+  select.value = triString(value);
+}
+
+// --- 폼 렌더 ----------------------------------------------------------
+
+function renderBasics() {
+  $("scenario_id").value = form.scenario_id || "";
+  $("controller_name").value = form.controller_name || "";
+  fillTri($("entrustment"), form.entrustment);
+  fillTri($("third_party_provision"), form.third_party_provision);
+  fillTri($("cross_border_transfer"), form.cross_border_transfer);
+}
+
+function itemRow(activityIndex, itemIndex, item) {
+  return "<tr>"
+    + '<td><input type="text" data-act="' + activityIndex + '" data-item="' + itemIndex
+    + '" data-key="item_name" value="' + esc(item.item_name) + '"></td>'
+    + '<td><select class="tri-item" data-act="' + activityIndex + '" data-item="' + itemIndex
+    + '" data-key="is_required"></select></td>'
+    + '<td><input type="text" data-act="' + activityIndex + '" data-item="' + itemIndex
+    + '" data-key="design_rationale" value="' + esc(item.design_rationale) + '"></td>'
+    + '<td><button class="danger small" data-remove-item="' + activityIndex + ':' + itemIndex + '">삭제</button></td>'
+    + "</tr>";
+}
+
+function renderActivities() {
+  var host = $("activities");
+  if (!form.collection_activities.length) {
+    host.innerHTML = '<p class="muted">처리행위가 없습니다. [+ 수집·이용 처리행위]를 누르세요.</p>';
+    return;
+  }
+
+  host.innerHTML = form.collection_activities.map(function (activity, index) {
+    var retention = activity.retention || {};
+    var html = '<div class="act"><header>'
+      + '<strong>' + esc(activity.activity_id) + "</strong>"
+      + '<input type="text" data-act="' + index + '" data-key="label" value="' + esc(activity.label) + '" placeholder="처리행위 이름">'
+      + '<button class="danger small" data-remove-act="' + index + '">삭제</button>'
+      + "</header><div>";
+
+    html += '<div class="grid2">';
+    html += "<div><label>법적근거</label>"
+      + '<input type="text" data-act="' + index + '" data-key="legal_basis" value="' + esc(activity.legal_basis)
+      + '" placeholder="Consent 등 (비우면 미정)"></div>';
+    html += "<div><label>처리 목적</label>"
+      + '<input type="text" data-act="' + index + '" data-key="purpose" value="' + esc(activity.purpose)
+      + '" placeholder="비우면 미정"></div>';
+    html += "</div>";
+
+    html += "<label>개인정보 항목별 설계</label>";
+    html += "<table><thead><tr><th>항목</th><th style='width:170px'>필수 여부</th><th>최소수집 설계사유</th><th></th></tr></thead><tbody>";
+    html += (activity.design_items || []).map(function (item, itemIndex) {
+      return itemRow(index, itemIndex, item);
+    }).join("");
+    html += "</tbody></table>";
+    html += '<button class="small" data-add-item="' + index + '" style="margin-top:6px">+ 항목</button>';
+
+    html += '<div class="grid2" style="margin-top:4px">';
+    html += "<div><label>보유 종료조건</label>"
+      + '<input type="text" data-act="' + index + '" data-key="retention.end_condition" value="' + esc(retention.end_condition)
+      + '" placeholder="비우면 미정"></div>';
+    html += "<div><label>파기 방법</label>"
+      + '<input type="text" data-act="' + index + '" data-key="retention.destruction_method" value="' + esc(retention.destruction_method)
+      + '" placeholder="비우면 미정"></div>';
+    html += "</div>";
+
+    html += "<label>선택항목 미동의 시 서비스 제공을 거부하는가</label>"
+      + '<select class="tri-consent tri" data-act="' + index + '"></select>';
+
+    return html + "</div></div>";
+  }).join("");
+
+  // tri-state select는 DOM에 붙은 뒤 채운다
+  form.collection_activities.forEach(function (activity, index) {
+    (activity.design_items || []).forEach(function (item, itemIndex) {
+      var select = host.querySelector(
+        '.tri-item[data-act="' + index + '"][data-item="' + itemIndex + '"]'
+      );
+      fillTri(select, item.is_required, {
+        "null": "미정", "true": "필수", "false": "선택"
+      });
+    });
+    var consent = host.querySelector('.tri-consent[data-act="' + index + '"]');
+    var value = activity.consent ? activity.consent.denies_service_on_optional_refusal : null;
+    fillTri(consent, value, {
+      "null": "미정 (확인 필요)", "true": "거부한다", "false": "거부하지 않는다"
+    });
+  });
+}
+
+function renderEntrustments() {
+  var host = $("entrustments");
+  if (!form.entrustments.length) {
+    host.innerHTML = '<p class="muted">위탁이 없습니다. 위탁 여부를 &ldquo;없음&rdquo;으로 두면 N/A가 됩니다.</p>';
+    return;
+  }
+  host.innerHTML = "<table><thead><tr><th style='width:150px'>activity_id</th><th>수탁자</th><th>위탁업무</th><th></th></tr></thead><tbody>"
+    + form.entrustments.map(function (entry, index) {
+      return "<tr>"
+        + "<td><code>" + esc(entry.activity_id) + "</code></td>"
+        + '<td><input type="text" data-ent="' + index + '" data-key="processor_name" value="' + esc(entry.processor_name) + '" placeholder="비우면 미정"></td>'
+        + '<td><input type="text" data-ent="' + index + '" data-key="task" value="' + esc(entry.task) + '" placeholder="비우면 미정"></td>'
+        + '<td><button class="danger small" data-remove-ent="' + index + '">삭제</button></td>'
+        + "</tr>";
+    }).join("")
+    + "</tbody></table>";
+}
+
+function render() {
+  renderBasics();
+  renderActivities();
+  renderEntrustments();
+}
+
+// --- 폼 수집 ----------------------------------------------------------
+
+function blankToNull(value) {
+  var text = (value || "").trim();
+  return text ? text : null;
+}
+
+function collect() {
+  form.scenario_id = $("scenario_id").value.trim() || "SC-D01";
+  form.controller_name = $("controller_name").value.trim();
+  form.entrustment = triValue($("entrustment").value);
+  form.third_party_provision = triValue($("third_party_provision").value);
+  form.cross_border_transfer = triValue($("cross_border_transfer").value);
+
+  var host = $("activities");
+  host.querySelectorAll("input[data-act][data-key]").forEach(function (input) {
+    var activity = form.collection_activities[+input.dataset.act];
+    if (!activity) return;
+    var value = blankToNull(input.value);
+    if (input.dataset.item !== undefined) {
+      var item = activity.design_items[+input.dataset.item];
+      item[input.dataset.key] = value;
+      if (input.dataset.key === "item_name") item.item_name = input.value.trim();
+      return;
+    }
+    if (input.dataset.key === "label") { activity.label = input.value.trim(); return; }
+    if (input.dataset.key.indexOf("retention.") === 0) {
+      activity.retention[input.dataset.key.split(".")[1]] = value;
+      return;
+    }
+    activity[input.dataset.key] = value;
+  });
+
+  host.querySelectorAll(".tri-item").forEach(function (select) {
+    var activity = form.collection_activities[+select.dataset.act];
+    activity.design_items[+select.dataset.item].is_required = triValue(select.value);
+  });
+
+  host.querySelectorAll(".tri-consent").forEach(function (select) {
+    var activity = form.collection_activities[+select.dataset.act];
+    if (!activity.consent) activity.consent = {};
+    activity.consent.denies_service_on_optional_refusal = triValue(select.value);
+  });
+
+  $("entrustments").querySelectorAll("input[data-ent]").forEach(function (input) {
+    form.entrustments[+input.dataset.ent][input.dataset.key] = blankToNull(input.value);
+  });
+
+  return form;
+}
+
+// --- 분석 -------------------------------------------------------------
+
+function analyze() {
+  var payload = collect();
+  $("status").textContent = "점검 중…";
+
+  fetch("/api/v1/compliance/design-check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok) throw data;
+        return data;
+      });
+    })
+    .then(function (data) {
+      $("status").textContent = "완료";
+      renderChecklist(data);
+    })
+    .catch(function (error) {
+      $("status").textContent = "";
+      renderError(error);
+    });
+}
+
+function renderError(error) {
+  var detail = error && error.detail;
+  var html = '<p class="err">점검을 실행하지 못했습니다.</p>';
+
+  if (detail && detail.issues) {
+    html += '<p class="err">' + esc(detail.detail) + "</p><ul>";
+    html += detail.issues.map(function (issue) {
+      return "<li class='err'>" + esc(issue.fact_id || ("#" + issue.index)) + ": " + esc(issue.message) + "</li>";
+    }).join("");
+    html += "</ul>";
+  } else if (Array.isArray(detail)) {
+    html += "<ul>" + detail.map(function (item) {
+      return "<li class='err'>" + esc((item.loc || []).join(".")) + ": " + esc(item.msg) + "</li>";
+    }).join("") + "</ul>";
+  } else {
+    html += '<p class="err">' + esc(typeof detail === "string" ? detail : JSON.stringify(error)) + "</p>";
+  }
+  $("result").innerHTML = html;
+}
+
+function renderChecklist(data) {
+  var counts = { GREEN:0, AMBER:0, RED:0, "N/A":0 };
+  data.results.forEach(function (r) { if (r.status in counts) counts[r.status]++; });
+
+  var html = '<div class="counts">';
+  Object.keys(counts).forEach(function (key) {
+    html += "<span><span class='badge " + cls(key) + "'>" + esc(key) + "</span> " + counts[key] + "</span>";
+  });
+  html += "</div>";
+
+  // D01-014: 개발자/기획자가 읽을 수 있는 체크리스트
+  html += data.results.map(function (r) {
+    var out = '<div class="check"><header>';
+    out += '<span class="rid">' + esc(r.rule_id) + "</span>";
+    out += '<span class="title">' + esc(RULE_TITLE[r.rule_id] || "") + "</span>";
+    out += '<span class="badge ' + cls(r.status) + '">' + esc(r.status) + "</span>";
+    out += "</header><div>";
+    out += "<div>" + esc(PHRASE[r.status] || "") + "</div>";
+
+    if (r.status !== "GREEN" && r.status !== "N/A") {
+      out += '<div class="todo" style="margin-top:6px">보완: ' + esc(r.recommendation) + "</div>";
+      var gaps = (r.missing_facts || []).concat(r.uncertain_facts || []);
+      if (gaps.length) {
+        out += '<div class="muted">확인 필요: ' + gaps.map(esc).join(", ") + "</div>";
+      }
+    }
+
+    // 인스턴스별로 어느 처리행위가 걸렸는지 (COM-012)
+    var flagged = (r.instance_results || []).filter(function (i) {
+      return i.status !== "GREEN" && i.status !== "N/A";
+    });
+    if (flagged.length) {
+      out += "<ul style='margin:6px 0 0;padding-left:18px'>";
+      out += flagged.map(function (i) {
+        var name = decodeURIComponent(String(i.instance_id).split("#").pop());
+        return "<li><span class='badge " + cls(i.status) + "'>" + esc(i.status) + "</span> "
+          + "<code>" + esc(name) + "</code> — " + esc(i.reason) + "</li>";
+      }).join("");
+      out += "</ul>";
+    }
+
+    out += '<div class="law">' + (r.legal_basis || []).map(esc).join(" · ") + "</div>";
+    return out + "</div></div>";
+  }).join("");
+
+  html += '<p class="muted">'
+    + "analysis_id <code>" + esc(data.analysis_id) + "</code> · "
+    + "ontology " + esc(data.ontology_version) + " / rule " + esc(data.rule_version)
+    + " / fact " + esc(data.fact_schema_version) + "</p>";
+
+  html += '<details class="facts"><summary class="muted">생성된 Fact 보기</summary><pre id="facts-json">불러오는 중…</pre></details>';
+
+  $("result").innerHTML = html;
+  loadFacts();
+}
+
+function loadFacts() {
+  fetch("/api/v1/dev/design-facts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(form)
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var target = $("facts-json");
+      if (target) target.textContent = JSON.stringify(data, null, 2);
+    })
+    .catch(function () {
+      var target = $("facts-json");
+      if (target) target.textContent = "Fact를 불러오지 못했습니다.";
+    });
+}
+
+// --- 편집 동작 --------------------------------------------------------
+
+function nextId(prefix, existing) {
+  var max = 0;
+  existing.forEach(function (entry) {
+    var match = /(\d+)$/.exec(entry.activity_id || "");
+    if (match) max = Math.max(max, parseInt(match[1], 10));
+  });
+  return prefix + "-" + String(max + 1).padStart(3, "0");
+}
+
+document.addEventListener("click", function (event) {
+  var target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  if (target.dataset.removeAct !== undefined) {
+    collect();
+    form.collection_activities.splice(+target.dataset.removeAct, 1);
+    render();
+  } else if (target.dataset.addItem !== undefined) {
+    collect();
+    form.collection_activities[+target.dataset.addItem].design_items.push({
+      item_name: "", is_required: null, design_rationale: null
+    });
+    render();
+  } else if (target.dataset.removeItem !== undefined) {
+    collect();
+    var parts = target.dataset.removeItem.split(":");
+    form.collection_activities[+parts[0]].design_items.splice(+parts[1], 1);
+    render();
+  } else if (target.dataset.removeEnt !== undefined) {
+    collect();
+    form.entrustments.splice(+target.dataset.removeEnt, 1);
+    render();
+  }
+});
+
+$("add-activity").onclick = function () {
+  collect();
+  form.collection_activities.push({
+    activity_id: nextId("act-collection", form.collection_activities),
+    label: "",
+    legal_basis: null,
+    purpose: null,
+    design_items: [{ item_name: "", is_required: null, design_rationale: null }],
+    retention: { period: null, end_condition: null, destruction_method: null },
+    consent: { denies_service_on_optional_refusal: null }
+  });
+  render();
+};
+
+$("add-entrust").onclick = function () {
+  collect();
+  form.entrustments.push({
+    activity_id: nextId("act-entrust", form.entrustments),
+    processor_name: null,
+    task: null
+  });
+  if (form.entrustment === false) form.entrustment = true;
+  render();
+};
+
+$("analyze").onclick = analyze;
+$("reset").onclick = function () {
+  form = JSON.parse(JSON.stringify(EXAMPLE));
+  render();
+  $("status").textContent = "예시 설계를 불러왔습니다.";
+};
+
+fetch("/api/v1/dev/design-example")
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    EXAMPLE = data;
+    form = JSON.parse(JSON.stringify(data));
+    render();
+  })
+  .catch(function (e) {
+    $("status").innerHTML = '<span class="err">예시 설계를 불러오지 못했습니다: ' + esc(e.message) + "</span>";
+  });
+</script>
+</body>
+</html>
