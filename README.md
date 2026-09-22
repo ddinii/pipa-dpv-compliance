@@ -151,6 +151,89 @@ Windows batch 파일:
 .\tests\run_validation_windows.bat
 ```
 
+## PoC3 Privacy-by-Design 사전점검
+
+구조화 Form으로 설계정보를 입력하면 P0 PoC3 Rule 8개로 사전점검합니다. LLM을 쓰지 않습니다.
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+```text
+http://127.0.0.1:8000/design
+```
+
+예시 설계(SC-D01)가 자동으로 채워지므로 바로 [사전점검 실행]을 누를 수 있습니다.
+항목을 추가·삭제하고 "필수/선택/미정"을 바꿔 상태가 어떻게 움직이는지 확인하세요.
+
+`없음`과 `미정`은 다릅니다. 없음이 확인되어야 N/A가 되고, 미정은 AMBER로 남습니다
+(Rule 설계 원칙: 단순 결측은 N/A로 처리하지 않음).
+
+```text
+POST /api/v1/compliance/design-check   # API-003. 설계 Form -> PoC3 RuleResult[]
+POST /api/v1/dev/design-facts          # Form -> Fact 변환 결과 (개발용)
+GET  /api/v1/dev/design-example        # 예시 설계 Form
+GET  /design                           # PbD 체크리스트 화면
+```
+
+처리 경로:
+
+```text
+DesignForm             입력 계약 (app/forms/poc3.py)
+  -> app/builders        Form -> Fact (D01-007)
+  -> app/mapping         Fact 검증 + Ontology Mapping (COM-002 / COM-004)
+  -> app/rules/engine    P0 PoC3 Rule 8개
+  -> ComplianceResponse  기능명세서 9.1
+```
+
+Fact Extractor와 평가 세트는 [`evals/README.md`](evals/README.md)를 참고하세요.
+
+## RuleResult 점검 콘솔 (개발용)
+
+Fact Extractor와 Fact→RDF 매퍼가 붙기 전까지, `RuleResult` DTO가 화면에서 성립하는지
+확인하는 개발 보조 화면입니다. **API-001/002/003의 구현이 아닙니다.**
+
+```powershell
+uvicorn app.main:app --reload
+```
+
+```text
+http://127.0.0.1:8000/console
+```
+
+Freeze 시나리오(SC-P01/P02/D01)를 버튼으로 불러오거나, 매퍼 출력 Turtle을 직접 붙여넣어
+18개 Rule 결과를 렌더합니다. RuleResult JSON을 직접 붙여넣어 엔진 없이 DTO만 확인할 수도 있습니다.
+
+콘솔이 자동으로 점검하는 계약 항목:
+
+| 점검 | 근거 |
+|---|---|
+| 9.1 응답 envelope 6종 존재 여부 | 기능명세서 9.1 |
+| 8장 RuleResult 필수 13종 존재 여부 | 기능명세서 8장 |
+| evidence의 `source_text` / offset 보유량 | COM-008, P01-004, Fact Dictionary 2장 |
+| `instance_results`의 표시용 label 보유 여부 | COM-012 |
+| G/A/R 결과에 evidence가 비어 있는지 | TST-004 |
+
+현재 알려진 미해결 계약 결손 3건 (콘솔이 경고로 표시):
+
+1. `RuleResult`에 `source_document_id`가 없습니다. 응답 envelope에만 있어 RuleResult 단건으로는
+   입력 문서를 역추적할 수 없습니다 (8장 필수 / NFR-04 / TST-010).
+2. `Evidence`에 원문 offset이 없습니다. Fact Dictionary는 evidence를 `text+offset` 또는
+   `field_path`로 정의하지만 현재는 `source_text`만 보존합니다.
+3. `instance_id`가 raw URI라 표시용 label이 없습니다 (COM-012).
+
+또한 SC-P01에는 `pipa:hasSourceEvidence` 단언이 하나도 없어, Main PoC인 PoC1의 원문 근거 경로가
+아직 한 번도 검증되지 않았습니다. SC-P02/SC-D01에는 실제 근거 문자열이 들어 있습니다.
+
+Endpoint:
+
+```text
+GET  /console
+GET  /api/v1/dev/scenarios
+GET  /api/v1/dev/scenarios/{name}
+POST /api/v1/dev/evaluate     { turtle, poc?, source_document_id? }
+```
+
 ## Legacy FastAPI / SHACL Prototype
 
 현재 저장소에는 초기 Article 17 SHACL 프로토타입도 남아 있습니다.
