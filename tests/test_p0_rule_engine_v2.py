@@ -32,6 +32,32 @@ def test_all_18_frozen_rule_ids_are_loaded():
     }
 
 
+def test_rule_fact_coverage_matches_frozen_fact_dictionary():
+    expected = {
+        "P1-R01": ("F1-01", "F1-02"),
+        "P1-R02": ("F1-03", "F1-04"),
+        "P1-R03": ("F1-05", "F1-06", "F1-07"),
+        "P1-R04": ("F1-08",),
+        "P1-R06": ("F1-09", "F1-10"),
+        "P1-R07": ("F1-11", "F1-12"),
+        "P2-R01": ("F2-01", "F2-02", "F2-03"),
+        "P2-R02": ("F2-02", "F2-04"),
+        "P2-R03": ("F2-08", "F2-09"),
+        "P2-R08": ("F2-01", "F2-10"),
+        "P3-R01": ("F3-01", "F3-02"),
+        "P3-R02": ("F3-02", "F3-03", "F3-04"),
+        "P3-R03": ("F3-02", "F3-03", "F3-05"),
+        "P3-R04": ("F3-02", "F3-03", "F3-06"),
+        "P3-R05": ("F3-05", "F3-07", "F3-08"),
+        "P3-R06": ("F3-07", "F3-09"),
+        "P3-R08": ("F3-10", "F3-11"),
+        "P3-R11": ("F3-12", "F3-13"),
+    }
+    metadata = P0RuleEngine().metadata
+    assert set(metadata) == set(expected)
+    assert {rule_id: item.required_fact_ids for rule_id, item in metadata.items()} == expected
+
+
 def test_sc_p01_expected_freeze_results():
     result = statuses(P0RuleEngine().evaluate_graph(load("SC-P01_FINAL_Protege.ttl"), poc="poc1"))
     assert result == {
