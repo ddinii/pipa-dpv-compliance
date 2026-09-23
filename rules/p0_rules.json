@@ -21,6 +21,10 @@
         "CollectionAndUse",
         "hasPurpose"
       ],
+      "required_fact_ids": [
+        "F1-01",
+        "F1-02"
+      ],
       "notes": []
     },
     {
@@ -44,6 +48,10 @@
         "hasRetentionEndCondition",
         "hasEndConditionDescription"
       ],
+      "required_fact_ids": [
+        "F1-03",
+        "F1-04"
+      ],
       "notes": []
     },
     {
@@ -66,6 +74,11 @@
         "hasPersonalInformation",
         "hasPurpose"
       ],
+      "required_fact_ids": [
+        "F1-05",
+        "F1-06",
+        "F1-07"
+      ],
       "notes": []
     },
     {
@@ -85,6 +98,9 @@
       "ontology_terms": [
         "Destruction",
         "hasDestructionMethod"
+      ],
+      "required_fact_ids": [
+        "F1-08"
       ],
       "notes": []
     },
@@ -108,6 +124,10 @@
         "EntrustedProcessor",
         "hasName",
         "entrustedTaskText"
+      ],
+      "required_fact_ids": [
+        "F1-09",
+        "F1-10"
       ],
       "notes": []
     },
@@ -137,14 +157,18 @@
         "RightsExerciseProcedure",
         "hasProcedureDescription"
       ],
+      "required_fact_ids": [
+        "F1-11",
+        "F1-12"
+      ],
       "notes": []
     },
     {
       "rule_id": "P2-R01",
       "poc": "PoC2",
-      "title": "유출등 통지 실시 여부",
+      "title": "유출등 사고 사실·통지문 존재 검토",
       "rule_version": "1.0",
-      "applicability": "DataBreachIncident가 존재하면 적용",
+      "applicability": "DataBreachIncident가 존재하면 적용 (통지 대상 여부 자체는 자동판정하지 않음)",
       "legal_basis": [
         "개인정보 보호법 제34조제1항"
       ],
@@ -154,11 +178,17 @@
       "ontology_terms": [
         "DataBreachIncident",
         "affectsPersonalInformation",
-        "triggersNotificationObligation",
         "hasNotificationNotice"
       ],
+      "required_fact_ids": [
+        "F2-01",
+        "F2-02",
+        "F2-03"
+      ],
       "notes": [
-        "Freeze rule requires triggersNotificationObligation. The evaluator reads this fact URI directly without modifying PIPA_Ontology_v1.0.ttl."
+        "v1 required facts are F2-01 DataBreachIncident, F2-02 affectsPersonalInformation, and F2-03 hasNotificationNotice.",
+        "P2-R01 does not determine whether an incident is legally subject to notification; it reviews the provided incident facts and NotificationNotice presence.",
+        "Notification/reporting thresholds and ReportingObligation are outside v1 scope. triggersNotificationObligation is not used."
       ]
     },
     {
@@ -180,6 +210,10 @@
         "mentionsPersonalInformation",
         "hasItemName"
       ],
+      "required_fact_ids": [
+        "F2-02",
+        "F2-04"
+      ],
       "notes": []
     },
     {
@@ -199,7 +233,13 @@
         "noticeIncidentTime",
         "hasIncidentCircumstances"
       ],
-      "notes": []
+      "required_fact_ids": [
+        "F2-08",
+        "F2-09"
+      ],
+      "notes": [
+        "F2-08 notice_incident_time is the time stated in the NotificationNotice and must remain distinct from the actual DataBreachIncident.incidentDate (F2-05)."
+      ]
     },
     {
       "rule_id": "P2-R08",
@@ -223,7 +263,13 @@
         "IncidentResponseMeasure",
         "measureRole"
       ],
-      "notes": []
+      "required_fact_ids": [
+        "F2-01",
+        "F2-10"
+      ],
+      "notes": [
+        "measure_role is frozen to exactly four v1 values: data_subject_guidance, controller_response, remedy_procedure, post_incident_mitigation."
+      ]
     },
     {
       "rule_id": "P3-R01",
@@ -240,6 +286,10 @@
       "ontology_terms": [
         "CollectionAndUse",
         "hasLegalBasis"
+      ],
+      "required_fact_ids": [
+        "F3-01",
+        "F3-02"
       ],
       "notes": []
     },
@@ -261,6 +311,11 @@
         "hasConsentRequest",
         "hasPurpose"
       ],
+      "required_fact_ids": [
+        "F3-02",
+        "F3-03",
+        "F3-04"
+      ],
       "notes": []
     },
     {
@@ -280,6 +335,11 @@
         "hasLegalBasis",
         "hasConsentRequest",
         "hasPersonalInformation"
+      ],
+      "required_fact_ids": [
+        "F3-02",
+        "F3-03",
+        "F3-05"
       ],
       "notes": []
     },
@@ -306,6 +366,11 @@
         "hasRetentionEndCondition",
         "hasEndConditionDescription"
       ],
+      "required_fact_ids": [
+        "F3-02",
+        "F3-03",
+        "F3-06"
+      ],
       "notes": []
     },
     {
@@ -325,6 +390,11 @@
         "isRequired",
         "designRationale"
       ],
+      "required_fact_ids": [
+        "F3-05",
+        "F3-07",
+        "F3-08"
+      ],
       "notes": []
     },
     {
@@ -342,6 +412,10 @@
       "ontology_terms": [
         "ConsentRequest",
         "deniesServiceOnOptionalRefusal"
+      ],
+      "required_fact_ids": [
+        "F3-07",
+        "F3-09"
       ],
       "notes": []
     },
@@ -363,6 +437,10 @@
         "Destruction",
         "hasDestructionMethod"
       ],
+      "required_fact_ids": [
+        "F3-10",
+        "F3-11"
+      ],
       "notes": []
     },
     {
@@ -381,6 +459,10 @@
         "EntrustedProcessing",
         "hasProcessor",
         "entrustedTaskText"
+      ],
+      "required_fact_ids": [
+        "F3-12",
+        "F3-13"
       ],
       "notes": []
     }

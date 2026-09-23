@@ -5,14 +5,14 @@
   "fact_schema_version": "fact-1.0",
   "variant": {
     "name": "v6-no-third-party-provision",
-    "description": "제3자 제공이 없음을 명시한다. 단순 미기재가 아니라 명시적 부재다.",
+    "description": "제3자 제공을 하지 않는다고 명시한다. 관련 Fact가 전부 사라진다.",
     "target_rule": "P1-R03",
-    "expected_status": "N/A"
+    "expected_status": "AMBER"
   },
   "expected_rule_status": {
     "P1-R01": "GREEN",
     "P1-R02": "AMBER",
-    "P1-R03": "N/A",
+    "P1-R03": "AMBER",
     "P1-R04": "GREEN",
     "P1-R06": "GREEN",
     "P1-R07": "GREEN"
@@ -710,27 +710,6 @@
         }
       ],
       "schema_version": "fact-1.0"
-    },
-    {
-      "fact_id": "F1-00:ctrl-001:ThirdPartyProvision",
-      "subject_id": "ctrl-001",
-      "activity_id": null,
-      "ontology_class": "ThirdPartyProvision",
-      "ontology_property": null,
-      "value": {
-        "activity_class_absent": "ThirdPartyProvision"
-      },
-      "value_state": "confirmed",
-      "source_type": "policy_text",
-      "schema_version": "fact-1.0",
-      "_note": "제3자 제공 처리행위의 명시적 부재. 단순 미기재(AMBER)와 구분된다",
-      "evidence": [
-        {
-          "text": "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다.",
-          "start_offset": 852,
-          "end_offset": 883
-        }
-      ]
     }
   ]
 }

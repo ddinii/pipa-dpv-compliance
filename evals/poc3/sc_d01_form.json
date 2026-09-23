@@ -2,9 +2,6 @@
   "scenario_id": "SC-D01",
   "controller_id": "ctrl-001",
   "controller_name": "CampusMate",
-  "entrustment": true,
-  "third_party_provision": false,
-  "cross_border_transfer": false,
   "collection_activities": [
     {
       "activity_id": "act-collection-001",

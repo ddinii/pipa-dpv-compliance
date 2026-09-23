@@ -102,22 +102,9 @@
           <input type="text" id="controller_name">
         </div>
       </div>
-      <div class="grid2">
-        <div>
-          <label>처리위탁 여부</label>
-          <select id="entrustment" class="tri"></select>
-        </div>
-        <div>
-          <label>제3자 제공 여부</label>
-          <select id="third_party_provision" class="tri"></select>
-        </div>
-      </div>
-      <div>
-        <label>국외 이전 여부</label>
-        <select id="cross_border_transfer" class="tri"></select>
-      </div>
       <p class="muted" style="margin:10px 0 0">
-        &ldquo;없음&rdquo;과 &ldquo;미정&rdquo;은 다릅니다. 없음이 확인되어야 N/A가 되고, 미정은 AMBER로 남습니다.
+        빈 값은 &ldquo;미정&rdquo;으로 읽혀 AMBER가 됩니다. Fact Dictionary에는 처리행위 유형의
+        부재를 담을 Fact ID가 없으므로, 아래 목록을 비우면 해당 처리행위 Fact가 없을 뿐입니다.
       </p>
     </div>
 
@@ -207,9 +194,6 @@ function fillTri(select, value, labels) {
 function renderBasics() {
   $("scenario_id").value = form.scenario_id || "";
   $("controller_name").value = form.controller_name || "";
-  fillTri($("entrustment"), form.entrustment);
-  fillTri($("third_party_provision"), form.third_party_provision);
-  fillTri($("cross_border_transfer"), form.cross_border_transfer);
 }
 
 function itemRow(activityIndex, itemIndex, item) {
@@ -323,9 +307,6 @@ function blankToNull(value) {
 function collect() {
   form.scenario_id = $("scenario_id").value.trim() || "SC-D01";
   form.controller_name = $("controller_name").value.trim();
-  form.entrustment = triValue($("entrustment").value);
-  form.third_party_provision = triValue($("third_party_provision").value);
-  form.cross_border_transfer = triValue($("cross_border_transfer").value);
 
   var host = $("activities");
   host.querySelectorAll("input[data-act][data-key]").forEach(function (input) {
@@ -542,7 +523,6 @@ $("add-entrust").onclick = function () {
     processor_name: null,
     task: null
   });
-  if (form.entrustment === false) form.entrustment = true;
   render();
 };
 

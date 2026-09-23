@@ -76,14 +76,21 @@ VARIANTS: list[Variant] = [
     ),
     Variant(
         name="v3-missing-destruction",
-        description="파기 방법 기재를 통째로 삭제해 파기 처리행위 자체를 확인할 수 없게 만든다.",
+        description="파기한다는 사실만 남기고 파기 방법 기재를 삭제한다.",
         target_rule="P1-R04",
         expected_status="RED",
         edits=[(
             "\n파기 방법: 전자파일은 복구·재생이 어렵도록 삭제하고 종이문서는 분쇄 또는 안전한 방법으로 폐기합니다.\n",
             "",
         )],
-        drop={"F1-08:act-destruction-001"},
+        # Fact Dictionary 8장: 기재가 없으면 Fact를 빼는 것이 아니라 absent로 유지한다.
+        # 근거는 그 항목이 있어야 할 조항을 가리킨다.
+        restate={
+            "F1-08:act-destruction-001": (
+                "absent",
+                "회사는 개인정보 보유기간이 경과하거나 처리 목적이 달성된 경우에는 지체 없이 해당 개인정보를 파기합니다.",
+            ),
+        },
     ),
     Variant(
         name="v4-unknown-processor",
@@ -105,9 +112,12 @@ VARIANTS: list[Variant] = [
     ),
     Variant(
         name="v6-no-third-party-provision",
-        description="제3자 제공이 없음을 명시한다. 단순 미기재가 아니라 명시적 부재다.",
+        # Fact Dictionary 3장에는 "처리행위 유형이 없다"를 담을 Fact ID가 없다.
+        # (F1-00 같은 것은 존재하지 않는다.) 그래서 제3자 제공 Fact가 사라질 뿐이고,
+        # 그 상태를 Rule Engine이 어떻게 보는지를 그대로 기대값으로 둔다.
+        description="제3자 제공을 하지 않는다고 명시한다. 관련 Fact가 전부 사라진다.",
         target_rule="P1-R03",
-        expected_status="N/A",
+        expected_status="AMBER",
         edits=[(
             "회사는 이용자의 개인정보를 제1조에서 명시한 범위 내에서만 처리하며, 다음의 경우에 한하여 개인정보를 제3자에게 제공합니다.\n"
             "\n"
@@ -124,22 +134,6 @@ VARIANTS: list[Variant] = [
             "F1-03:act-provision-001",
             "F1-04:act-provision-001",
         },
-        add=[{
-            # 처리행위 유형의 부재 단언. ontology_property는 null이고 (Ontology Property가
-            # 아니므로), 무엇이 없는지는 value가 담는다. Fact Dictionary 1장의
-            # "false는 confirmed 값" 원칙을 따른다.
-            "fact_id": "F1-00:ctrl-001:ThirdPartyProvision",
-            "subject_id": "ctrl-001",
-            "activity_id": None,
-            "ontology_class": "ThirdPartyProvision",
-            "ontology_property": None,
-            "value": {"activity_class_absent": "ThirdPartyProvision"},
-            "value_state": "confirmed",
-            "source_type": "policy_text",
-            "_evidence_quote": CONTROLLER_ABSENCE_EVIDENCE,
-            "schema_version": "fact-1.0",
-            "_note": "제3자 제공 처리행위의 명시적 부재. 단순 미기재(AMBER)와 구분된다",
-        }],
     ),
 ]
 

@@ -5,7 +5,7 @@
   "fact_schema_version": "fact-1.0",
   "variant": {
     "name": "v3-missing-destruction",
-    "description": "파기 방법 기재를 통째로 삭제해 파기 처리행위 자체를 확인할 수 없게 만든다.",
+    "description": "파기한다는 사실만 남기고 파기 방법 기재를 삭제한다.",
     "target_rule": "P1-R04",
     "expected_status": "RED"
   },
@@ -533,6 +533,25 @@
         }
       ],
       "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-08:act-destruction-001",
+      "subject_id": "act-destruction-001",
+      "activity_id": "act-destruction-001",
+      "ontology_class": "Destruction",
+      "ontology_property": "hasDestructionMethod",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 개인정보 보유기간이 경과하거나 처리 목적이 달성된 경우에는 지체 없이 해당 개인정보를 파기합니다.",
+          "start_offset": 1473,
+          "end_offset": 1531
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "변형 v3-missing-destruction: 파기한다는 사실만 남기고 파기 방법 기재를 삭제한다."
     },
     {
       "fact_id": "F1-09:act-entrust-001",

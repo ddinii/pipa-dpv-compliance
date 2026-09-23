@@ -19,8 +19,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.builders import build_poc3_facts
 
-CONFIRMED_FALSE = "confirmed_false"
-
 
 class FormModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
@@ -78,20 +76,14 @@ class DesignForm(FormModel):
     controller_name: str = ""
     collection_activities: list[CollectionActivityDesign] = Field(default_factory=list)
     entrustments: list[EntrustmentDesign] = Field(default_factory=list)
-    # 처리행위 유형별 존재 여부 (D01-006 "위탁 여부가 TRUE일 때 …").
-    # None = 아직 정하지 않음(AMBER), False = 없음이 확인됨(N/A), True = 있음.
-    # 목록이 비어 있는 것과 "없음이 확인됨"은 다르다. 전자는 AMBER, 후자만 N/A다.
-    entrustment: bool | None = None
-    third_party_provision: bool | None = None
-    cross_border_transfer: bool | None = None
 
     def to_builder_form(self) -> dict[str, Any]:
-        """정본 Fact Builder가 받는 dict 형태로 바꾼다."""
-        if self.entrustment is False and self.entrustments:
-            raise ValueError(
-                "entrustment=False(위탁 없음 확인)인데 entrustments 목록이 비어 있지 않습니다."
-            )
+        """정본 Fact Builder가 받는 dict 형태로 바꾼다.
 
+        처리행위 유형의 부재를 선언하는 필드는 두지 않는다. Fact Dictionary
+        3·4·5장에 대응 Fact ID가 없으므로(F1-00/F2-00/F3-00은 존재하지 않는다)
+        Fact로 옮길 자리가 없다. 목록이 비어 있으면 그 처리행위 Fact가 없을 뿐이다.
+        """
         form: dict[str, Any] = {
             "analysis_id": self.scenario_id,
             "controller": {
@@ -110,15 +102,6 @@ class DesignForm(FormModel):
                 for entry in self.entrustments
             ],
         }
-
-        # 명시적 부재만 싣는다. True나 None이면 아무것도 싣지 않는다.
-        for field, flag in (
-            ("entrusted_processing_state", self.entrustment),
-            ("third_party_provision_state", self.third_party_provision),
-            ("cross_border_transfer_state", self.cross_border_transfer),
-        ):
-            if flag is False:
-                form[field] = CONFIRMED_FALSE
 
         return form
 

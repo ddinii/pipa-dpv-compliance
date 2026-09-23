@@ -21,22 +21,11 @@ from .mapping_registry import FACT_SPECS
 
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
 
-# 적용 대상의 명시적 부재를 기록하는 시스템 메타데이터 네임스페이스.
-# Ontology Property가 아니며, Rule Engine이 N/A를 판정할 때만 읽는다.
-# 이 URI는 app/rules/engine.py의 TEST 네임스페이스와 글자 그대로 같아야 한다.
-SYSTEM_META = Namespace("https://example.org/pipa-test/metadata#")
-CONFIRMED_FALSE = "confirmed_false"
-
-# Rule Engine이 "값은 있으나 읽을 수 없음"으로 취급하는 표식
-# (app/rules/engine.py _nonempty_values). 이 표식이 있어야 AMBER 분기에 도달한다.
-UNKNOWN_MARKER = "UNKNOWN"
-
-# 식별 키를 값 객체 안에 담는 mapping kind. unknown이어도 어느 항목인지는 알아야 한다.
-IDENTITY_BEARING_KINDS = {
-    "item_required",
-    "item_rationale",
-    "retention_object",
-    "destruction_link",
+RESPONSE_MEASURE_ROLES = {
+    "data_subject_guidance",
+    "controller_response",
+    "remedy_procedure",
+    "post_incident_mitigation",
 }
 
 PROCESSING_CLASSES = {
@@ -98,28 +87,11 @@ class OntologyMapper:
                 "emitted": False,
             }
             self.trace.append(trace_item)
-
-            if fact["value_state"] == "absent":
-                # 명시적 부재. 아무 트리플도 만들지 않는다.
+            if fact["value_state"] != "confirmed":
                 continue
-
-            if fact["value_state"] == "unknown":
-                # 값을 확정할 수 없다고 해서 그냥 버리면, Rule Engine 입장에서는
-                # 기재 자체가 없는 것(RED)과 구별되지 않는다. Rule Spec은 이 경우
-                # AMBER를 요구하므로 UNKNOWN 표식을 실어 보낸다.
-                marked = self._unknown_shaped(fact)
-                if marked is None:
-                    trace_item["skipped_reason"] = "unknown 값에서 대상을 특정할 수 없음"
-                    continue
-                self._map_confirmed({**fact, "value": marked})
-                trace_item["emitted"] = True
-                trace_item["unknown_marker"] = True
-                continue
-
             self._map_confirmed(fact)
             trace_item["emitted"] = True
 
-        self._finalize_global_destruction_links()
         return MappingResult(
             graph=self.graph,
             facts=facts,
@@ -131,20 +103,6 @@ class OntologyMapper:
         spec = FACT_SPECS.get(fact["fact_type"])
         if spec is None:
             raise FactValidationError(f"매핑 정의가 없는 Fact: {fact['fact_type']}")
-
-        if spec.mapping_kind == "activity_absence":
-            # 부재 단언은 ontology_class에 subject의 Class가 아니라 "없다고 확인된
-            # 처리행위 유형"을 담는다. 그래서 일반 계약 검사를 적용할 수 없다.
-            target = local_name(fact["ontology_class"])
-            if target not in PROCESSING_CLASSES:
-                raise FactValidationError(
-                    f"{fact['fact_id']}: 부재를 단언할 수 없는 유형입니다: {target}"
-                )
-            if fact["ontology_property"] is not None:
-                raise FactValidationError(
-                    f"{fact['fact_id']}: 부재 단언에는 ontology_property가 없어야 합니다."
-                )
-            return
 
         actual_property = local_name(fact["ontology_property"])
         if actual_property != spec.ontology_property:
@@ -164,28 +122,6 @@ class OntologyMapper:
                 f"{fact['fact_id']}: ontology_class={actual_class!r}, "
                 f"Freeze 기대값={expected!r}"
             )
-
-    def _unknown_shaped(self, fact: dict[str, Any]) -> Any | None:
-        """unknown Fact를 매핑할 때 쓸 값.
-
-        식별 키(item_name, end_condition 등)는 보존하고 비어 있는 자리만 UNKNOWN으로
-        채운다. 어느 대상에 대한 Fact인지조차 알 수 없으면 None을 돌려주어 건너뛴다.
-        """
-        kind = FACT_SPECS[fact["fact_type"]].mapping_kind
-        value = fact["value"]
-
-        if kind in IDENTITY_BEARING_KINDS:
-            if not isinstance(value, dict):
-                return None  # 어느 항목/조건인지 모르면 매핑할 수 없다
-            filled = dict(value)
-            for key, current in filled.items():
-                if current in (None, ""):
-                    filled[key] = UNKNOWN_MARKER
-            return filled
-
-        if isinstance(value, dict):
-            return {key: (item or UNKNOWN_MARKER) for key, item in value.items()}
-        return UNKNOWN_MARKER
 
     def _map_confirmed(self, fact: dict[str, Any]) -> None:
         kind = FACT_SPECS[fact["fact_type"]].mapping_kind
@@ -455,6 +391,7 @@ class OntologyMapper:
 
     def _map_response_measures(self, fact: dict[str, Any]) -> None:
         incident = self._incident(fact)
+        seen_roles: set[str] = set()
         for index, raw in enumerate(self._as_items(fact["value"])):
             if not isinstance(raw, dict):
                 raise FactValidationError(
@@ -466,10 +403,23 @@ class OntologyMapper:
                 raise FactValidationError(
                     f"{fact['fact_id']}: response measure에 role과 text가 필요함"
                 )
+            if role not in RESPONSE_MEASURE_ROLES:
+                raise FactValidationError(
+                    f"{fact['fact_id']}: 지원하지 않는 measure_role={role!r}"
+                )
+            if role in seen_roles:
+                raise FactValidationError(
+                    f"{fact['fact_id']}: 중복 measure_role={role!r}"
+                )
+            seen_roles.add(role)
             measure_id = raw.get("measure_id") or f"{fact['fact_id']}-measure-{index + 1}"
             measure = self._uri(str(measure_id))
             self.graph.add((measure, RDF.type, PIPA.IncidentResponseMeasure))
             self.graph.add((incident, PIPA.hasResponseMeasure, measure))
+            # P2-R08 reads the frozen measureRole annotation from each
+            # IncidentResponseMeasure.  Keep the same value in system_metadata
+            # as well so non-RDF consumers retain the original Fact payload.
+            self.graph.add((measure, PIPA.measureRole, Literal(str(role))))
             self.system_metadata.append(
                 {
                     "fact_id": fact["fact_id"],
@@ -508,9 +458,6 @@ class OntologyMapper:
     def _map_item_required(self, fact: dict[str, Any]) -> None:
         item, value = self._item_node(fact)
         required = value.get("is_required")
-        if required == UNKNOWN_MARKER:
-            self.graph.add((item, PIPA.isRequired, Literal(UNKNOWN_MARKER)))
-            return
         if not isinstance(required, bool):
             raise FactValidationError(f"{fact['fact_id']}: is_required는 boolean이어야 함")
         self.graph.add((item, PIPA.isRequired, Literal(required, datatype=XSD.boolean)))
@@ -520,24 +467,21 @@ class OntologyMapper:
         rationale = value.get("design_rationale") or value.get("rationale")
         if not rationale:
             raise FactValidationError(f"{fact['fact_id']}: design_rationale이 필요함")
-        # UNKNOWN 표식도 그대로 싣는다. 엔진이 모호한 값으로 보아 AMBER를 준다.
         self.graph.add((item, PIPA.designRationale, Literal(str(rationale))))
 
     def _map_optional_refusal(self, fact: dict[str, Any]) -> None:
         activity = self._ensure_activity(self._activity_id(fact), "CollectionAndUse")
         request = self._ensure_consent_request(activity)
-        value = fact["value"]
-        if value == UNKNOWN_MARKER:
-            self.graph.add(
-                (request, PIPA.deniesServiceOnOptionalRefusal, Literal(UNKNOWN_MARKER))
-            )
-            return
-        if not isinstance(value, bool):
+        if not isinstance(fact["value"], bool):
             raise FactValidationError(
                 f"{fact['fact_id']}: deniesServiceOnOptionalRefusal 값은 boolean이어야 함"
             )
         self.graph.add(
-            (request, PIPA.deniesServiceOnOptionalRefusal, Literal(value, datatype=XSD.boolean))
+            (
+                request,
+                PIPA.deniesServiceOnOptionalRefusal,
+                Literal(fact["value"], datatype=XSD.boolean),
+            )
         )
 
     def _map_destruction_link(self, fact: dict[str, Any]) -> None:
@@ -571,55 +515,11 @@ class OntologyMapper:
         )
 
     def _map_entrusted_task_metadata(self, fact: dict[str, Any]) -> None:
-        """entrustedTaskText는 Ontology Property가 아니라 Rule 입력 보조 필드지만
-        (Fact Dictionary 8장), frozen ontology에 AnnotationProperty로 선언되어 있고
-        Rule Engine이 그래프에서 직접 읽는다. system_metadata에만 담으면
-        P1-R06과 P3-R11이 위탁업무 누락으로 보아 항상 RED가 된다.
-        """
         activity = self._ensure_activity(self._activity_id(fact), "EntrustedProcessing")
-        self.graph.add((
-            activity,
-            PIPA.entrustedTaskText,
-            Literal(self._object_name(fact["value"], "task", "text", "description")),
-        ))
+        self.graph.add((activity, PIPA.entrustedTaskText, Literal(str(fact["value"]))))
         self._metadata(fact, "entrusted_task_text")
 
     def _map_notice_incident_time_metadata(self, fact: dict[str, Any]) -> None:
-        """noticeIncidentTime도 같다. 그래프에 없으면 P2-R03이 통지문 기재시점을
-        확인하지 못한다. 실제 incidentDate(F2-05)와는 끝까지 분리된 값이다.
-        """
         notice = self._notice(fact)
-        self.graph.add((
-            notice,
-            PIPA.noticeIncidentTime,
-            Literal(self._object_name(fact["value"], "time", "datetime", "value")),
-        ))
+        self.graph.add((notice, PIPA.noticeIncidentTime, Literal(str(fact["value"]))))
         self._metadata(fact, "notice_incident_time")
-
-    # Applicability ----------------------------------------------------------
-
-    def _map_activity_absence(self, fact: dict[str, Any]) -> None:
-        """처리행위 유형의 명시적 부재 (N/A 판정).
-
-        Rule 설계 원칙상 단순 결측은 N/A가 아니다. 없다고 확인된 경우에만 N/A이며,
-        Rule Engine은 개인정보처리자에 붙은 이 시스템 메타데이터로 그것을 판단한다.
-        Ontology Property가 아니므로 ontology_property는 null이다.
-        """
-        target = local_name(fact["ontology_class"])
-        if target not in PROCESSING_CLASSES:
-            raise FactValidationError(
-                f"{fact['fact_id']}: 부재를 단언할 수 없는 유형입니다: {target}"
-            )
-        controller = self._ensure_controller()
-        predicate = SYSTEM_META[target[0].lower() + target[1:] + "State"]
-        self.graph.add((controller, predicate, Literal(CONFIRMED_FALSE)))
-        self._metadata(fact, "activity_absence")
-
-    def _finalize_global_destruction_links(self) -> None:
-        if not self._destructions:
-            return
-        default_destruction = self._destructions[0]
-        for end in self._end_conditions:
-            if not any(self.graph.objects(end, PIPA.triggersDestruction)):
-                self.graph.add((end, PIPA.triggersDestruction, default_destruction))
-

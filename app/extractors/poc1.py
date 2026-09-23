@@ -15,26 +15,16 @@ from typing import Any, Protocol
 from pydantic import BaseModel, Field
 
 from app.extractors.prompts import (
-    ABSENCE_ELIGIBLE_CLASSES,
     PASS1_SYSTEM,
     PASS2_SYSTEM,
     RIGHTS_SYSTEM,
     pass1_user_message,
     pass2_user_message,
 )
-from app.mapping.fact_schema import ABSENT_ACTIVITY_KEY
 from app.facts.models import FACT_SCHEMA_VERSION
 
 DEFAULT_MODEL = "claude-opus-5"
 MAX_TOKENS = 16000
-
-# 부재 단언의 subject. 처리방침은 개인정보처리자 한 곳을 기술하므로 단일 ID를 쓴다.
-CONTROLLER_ID = "ctrl-001"
-
-# 처리행위 유형의 부재를 나타내는 Fact ID 접두사.
-# Fact Dictionary에 대응 ID가 없어 제안한 규약이다 (evals/README.md).
-ABSENCE_FACT_ID = "F1-00"
-
 
 # --- LLM 응답 스키마 (structured outputs) --------------------------------
 
@@ -45,21 +35,8 @@ class IdentifiedActivity(BaseModel):
     heading: str = Field(description="원문에서 이 처리행위를 특정하는 짧은 인용구")
 
 
-class AbsentActivityClass(BaseModel):
-    ontology_class: str = Field(
-        description="하지 않는다고 명시된 처리행위 유형 이름"
-    )
-    evidence_text: str = Field(
-        description="그 유형을 하지 않는다고 선언한 원문 문장. 글자 그대로 인용"
-    )
-
-
 class ActivityList(BaseModel):
     activities: list[IdentifiedActivity]
-    absent_activity_classes: list[AbsentActivityClass] = Field(
-        default_factory=list,
-        description="원문이 명시적으로 하지 않는다고 적은 처리행위 유형. 미기재는 제외",
-    )
 
 
 class ExtractedFact(BaseModel):
@@ -191,10 +168,6 @@ class PoC1Extractor:
         pass1 = self.identify_activities(document)
         result.activities = pass1.activities
 
-        identified_classes = {activity.ontology_class for activity in pass1.activities}
-        for absence in pass1.absent_activity_classes:
-            self._collect_absence(result, absence, document, identified_classes)
-
         for activity in result.activities:
             # Pass 1의 heading도 원문 인용이어야 한다. 아니면 그 처리행위를 신뢰할 수 없다.
             if activity.heading not in document:
@@ -215,62 +188,6 @@ class PoC1Extractor:
         return result
 
     # -- 후처리 ----------------------------------------------------------
-
-    def _collect_absence(
-        self,
-        result: ExtractionResult,
-        absence: AbsentActivityClass,
-        document: str,
-        identified_classes: set[str],
-    ) -> None:
-        """처리행위 유형의 명시적 부재를 Fact로 만든다.
-
-        이 Fact가 있어야 Rule Engine이 N/A를 준다. 없으면 단순 결측으로 보아 AMBER로
-        남는다. 그래서 잘못 만들어 내는 비용이 크다 (없는 것을 없다고 확정해 버린다).
-        세 겹으로 막는다.
-
-          1. 대상 유형 화이트리스트
-          2. 부재를 선언한 문장이 원문에 실제로 있는지
-          3. 같은 유형을 처리행위로도 식별했는지 (모순)
-        """
-        ontology_class = absence.ontology_class
-
-        if ontology_class not in ABSENCE_ELIGIBLE_CLASSES:
-            result.rejected.append(RejectedFact(
-                ABSENCE_FACT_ID, None,
-                f"부재를 단언할 수 없는 유형입니다: {ontology_class}",
-            ))
-            return
-
-        if ontology_class in identified_classes:
-            # 같은 유형을 "있다"와 "없다"로 동시에 보고한 경우. 어느 쪽도 신뢰할 수 없다.
-            result.rejected.append(RejectedFact(
-                ABSENCE_FACT_ID, None,
-                f"{ontology_class}를 처리행위로도 식별하면서 부재로도 보고했습니다.",
-            ))
-            return
-
-        evidence, missing = locate_quotes(document, [absence.evidence_text])
-        if missing is not None:
-            result.rejected.append(RejectedFact(
-                ABSENCE_FACT_ID, None,
-                "부재를 선언한 문장을 원문에서 찾지 못했습니다.",
-                quote=missing,
-            ))
-            return
-
-        result.facts.append({
-            "fact_id": f"{ABSENCE_FACT_ID}:{CONTROLLER_ID}:{ontology_class}",
-            "subject_id": CONTROLLER_ID,
-            "activity_id": None,
-            "ontology_class": ontology_class,
-            "ontology_property": None,
-            "value": {ABSENT_ACTIVITY_KEY: ontology_class},
-            "value_state": "confirmed",
-            "source_type": "policy_text",
-            "evidence": evidence,
-            "schema_version": FACT_SCHEMA_VERSION,
-        })
 
     def _collect(
         self,

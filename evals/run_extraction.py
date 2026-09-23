@@ -32,7 +32,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.extractors.poc1 import DEFAULT_MODEL, ExtractionResult, PoC1Extractor  # noqa: E402
-from app.facts.graph import facts_to_graph
+from app.facts.graph import facts_to_mapping
 from app.mapping.fact_schema import FactValidationError as FactMappingError  # noqa: E402
 from app.facts.models import FactEnvelope  # noqa: E402
 from app.facts.validator import FactValidationError, validate_facts  # noqa: E402
@@ -92,14 +92,14 @@ def run_case(
         return {"case": case, "facts": None, "statuses": {}, "rejected": len(result.rejected)}
 
     try:
-        graph = facts_to_graph(facts)
+        mapping = facts_to_mapping(facts)
     except FactMappingError as exc:
         print(f"  매핑 실패: {exc}")
         return {"case": case, "facts": facts, "statuses": {}, "rejected": len(result.rejected)}
 
     statuses = {
         item.rule_id: item.status.value
-        for item in engine.evaluate_graph(graph, poc=case.poc)
+        for item in engine.evaluate_mapping_result(mapping, poc=case.poc)
     }
     return {
         "case": case,

@@ -21,6 +21,7 @@ class RuleMetadata:
     legal_basis: tuple[str, ...]
     source_spec_legal_basis: tuple[str, ...]
     ontology_terms: tuple[str, ...]
+    required_fact_ids: tuple[str, ...]
     notes: tuple[str, ...]
 
 
@@ -44,6 +45,7 @@ def load_rule_metadata() -> dict[str, RuleMetadata]:
             legal_basis=tuple(item["legal_basis"]),
             source_spec_legal_basis=tuple(item.get("source_spec_legal_basis", item["legal_basis"])),
             ontology_terms=tuple(item.get("ontology_terms", [])),
+            required_fact_ids=tuple(item.get("required_fact_ids", [])),
             notes=tuple(item.get("notes", [])),
         )
     return rules
