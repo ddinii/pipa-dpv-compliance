@@ -60,11 +60,12 @@ def _optional(obj: dict[str, Any], key: str) -> tuple[Any, str]:
 def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
     """Convert a PoC3 form payload into F3-01..F3-13 Fact envelopes.
 
-    처리행위 유형의 명시적 부재(third_party_provision_state 등)도 Fact로 만든다.
-    Fact Dictionary에는 대응 ID가 없어 F3-00을 규약으로 추가했다. 이 Fact가 없으면
-    Rule Engine은 단순 결측으로 보아 AMBER로 남기므로 N/A 판정이 불가능하다.
-    "confirmed_false"일 때만 만들고, 값이 없거나 다른 값이면 만들지 않는다
-    (미정과 부재는 다르다).
+    The builder intentionally does not create Facts for third-party provision
+    or cross-border transfer FALSE states because those fields are not part of
+    the frozen P0 Fact Dictionary. They may remain request-level scenario state.
+
+    설계단계에서 아직 정하지 않은 값은 value_state="unknown" Fact로 낸다
+    (Fact Dictionary 1장 · 5장 F3-09 "boolean/unknown").
     """
 
     if not isinstance(form, dict):
@@ -286,35 +287,4 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
             ]
         )
 
-    facts.extend(_absence_facts(form))
-    return facts
-
-
-# 처리행위 유형의 부재를 선언하는 Form 필드 -> Ontology Class
-ABSENCE_FIELDS = {
-    "third_party_provision_state": "ThirdPartyProvision",
-    "cross_border_transfer_state": "CrossBorderTransfer",
-    "entrusted_processing_state": "EntrustedProcessing",
-}
-
-
-def _absence_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
-    controller = form.get("controller") or {}
-    controller_id = controller.get("controller_id") or "controller"
-    facts: list[dict[str, Any]] = []
-
-    for index, (field, ontology_class) in enumerate(sorted(ABSENCE_FIELDS.items()), start=1):
-        if form.get(field) != "confirmed_false":
-            continue
-        facts.append(
-            _fact(
-                f"F3-00-{index:03d}",
-                subject_id=controller_id,
-                activity_id=None,
-                ontology_class=ontology_class,
-                ontology_property=None,
-                value={"activity_class_absent": ontology_class},
-                field_path=field,
-            )
-        )
     return facts

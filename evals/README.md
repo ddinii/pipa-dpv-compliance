@@ -108,29 +108,32 @@ Fact 파이프라인은 팀원(O_Jeon) 구현을 정본으로 통합했습니다
 실제로 그 문자열을 가리키는지**를 추가로 본다. LLM 추출 경로에만 필요한 검사라 정본에는
 없다.
 
-### 통합 과정에서 고친 정본 결함 4건
+### 매핑 결함은 정본 쪽에서 해결되었습니다
 
-모두 Freeze 문서가 정의한 Rule 동작에 도달할 수 없게 만들던 것들이다.
+Fact -> RDF 경로에서 Rule이 읽을 트리플이 없어 Freeze 기대값에 도달하지 못하던 문제들은
+`origin/main`에서 정리되었습니다 (O_Jeon `bedbb69`, YENA `086d1d3` 외).
 
-1. `entrustedTaskText` / `noticeIncidentTime`이 그래프에 실리지 않아 P1-R06·P3-R11이
-   항상 RED였다. SC-D01이 Freeze 기대값(8 GREEN)을 못 맞추고 있었다.
-2. `value_state=unknown`을 버려서 Rule Matrix의 AMBER 분기("언급은 있으나 모호")에
-   도달할 수 없었다. 이제 UNKNOWN 표식을 실어 보낸다.
-3. 처리행위 유형의 부재를 표현할 Fact ID가 없어 N/A가 불가능했다. F1-00/F2-00/F3-00을
-   레지스트리에 추가했다.
-4. PoC3 Builder가 `legal_basis` 등을 필수로 요구해 "설계단계에서 아직 안 정함"을
-   표현할 수 없었다. 설계 사전점검 도구인데 AMBER가 나올 수 없는 상태였다.
+| 문제 | 해결 |
+|---|---|
+| `entrustedTaskText` / `noticeIncidentTime`이 그래프에 없어 P1-R06·P3-R11이 항상 RED | 매퍼가 그래프에 싣는다 |
+| `measureRole`이 `system_metadata`에만 남아 P2-R08이 AMBER 고정 | 매퍼가 그래프에 싣는다 |
+| `triggersNotificationObligation`이 Freeze에 없는데 P2-R01 필수 Fact였음 | [RULE_SPEC_ERRATA_v1.0.md](../docs/RULE_SPEC_ERRATA_v1.0.md)로 Required Fact에서 제거 |
+| P3-R11이 수탁자명을 평가하지 않음 | F3-12를 `EntrustedProcessor.hasName`까지 소비 |
+| `_finalize_global_destruction_links`가 임의의 Destruction을 붙임 | 함수 제거 |
 
-1번과 2번은 팀원 테스트가 `assertFalse`로 명시하고 있던 **의도된 동작**이었다.
-Freeze 근거(P0_RULE_MATRIX AMBER 행, 엔진의 `_nonempty_values` 필터,
-`test_p1_r04_unknown_destruction_method_is_amber`)를 들어 테스트째로 뒤집었으므로
-팀원 확인이 필요하다.
+### unknown / absent는 Fact envelope으로 전달합니다
 
-### 남은 관찰
+매퍼는 **confirmed만 RDF로 냅니다.** unknown과 absent의 구분은 Rule Engine이 Fact
+envelope을 함께 받아 유지합니다
+([RULE_ENGINE_FACT_DICTIONARY_ALIGNMENT](../docs/RULE_ENGINE_FACT_DICTIONARY_ALIGNMENT_20260923.md)).
 
-`_finalize_global_destruction_links`가 파기 연결이 없는 종료조건에 임의의 Destruction을
-붙인다. 그래서 한 처리행위의 파기방법을 비워도 P3-R08이 GREEN으로 남는다. 전사 파기정책이
-모든 처리행위를 덮는다는 해석이면 맞지만, 설계 점검 관점에서는 느슨하다. 판단 필요.
+```python
+mapping = facts_to_mapping(facts)          # graph + 정규화된 facts
+engine.evaluate_mapping_result(mapping, poc="poc1")
+```
+
+그래프만 넘기면(`evaluate_graph(graph)`) 엔진이 unknown과 absent를 구별할 수 없어
+Rule Matrix의 AMBER 분기에 도달하지 못합니다.
 
 ## Day 0 결정 필요 — 여기서 임의로 정한 규약
 
@@ -188,8 +191,12 @@ Fact Dictionary에는 이 규칙이 없습니다.
    프롬프트에서 명시적으로 금지해야 합니다 — 안 그러면 스키마에 없는 Fact를 만들어 내고
    COM-002 validation에서 전부 reject됩니다.
 
-4. **처리행위 유형의 부재를 표현할 Fact ID가 없습니다.** N/A 판정에 필요합니다.
-   위 "N/A에는 새 규약이 필요했습니다" 참고.
+4. **처리행위 유형의 부재를 표현할 Fact ID가 없습니다.** 3·4·5장은 35개 Fact를
+   정의하는데, 그중 "이 유형의 처리행위를 하지 않는다"를 담을 자리가 없습니다.
+   8장은 미기재를 `value_state=absent`로 유지하라고 하지만, 처리행위 자체가 없으면
+   귀속시킬 `activity_id`가 없습니다. 그 결과 **N/A는 Fact 경로로 도달할 수 없고**
+   손으로 쓴 RDF(`test:thirdPartyProvisionState "confirmed_false"`)로만 나옵니다.
+   v1.0의 한계이므로 개정 사항으로 올립니다.
 
 5. **타입이 `instance`인 Fact(F3-01/F3-03/F3-06)는 Envelope에 담을 자리가 애매합니다.**
    리터럴 값이 아니라 연결 대상 개체를 가리키기 때문입니다. 정본은 값 객체
@@ -197,26 +204,6 @@ Fact Dictionary에는 이 규칙이 없습니다.
 
 6. **F3-06과 F3-10이 같은 Ontology 구조를 가리킵니다.** 각각 P3-R04와 P3-R08에 쓰이지만
    둘 다 `Retention`으로 수렴합니다. 정본 매퍼가 같은 노드로 모아 트리플이 중복되지 않습니다.
-
-## Rule Engine 발견 사항 — P3-R11이 수탁자명을 보지 않습니다
-
-`tests/test_poc3_form.py::test_p3_r11_does_not_evaluate_the_processor_name`
-
-| 수탁자명 상태 | P1-R06 (PoC1) | P3-R11 (PoC3) |
-|---|---|---|
-| 이름 확인됨 | GREEN | GREEN |
-| 이름 UNKNOWN | AMBER | **GREEN** |
-| 이름 없음 | RED | **GREEN** |
-
-Fact Dictionary 7장은 P3-R11 = F3-12 + F3-13이고, F3-12는
-`EntrustedProcessing.hasProcessor → EntrustedProcessor.hasName` (string)입니다.
-즉 P3-R11은 수탁자명을 소비해야 하는데, 엔진은 `hasProcessor` 링크의 존재와
-`entrustedTaskText`만 봅니다.
-
-**설계단계에서 "수탁자 미정"은 매우 흔한 상태이고 PoC3의 존재 이유이기도 합니다.**
-AMBER로 잡히는 것이 맞아 보이지만, 기능명세서 14장 2번이 "P0 Rule의 조건/status 의미를
-코드 편의상 바꾸지 않는다"고 정하므로 엔진을 고치지 않고 현재 동작을 테스트로 기록했습니다.
-Rule 담당자가 판단하면 그 테스트를 뒤집으면 됩니다.
 
 ## Extractor 설계 — offset을 LLM에게 시키지 않습니다
 
@@ -318,43 +305,6 @@ Extractor는 **실제 API로 한 번도 돌리지 않았습니다.** 자격증�
 - 거부된 Fact의 사유 분포 — 인용 불일치가 많으면 프롬프트 4번 규칙을 강화
 - 수집 항목(제1조)을 Fact로 만들어 내는지 — 프롬프트 5번 규칙이 듣는지
 
-## 명시적 부재 추출 — N/A를 만들 수 있는 유일한 경로
-
-Pass 1은 처리행위뿐 아니라 **"하지 않는다"고 명시된 유형**도 식별합니다
-(`absent_activity_classes`). 이 Fact가 없으면 Rule Engine은 단순 결측으로 보아 AMBER로
-남기므로, **N/A는 구조적으로 나올 수 없습니다.**
-
-잘못 만들면 비용이 큽니다 — 없는 것을 없다고 확정해 버립니다. 그래서 세 겹으로 막습니다.
-
-1. 대상 유형 화이트리스트 (`ThirdPartyProvision` / `EntrustedProcessing` / `CrossBorderTransfer`)
-2. 부재를 선언한 문장이 원문에 실제로 있는지
-3. 같은 유형을 처리행위로도 식별했는지 (모순이면 양쪽 다 버림)
-
-프롬프트에서 가장 강조한 것도 **미기재와 명시적 부재의 구분**입니다. 원문에 제3자 제공
-이야기가 아예 없는 것은 부재 단언이 아닙니다.
-
-## 다음 할 일
-
-1. 첫 실행 후 프롬프트 튜닝 (거부 사유 분포 기준)
-2. SC-P02 통지문 gold set. **매핑 쪽 선행 작업 2건이 끝나야 합니다** — 아래 참고
-3. 모델 비교 — `--model claude-sonnet-5`로 품질/비용 트레이드오프 측정
-4. 캐시 효과 실측 — `--no-cache`와 `usage.cache_read_input_tokens` 비교
-
-### PoC2가 막혀 있는 지점
-
-완전한 F2 Fact(F2-01/02/03/04/08/09/10 전부 confirmed)를 넣고 평가한 결과입니다.
-
-| Rule | 결과 | 이유 |
-|---|---|---|
-| P2-R01 | **AMBER** | `triggersNotificationObligation`을 실을 Fact ID가 레지스트리에 없음 |
-| P2-R02 | GREEN | |
-| P2-R03 | GREEN | `noticeIncidentTime` 수정 후 통과 |
-| P2-R08 | **AMBER** | `measure_role`이 `system_metadata`에만 남고 그래프에 없음 |
-
-둘 다 이미 고친 결함 4건과 같은 유형입니다 — 매핑은 통과하는데 Rule이 읽을 트리플이
-없어 판정이 상한에 걸립니다. `app/mapping` 담당(O_Jeon)의 수정이 필요하며, 그 전에
-gold set을 만들면 정답지의 `expected_rule_status`를 확정할 수 없습니다.
-
 ## PoC1 Controlled Variants (TST-003)
 
 SC-P01 하나로는 GREEN과 AMBER만 나옵니다. `evals/poc1/variants/`의 6개 변형이 나머지를 채웁니다.
@@ -368,32 +318,26 @@ python -m pytest -q tests\test_variants_poc1.py
 |---|---|---|
 | v1-missing-purpose | 처리 목적 문장 삭제 | P1-R01 **RED** |
 | v2-vague-destruction | "적절한 방법으로 파기" | P1-R04 **AMBER** |
-| v3-missing-destruction | 파기 방법 기재 삭제 | P1-R04 **RED** |
+| v3-missing-destruction | 파기 방법 기재 삭제 (F1-08 `absent`) | P1-R04 **RED** |
 | v4-unknown-processor | "수탁자: 추후 선정 예정" | P1-R06 **AMBER** |
 | v5-missing-processor | 수탁자명 기재 삭제 | P1-R06 **RED** |
-| v6-no-third-party-provision | "제3자에게 제공하지 않습니다" 명시 | P1-R03 **N/A** |
+| v6-no-third-party-provision | "제3자에게 제공하지 않습니다" 명시 | P1-R03 **AMBER** |
 
 문서를 편집하면 글자 위치가 전부 밀리므로, 빌더가 **변형 문서에서 근거를 다시 찾아** offset을
 새로 계산합니다. 근거를 찾지 못했는데 변형 정의가 처리하지 않았다면 빌더가 실패합니다.
 
 각 변형은 겨냥한 Rule **하나만** 움직여야 하며, 이것도 테스트로 강제합니다.
 
-### N/A에는 새 규약이 필요했습니다
+### N/A는 이 변형 세트로 만들 수 없습니다
 
-N/A는 단순 결측이 아니라 **명시적 부재**일 때만 나옵니다. 그런데 Fact Dictionary에는
-"제3자 제공이 없음이 확인됨"을 표현할 Fact ID가 없습니다. 다음 규약을 제안합니다.
+v6는 "제3자에게 제공하지 않습니다"를 명시하지만 결과는 N/A가 아니라 **AMBER**입니다.
+Fact Dictionary에 처리행위 유형의 부재를 담을 Fact ID가 없어서, 제3자 제공 Fact가
+그냥 사라질 뿐이기 때문입니다 (위 결손 4번).
 
-```json
-{
-  "ontology_property": null,
-  "value": {"activity_class_absent": "ThirdPartyProvision"},
-  "value_state": "confirmed"
-}
-```
-
-Fact Dictionary 1장의 "false는 confirmed 값이며 unknown과 다르다"를 그대로 따릅니다.
-매퍼가 이를 `metadata:thirdPartyProvisionState = "confirmed_false"`로 변환합니다.
-이 네임스페이스는 엔진의 `TEST` 네임스페이스와 글자 그대로 같아야 합니다 (계약 결손 아래 참고).
+대신 **absent와 unknown의 구분**은 v2와 v3이 보여줍니다. 같은 P1-R04를 v2(파기방법
+`unknown`)는 AMBER로, v3(파기방법 `absent`)는 RED로 움직입니다. Fact를 아예 빼면
+"입력 계약 불완전"으로 AMBER가 되므로, 기재가 없을 때는 Fact를 빼지 말고
+`value_state="absent"`로 유지해야 합니다 (8장).
 
 ## PoC3 Privacy-by-Design
 

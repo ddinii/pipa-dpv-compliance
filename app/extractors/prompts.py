@@ -42,15 +42,6 @@ POC1_FACT_CATALOG: list[tuple[str, str, str | None, str]] = [
     for fact_id, description, value_type in _POC1_FACT_NOTES
 ]
 
-# 명시적 부재를 단언할 수 있는 처리행위 유형.
-# "제3자에게 제공하지 않습니다"처럼 원문이 없다고 못박은 경우에만 쓴다.
-# 단순 미기재는 해당하지 않는다 (미기재는 AMBER, 명시적 부재만 N/A).
-ABSENCE_ELIGIBLE_CLASSES: list[str] = [
-    "ThirdPartyProvision",
-    "EntrustedProcessing",
-    "CrossBorderTransfer",
-]
-
 # Pass 1이 식별해야 하는 처리행위 유형과 activity_id 접두사
 ACTIVITY_KINDS: list[tuple[str, str, str]] = [
     ("CollectionAndUse", "act-collection", "개인정보를 수집하여 이용하는 처리행위"),
@@ -66,10 +57,6 @@ def _activity_kind_table() -> str:
         f"  - {name}: {description} (activity_id 접두사 {prefix}-)"
         for name, prefix, description in ACTIVITY_KINDS
     )
-
-
-def _absence_class_table() -> str:
-    return "\n".join(f"  - {name}" for name in ABSENCE_ELIGIBLE_CLASSES)
 
 
 def _fact_catalog_table() -> str:
@@ -109,26 +96,6 @@ PASS1_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스�
 5. 하나의 처리행위가 여러 조에 걸쳐 기재되어 있어도 처리행위는 하나입니다.
    (예: 제1조에 목적, 제2조에 보유기간이 나뉘어 있는 경우)
 
-## 명시적으로 "하지 않는다"고 적힌 처리행위 유형
-
-처리방침이 특정 처리행위를 **하지 않는다고 명시**한 경우, 그 유형을
-absent_activity_classes에 담으십시오. 대상은 다음 셋뿐입니다.
-
-{_absence_class_table()}
-
-예: "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."
-    -> ThirdPartyProvision
-
-**미기재와 명시적 부재는 다릅니다.** 이 구분이 이 작업에서 가장 중요합니다.
-
-  - 원문이 "제공하지 않습니다"라고 **적은** 경우 -> 명시적 부재. 여기에 담습니다.
-  - 원문에 제3자 제공 이야기가 **아예 없는** 경우 -> 미기재. 담지 마십시오.
-
-일반적인 처리방침에 그 조항이 보통 있다는 이유로, 또는 문서에서 못 찾았다는 이유로
-부재를 단언하면 안 됩니다. 부재를 선언하는 문장을 원문에서 직접 찾은 경우에만 담고,
-그 문장을 evidence_text에 **글자 그대로** 인용하십시오.
-
-같은 유형을 activities와 absent_activity_classes에 동시에 담지 마십시오.
 """
 
 

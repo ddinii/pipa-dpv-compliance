@@ -5,10 +5,11 @@ import unittest
 from pathlib import Path
 
 from pyshacl import validate
-from rdflib import Graph, Literal, Namespace, RDF
+from rdflib import Graph, Literal, Namespace, RDF, OWL
 
 from app.builders import build_poc3_facts
 from app.mapping import FactValidationError, OntologyMapper
+from app.mapping.mapping_registry import FACT_SPECS
 
 
 BASE = Path(__file__).resolve().parents[1]
@@ -66,10 +67,6 @@ class FactOntologyMappingTests(unittest.TestCase):
         self.assertTrue(any(graph.triples((None, PIPA.hasRight, None))))
         self.assertTrue(any(graph.triples((None, PIPA.hasExerciseProcedure, None))))
         self.assertEqual("entrusted_task_text", result.system_metadata[0]["field"])
-        # entrustedTaskText는 Ontology Property가 아니라 Rule 입력 보조 필드지만
-        # (Fact Dictionary 8장), frozen ontology에 AnnotationProperty로 선언되어
-        # 있고 Rule Engine이 그래프에서 직접 읽는다. system_metadata에만 담으면
-        # P1-R06과 P3-R11이 위탁업무 누락으로 보아 항상 RED가 된다.
         self.assertTrue(any(graph.triples((None, PIPA.entrustedTaskText, None))))
 
     def test_poc3_form_to_fact_to_rdf_and_shacl(self):
@@ -97,8 +94,10 @@ class FactOntologyMappingTests(unittest.TestCase):
             2,
             len([item for item in result.system_metadata if item["field"] == "entrusted_task_text"]),
         )
-        # 위와 같은 이유. 그래프에 실려야 P3-R11이 GREEN에 도달할 수 있다.
-        self.assertTrue(any(result.graph.triples((None, PIPA.entrustedTaskText, None))))
+        self.assertEqual(
+            2,
+            len(list(result.graph.triples((None, PIPA.entrustedTaskText, None)))),
+        )
 
         ontology = Graph().parse(BASE / "ontology/PIPA_Ontology_v1.0.ttl", format="turtle")
         shapes = Graph().parse(
@@ -181,41 +180,8 @@ class FactOntologyMappingTests(unittest.TestCase):
             ),
         ]
         result = OntologyMapper("state", controller_id="controller").map(facts)
-
-        # unknown은 "값을 확정할 수 없다"이지 "기재가 없다"가 아니다. 트리플을 아예
-        # 만들지 않으면 Rule Engine이 결측(RED)과 구별하지 못해, Rule Matrix의
-        # AMBER 분기("언급은 있으나 모호")에 도달할 수 없다. 그래서 UNKNOWN 표식을
-        # 실어 보낸다. 엔진의 _nonempty_values가 이 표식을 빈 값으로 취급한다.
-        purposes = list(result.graph.triples((None, PIPA.hasPurpose, None)))
-        self.assertTrue(purposes)
-        self.assertTrue(result.trace[1]["emitted"])
-        self.assertTrue(result.trace[1]["unknown_marker"])
-
-        descriptions = {
-            str(value)
-            for _, _, value in result.graph.triples(
-                (None, PIPA.hasPurposeDescription, None)
-            )
-        }
-        self.assertEqual({"UNKNOWN"}, descriptions)
-
-    def test_absent_facts_produce_no_triples(self):
-        """absent는 명시적 부재다. unknown과 달리 아무 트리플도 만들지 않는다."""
-        facts = [
-            fact(
-                "F3-04-001",
-                subject_id="activity",
-                activity_id="activity",
-                ontology_class="CollectionAndUse",
-                ontology_property="hasPurpose",
-                value=None,
-                source_type="structured_form",
-                state="absent",
-            ),
-        ]
-        result = OntologyMapper("absent", controller_id="controller").map(facts)
         self.assertFalse(any(result.graph.triples((None, PIPA.hasPurpose, None))))
-        self.assertFalse(result.trace[0]["emitted"])
+        self.assertFalse(result.trace[1]["emitted"])
 
     def test_poc2_actual_and_notice_information_and_time_are_separate(self):
         facts = [
@@ -340,10 +306,162 @@ class FactOntologyMappingTests(unittest.TestCase):
             },
             roles,
         )
-        # noticeIncidentTime이 그래프에 없으면 P2-R03이 통지문 기재시점을 확인하지
-        # 못한다. 실제 incidentDate(F2-05)와는 아래 단언대로 끝까지 분리된다.
         self.assertTrue(any(result.graph.triples((notice, PIPA.noticeIncidentTime, None))))
-        self.assertFalse(any(result.graph.triples((None, PIPA.measureRole, None))))
+        graph_roles = {
+            str(role)
+            for measure in result.graph.objects(incident, PIPA.hasResponseMeasure)
+            for role in result.graph.objects(measure, PIPA.measureRole)
+        }
+        self.assertEqual(roles, graph_roles)
+
+    def test_p2_r01_v1_contract_uses_f2_01_f2_02_f2_03_only(self):
+        facts = [
+            fact(
+                "F2-01-001",
+                subject_id="incident",
+                activity_id="incident",
+                ontology_class="DataBreachIncident",
+                ontology_property=None,
+                value=None,
+                source_type="incident_record",
+            ),
+            fact(
+                "F2-02-001",
+                subject_id="incident",
+                activity_id="incident",
+                ontology_class="DataBreachIncident",
+                ontology_property="affectsPersonalInformation",
+                value=["이메일"],
+                source_type="incident_record",
+            ),
+            fact(
+                "F2-03-001",
+                subject_id="incident",
+                activity_id="incident",
+                ontology_class="DataBreachIncident",
+                ontology_property="hasNotificationNotice",
+                value={"notice_id": "notice"},
+                source_type="notification_notice",
+            ),
+        ]
+        graph = OntologyMapper("p2-r01-v1").map(facts).graph
+        incident = next(graph.subjects(RDF.type, PIPA.DataBreachIncident))
+        self.assertTrue(any(graph.objects(incident, PIPA.affectsPersonalInformation)))
+        self.assertTrue(any(graph.objects(incident, PIPA.hasNotificationNotice)))
+        self.assertFalse(
+            any(graph.triples((incident, PIPA.triggersNotificationObligation, None)))
+        )
+
+    def test_all_fact_specs_reference_frozen_ontology_and_mapper_handlers(self):
+        ontology = Graph().parse(BASE / "ontology/PIPA_Ontology_v1.0.ttl", format="turtle")
+        classes = set(ontology.subjects(RDF.type, OWL.Class))
+        properties = set(ontology.subjects(RDF.type, OWL.ObjectProperty))
+        properties.update(ontology.subjects(RDF.type, OWL.DatatypeProperty))
+        properties.update(ontology.subjects(RDF.type, OWL.AnnotationProperty))
+        self.assertEqual(35, len(FACT_SPECS))
+        mapper = OntologyMapper("contract", controller_id="controller")
+        for fact_type, spec in FACT_SPECS.items():
+            self.assertIn(PIPA[spec.subject_class], classes, fact_type)
+            if spec.ontology_property:
+                self.assertIn(PIPA[spec.ontology_property], properties, fact_type)
+            self.assertTrue(
+                callable(getattr(mapper, f"_map_{spec.mapping_kind}", None)), fact_type
+            )
+
+    def test_activity_scoped_fact_requires_activity_id(self):
+        bad = fact(
+            "F3-01-001",
+            subject_id="activity",
+            activity_id=None,
+            ontology_class="CollectionAndUse",
+            ontology_property=None,
+            value=None,
+            source_type="structured_form",
+        )
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("missing-activity", controller_id="controller").map([bad])
+
+    def test_empty_evidence_is_rejected(self):
+        bad = fact(
+            "F3-01-001",
+            subject_id="activity",
+            activity_id="activity",
+            ontology_class="CollectionAndUse",
+            ontology_property=None,
+            value=None,
+            source_type="structured_form",
+        )
+        bad["evidence"] = []
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("missing-evidence", controller_id="controller").map([bad])
+
+    def test_response_measure_role_enum_and_duplicates_are_rejected(self):
+        invalid = fact(
+            "F2-10-001",
+            subject_id="incident",
+            activity_id="incident",
+            ontology_class="DataBreachIncident",
+            ontology_property="hasResponseMeasure",
+            value=[{"role": "invalid_role", "text": "조치"}],
+            source_type="notification_notice",
+        )
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("invalid-role").map([invalid])
+
+        duplicate = dict(invalid)
+        duplicate["value"] = [
+            {"role": "controller_response", "text": "조치 1"},
+            {"role": "controller_response", "text": "조치 2"},
+        ]
+        with self.assertRaises(FactValidationError):
+            OntologyMapper("duplicate-role").map([duplicate])
+
+    def test_poc2_incident_and_notice_source_types_are_enforced(self):
+        wrong_actual = fact(
+            "F2-02-001",
+            subject_id="incident",
+            activity_id="incident",
+            ontology_class="DataBreachIncident",
+            ontology_property="affectsPersonalInformation",
+            value=["이메일"],
+            source_type="notification_notice",
+        )
+        wrong_notice = fact(
+            "F2-04-001",
+            subject_id="notice",
+            activity_id="incident",
+            ontology_class="NotificationNotice",
+            ontology_property="mentionsPersonalInformation",
+            value=["이메일"],
+            source_type="incident_record",
+        )
+        for bad in (wrong_actual, wrong_notice):
+            with self.assertRaises(FactValidationError):
+                OntologyMapper("wrong-source").map([bad])
+
+    def test_destruction_is_not_inferred_across_activities(self):
+        facts = [
+            fact(
+                "F3-10-001",
+                subject_id="activity-a-retention",
+                activity_id="activity-a",
+                ontology_class="Retention",
+                ontology_property="hasRetentionEndCondition",
+                value="회원 탈퇴",
+                source_type="structured_form",
+            ),
+            fact(
+                "F1-08-001",
+                subject_id="activity-b-destruction",
+                activity_id="activity-b-destruction",
+                ontology_class="Destruction",
+                ontology_property="hasDestructionMethod",
+                value="안전 삭제",
+                source_type="policy_text",
+            ),
+        ]
+        graph = OntologyMapper("no-cross-link", controller_id="controller").map(facts).graph
+        self.assertFalse(any(graph.triples((None, PIPA.triggersDestruction, None))))
 
     def test_legacy_namespace_is_rejected(self):
         bad = fact(
@@ -361,106 +479,3 @@ class FactOntologyMappingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-class FrozenScenarioTests(unittest.TestCase):
-    """Fact -> RDF -> Rule Engine이 Freeze 시나리오 기대값을 재현하는지 본다.
-
-    매핑 단위 테스트만으로는 "그래프는 만들어졌는데 Rule이 읽지 못하는" 결함을
-    잡을 수 없다. entrustedTaskText 누락이 정확히 그런 경우였다.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        from app.rules.engine import P0RuleEngine
-
-        cls.engine = P0RuleEngine()
-        cls.form = json.loads(
-            (BASE / "examples" / "SC-D01_form.json").read_text(encoding="utf-8")
-        )
-
-    def _evaluate(self, form, poc="poc3"):
-        facts = build_poc3_facts(form)
-        controller = form.get("controller", {})
-        result = OntologyMapper(
-            form.get("analysis_id", "test"),
-            controller_id=controller.get("controller_id", "controller"),
-            controller_name=controller.get("name"),
-        ).map(facts)
-        return {
-            item.rule_id: item.status.value
-            for item in self.engine.evaluate_graph(result.graph, poc=poc)
-        }
-
-    def test_sc_d01_form_reproduces_the_frozen_eight_green(self):
-        """SC-D01 Freeze 기대값은 PoC3 8개 Rule 전부 GREEN이다."""
-        statuses = self._evaluate(self.form)
-        self.assertEqual({"GREEN"}, set(statuses.values()), statuses)
-
-    def test_confirmed_absence_gives_na_but_an_empty_list_gives_amber(self):
-        """단순 결측은 N/A가 아니다. 없음이 확인된 경우에만 N/A다."""
-        undecided = json.loads(json.dumps(self.form))
-        undecided["entrusted_processings"] = []
-        self.assertEqual("AMBER", self._evaluate(undecided)["P3-R11"])
-
-        confirmed = json.loads(json.dumps(undecided))
-        confirmed["entrusted_processing_state"] = "confirmed_false"
-        self.assertEqual("N/A", self._evaluate(confirmed)["P3-R11"])
-
-    def test_unknown_value_is_amber_not_red(self):
-        """Rule Matrix: 값이 UNKNOWN/모호하면 AMBER, 미확인이면 RED."""
-        from app.rules.engine import P0RuleEngine
-
-        def destruction_fact(state, value):
-            return fact(
-                "F1-08-001",
-                subject_id="destroy",
-                activity_id="destroy",
-                ontology_class="Destruction",
-                ontology_property="hasDestructionMethod",
-                value=value,
-                source_type="policy_text",
-                state=state,
-            )
-
-        engine = P0RuleEngine()
-        vague = OntologyMapper("vague", controller_id="c").map(
-            [destruction_fact("unknown", None)]
-        )
-        self.assertEqual("AMBER", engine.evaluate_rule(vague.graph, "P1-R04").status.value)
-
-        concrete = OntologyMapper("ok", controller_id="c").map(
-            [destruction_fact("confirmed", "복구 불가능하게 삭제")]
-        )
-        self.assertEqual("GREEN", engine.evaluate_rule(concrete.graph, "P1-R04").status.value)
-
-    def test_entrusted_task_text_reaches_the_graph(self):
-        """system_metadata에만 담으면 P1-R06/P3-R11이 항상 RED가 된다."""
-        from app.rules.engine import P0RuleEngine
-
-        facts = [
-            fact(
-                "F1-09-001",
-                subject_id="entrust",
-                activity_id="entrust",
-                ontology_class="EntrustedProcessing",
-                ontology_property="hasProcessor",
-                value="빠른택배 주식회사",
-                source_type="policy_text",
-            ),
-            fact(
-                "F1-10-001",
-                subject_id="entrust",
-                activity_id="entrust",
-                ontology_class="EntrustedProcessing",
-                ontology_property=None,
-                value="상품 배송",
-                source_type="policy_text",
-            ),
-        ]
-        result = OntologyMapper("entrust", controller_id="c").map(facts)
-        engine = P0RuleEngine()
-        self.assertEqual("GREEN", engine.evaluate_rule(result.graph, "P1-R06").status.value)
-        self.assertEqual("GREEN", engine.evaluate_rule(result.graph, "P3-R11").status.value)
-        # 추적용 metadata도 함께 남아야 한다
-        self.assertEqual("entrusted_task_text", result.system_metadata[0]["field"])

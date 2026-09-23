@@ -82,11 +82,11 @@ post_incident_mitigation
 
 P0 v1.0 Freeze에서 GREEN은 4개 역할이 모두 확인되는 경우입니다.
 
-### P2-R01 notification-obligation fact
+### P2-R01 v1 fact contract
 
-v1.0 Rule Specification의 P2-R01은 `affectsPersonalInformation + triggersNotificationObligation + hasNotificationNotice`를 필수 Fact로 평가합니다. frozen `PIPA_Ontology_v1.0.ttl`에는 `triggersNotificationObligation` 선언이 없지만, Rule Engine은 ontology를 수정하지 않고 입력 RDF에 있는 동일 URI Fact를 직접 확인합니다.
+P2-R01의 v1 Required Fact는 `F2-01 DataBreachIncident + F2-02 affectsPersonalInformation + F2-03 hasNotificationNotice`입니다. `triggersNotificationObligation`은 Frozen Fact Dictionary와 Ontology v1.0에 없으므로 Rule 입력에서 사용하지 않습니다.
 
-따라서 `triggersNotificationObligation`이 확인되지 않으면 compatibility fallback으로 GREEN 처리하지 않고 AMBER로 남깁니다.
+P2-R01은 통지 대상 여부 자체를 자동판정하지 않습니다. 제공된 사고 사실과 `NotificationNotice` 존재 여부를 검토하며, 신고 threshold와 `ReportingObligation` 자동판정은 v1 범위 밖입니다.
 
 ## Setup
 
@@ -166,8 +166,9 @@ http://127.0.0.1:8000/design
 예시 설계(SC-D01)가 자동으로 채워지므로 바로 [사전점검 실행]을 누를 수 있습니다.
 항목을 추가·삭제하고 "필수/선택/미정"을 바꿔 상태가 어떻게 움직이는지 확인하세요.
 
-`없음`과 `미정`은 다릅니다. 없음이 확인되어야 N/A가 되고, 미정은 AMBER로 남습니다
-(Rule 설계 원칙: 단순 결측은 N/A로 처리하지 않음).
+빈 값은 `미정`으로 읽혀 해당 Rule이 AMBER가 됩니다. 처리행위 유형의 부재(예: "위탁하지
+않는다")를 담을 Fact ID는 Fact Dictionary v1.0에 없으므로, 목록을 비우면 그 처리행위의
+Fact가 없을 뿐이며 N/A가 되지는 않습니다.
 
 ```text
 POST /api/v1/compliance/design-check   # API-003. 설계 Form -> PoC3 RuleResult[]

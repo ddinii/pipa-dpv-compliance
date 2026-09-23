@@ -1,4 +1,4 @@
-.venv/
+﻿.venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -8,6 +8,8 @@ htmlcov/
 .DS_Store
 .idea/
 .vscode/
+generated/
+*.pyc
 
 # 평가 실행 산출물 (gold set은 커밋, 예측은 제외)
 evals/*/predictions/

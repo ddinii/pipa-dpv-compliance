@@ -9,15 +9,11 @@ from pathlib import Path
 import pytest
 
 from app.extractors.poc1 import (
-    ABSENCE_FACT_ID,
-    CONTROLLER_ID,
-    AbsentActivityClass,
     ActivityList,
     IdentifiedActivity,
     PoC1Extractor,
 )
-from app.facts.graph import facts_to_graph
-from app.mapping.fact_schema import ABSENT_ACTIVITY_KEY
+from app.facts.graph import facts_to_graph, facts_to_mapping
 from app.facts.models import FactEnvelope
 from app.facts.validator import validate_facts
 from app.rules.engine import P0RuleEngine
@@ -26,7 +22,6 @@ from evals.run_extraction import _accumulate
 from evals.score import RuleScore, Score, score_facts
 
 V6 = "v6-no-third-party-provision"
-ABSENCE_QUOTE = "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."
 
 
 # --- 데이터셋 -----------------------------------------------------------
@@ -134,112 +129,6 @@ def extract_with(pass1: ActivityList, document: str):
 @pytest.fixture(scope="module")
 def v6_case():
     return next(case for case in load_poc1_cases() if case.name == V6)
-
-
-def test_absence_fact_is_built_from_pass_one(v6_case):
-    result = extract_with(
-        ActivityList(
-            activities=[],
-            absent_activity_classes=[
-                AbsentActivityClass(
-                    ontology_class="ThirdPartyProvision", evidence_text=ABSENCE_QUOTE
-                )
-            ],
-        ),
-        v6_case.document,
-    )
-    assert len(result.facts) == 1
-    fact = FactEnvelope.model_validate(result.facts[0])
-    assert fact.fact_type == ABSENCE_FACT_ID
-    assert fact.subject_id == CONTROLLER_ID
-    assert fact.value == {ABSENT_ACTIVITY_KEY: "ThirdPartyProvision"}
-    assert fact.value_state == "confirmed"
-    assert fact.evidence[0].resolves_in(v6_case.document)
-
-
-@pytest.mark.parametrize(
-    "label, absence, expected_reason",
-    [
-        (
-            "원문에 없는 인용",
-            AbsentActivityClass(
-                ontology_class="ThirdPartyProvision", evidence_text="원문에 없는 선언 문장"
-            ),
-            "찾지 못했",
-        ),
-        (
-            "부재를 단언할 수 없는 유형",
-            AbsentActivityClass(
-                ontology_class="CollectionAndUse", evidence_text=ABSENCE_QUOTE
-            ),
-            "단언할 수 없는 유형",
-        ),
-    ],
-)
-def test_absence_guards_reject_bad_assertions(v6_case, label, absence, expected_reason):
-    """부재 단언은 잘못 만들면 비용이 크다. 없는 것을 없다고 확정해 버린다."""
-    result = extract_with(
-        ActivityList(activities=[], absent_activity_classes=[absence]), v6_case.document
-    )
-    assert result.facts == [], label
-    assert any(expected_reason in item.reason for item in result.rejected), label
-
-
-def test_claiming_a_class_is_both_present_and_absent_is_rejected(v6_case):
-    result = extract_with(
-        ActivityList(
-            activities=[
-                IdentifiedActivity(
-                    activity_id="act-provision-001",
-                    ontology_class="ThirdPartyProvision",
-                    heading="제공받는 자",
-                )
-            ],
-            absent_activity_classes=[
-                AbsentActivityClass(
-                    ontology_class="ThirdPartyProvision", evidence_text=ABSENCE_QUOTE
-                )
-            ],
-        ),
-        v6_case.document,
-    )
-    assert not any(item["fact_id"].startswith(ABSENCE_FACT_ID) for item in result.facts)
-    assert any("동시에" in item.reason or "부재로도" in item.reason for item in result.rejected)
-
-
-def test_extracted_absence_fact_actually_produces_na(v6_case):
-    """이 Fact가 있어야 P1-R03이 N/A가 된다. 없으면 AMBER로 남는다."""
-    result = extract_with(
-        ActivityList(
-            activities=[],
-            absent_activity_classes=[
-                AbsentActivityClass(
-                    ontology_class="ThirdPartyProvision", evidence_text=ABSENCE_QUOTE
-                )
-            ],
-        ),
-        v6_case.document,
-    )
-    others = [
-        item for item in v6_case.gold_facts
-        if not item["fact_id"].startswith(ABSENCE_FACT_ID)
-    ]
-    facts = validate_facts(others + result.facts, document=v6_case.document)
-    statuses = {
-        item.rule_id: item.status.value
-        for item in P0RuleEngine().evaluate_graph(facts_to_graph(facts), poc="poc1")
-    }
-    assert statuses == v6_case.expected_rule_status
-
-
-def test_prompt_documents_every_absence_eligible_class():
-    from app.extractors.prompts import ABSENCE_ELIGIBLE_CLASSES, PASS1_SYSTEM
-
-    for name in ABSENCE_ELIGIBLE_CLASSES:
-        assert name in PASS1_SYSTEM
-    assert "absent_activity_classes" in PASS1_SYSTEM
-    # 미기재와 명시적 부재를 구분하라는 지침이 빠지면 N/A를 남발하게 된다
-    assert "미기재" in PASS1_SYSTEM
 
 
 # --- PoC 등록 ------------------------------------------------------------

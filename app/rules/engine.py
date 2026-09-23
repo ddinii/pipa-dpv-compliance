@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
-from typing import Callable, Iterable
+from typing import Any, Callable, Iterable, Mapping
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef
 from rdflib.term import Node
 
+from app.mapping.fact_schema import validate_facts
 from app.rules.metadata import load_rule_metadata
 from app.rules.models import (
     Applicability,
@@ -97,14 +98,48 @@ class P0RuleEngine:
             "P3-R11": self._p3_r11,
         }
 
-    def evaluate_graph(self, data_graph: Graph, poc: str | None = None) -> list[RuleResult]:
+    def evaluate_graph(
+        self,
+        data_graph: Graph,
+        poc: str | None = None,
+        *,
+        facts: Iterable[Mapping[str, Any]] | None = None,
+    ) -> list[RuleResult]:
+        """Evaluate the frozen rules against RDF plus the Fact input contract.
+
+        ``facts`` is optional for backwards compatibility with legacy RDF-only
+        callers.  When supplied, it is validated as a frozen ``fact-1.0``
+        envelope and its ``confirmed / unknown / absent`` state is enforced
+        before a graph-derived result may be treated as final.  This is the
+        spec-conformant path because the Fact Dictionary defines Facts as the
+        Rule Engine input contract.
+        """
         graph = self._combined_graph(data_graph)
+        validated_facts = validate_facts(list(facts)) if facts is not None else None
         rule_ids = [
             rule_id
             for rule_id, metadata in self.metadata.items()
             if poc is None or metadata.poc.lower() == poc.lower()
         ]
-        return [self.evaluate_rule(graph, rule_id, graph_is_combined=True) for rule_id in rule_ids]
+        return [
+            self.evaluate_rule(
+                graph,
+                rule_id,
+                graph_is_combined=True,
+                facts=validated_facts,
+                facts_are_validated=True,
+            )
+            for rule_id in rule_ids
+        ]
+
+    def evaluate_mapping_result(self, mapping_result: Any, poc: str | None = None) -> list[RuleResult]:
+        """Evaluate an ``OntologyMapper`` result without changing the mapper.
+
+        ``MappingResult`` already exposes both ``graph`` and normalized ``facts``.
+        Keeping this adapter in the Rule Engine lets unknown/absent state survive
+        the RDF boundary without adding any ontology terms.
+        """
+        return self.evaluate_graph(mapping_result.graph, poc=poc, facts=mapping_result.facts)
 
     def evaluate_rule(
         self,
@@ -112,11 +147,23 @@ class P0RuleEngine:
         rule_id: str,
         *,
         graph_is_combined: bool = False,
+        facts: Iterable[Mapping[str, Any]] | None = None,
+        facts_are_validated: bool = False,
     ) -> RuleResult:
         if rule_id not in self._handlers:
             raise KeyError(f"Unknown P0 rule: {rule_id}")
         graph = data_graph if graph_is_combined else self._combined_graph(data_graph)
+        validated_facts = None
+        if facts is not None:
+            validated_facts = list(facts) if facts_are_validated else validate_facts(list(facts))
+
         instance_results = self._handlers[rule_id](graph)
+        if validated_facts is not None:
+            instance_results = self._apply_fact_input_contract(
+                rule_id,
+                instance_results,
+                validated_facts,
+            )
         return self._summarize(rule_id, instance_results)
 
     def _combined_graph(self, data_graph: Graph) -> Graph:
@@ -252,6 +299,155 @@ class P0RuleEngine:
                 seen.add(key)
                 unique.append(item)
         return unique
+
+    def _apply_fact_input_contract(
+        self,
+        rule_id: str,
+        instance_results: list[InstanceRuleResult],
+        facts: list[dict[str, Any]],
+    ) -> list[InstanceRuleResult]:
+        """Enforce the frozen Rule↔Fact coverage and value-state semantics.
+
+        RDF intentionally contains confirmed assertions only.  Therefore a
+        graph-only evaluator cannot distinguish an extractor that returned
+        ``unknown`` from one that returned ``absent``.  The frozen Fact
+        Dictionary requires that distinction at the Rule Engine boundary.
+
+        Contract policy:
+        * missing Fact envelope -> AMBER (input contract incomplete)
+        * required Fact with value_state=unknown -> AMBER
+        * required Fact with value_state=absent -> RED when the rule's required
+          combination is explicitly absent
+        * confirmed false remains a confirmed value; it is never rewritten as
+          unknown/absent.
+
+        N/A instance results are preserved because applicability has already
+        been established independently by the rule handler.
+        """
+        required = self.metadata[rule_id].required_fact_ids
+        states_by_type: dict[str, set[str]] = {fact_type: set() for fact_type in required}
+        ids_by_type: dict[str, list[str]] = {fact_type: [] for fact_type in required}
+
+        for fact in facts:
+            fact_type = fact.get("fact_type")
+            if fact_type not in states_by_type:
+                continue
+            states_by_type[fact_type].add(str(fact.get("value_state")))
+            ids_by_type[fact_type].append(str(fact.get("fact_id")))
+
+        missing_types = [fact_type for fact_type in required if not states_by_type[fact_type]]
+        unknown_types = [
+            fact_type
+            for fact_type in required
+            if "unknown" in states_by_type[fact_type]
+        ]
+        absent_types = [
+            fact_type
+            for fact_type in required
+            if "absent" in states_by_type[fact_type]
+        ]
+
+        # P1-R02 is explicitly ``retention period OR identifiable end
+        # condition`` in the frozen rule matrix.  F1-03 and F1-04 are both
+        # consumed so that the extractor must state what it found, but one
+        # confirmed alternative is sufficient.  If neither is confirmed and
+        # one side remains UNKNOWN, the rule is unresolved rather than RED.
+        if rule_id == "P1-R02":
+            alternatives = {"F1-03", "F1-04"}
+            confirmed_alternative = any(
+                "confirmed" in states_by_type[fact_type]
+                for fact_type in alternatives
+            )
+            unknown_alternative = any(
+                "unknown" in states_by_type[fact_type]
+                for fact_type in alternatives
+            )
+            if confirmed_alternative:
+                unknown_types = [item for item in unknown_types if item not in alternatives]
+                absent_types = [item for item in absent_types if item not in alternatives]
+            elif unknown_alternative:
+                # An UNKNOWN alternative can still satisfy the OR branch once
+                # resolved, so explicit absence of the other branch is not a
+                # conclusive RED.
+                absent_types = [item for item in absent_types if item not in alternatives]
+
+        if not (missing_types or unknown_types or absent_types):
+            return instance_results
+
+        contract_evidence: list[Evidence] = []
+        for fact_type in missing_types:
+            contract_evidence.append(
+                Evidence(
+                    evidence_type="fact_contract",
+                    predicate=fact_type,
+                    note="required Fact envelope missing",
+                )
+            )
+        for fact_type in unknown_types:
+            contract_evidence.append(
+                Evidence(
+                    evidence_type="fact_contract",
+                    predicate=fact_type,
+                    value="unknown",
+                    note=f"Fact IDs: {', '.join(ids_by_type[fact_type])}",
+                )
+            )
+        for fact_type in absent_types:
+            contract_evidence.append(
+                Evidence(
+                    evidence_type="fact_contract",
+                    predicate=fact_type,
+                    value="absent",
+                    note=f"Fact IDs: {', '.join(ids_by_type[fact_type])}",
+                )
+            )
+
+        rewritten: list[InstanceRuleResult] = []
+        for result in instance_results:
+            if result.status == RuleStatus.NOT_APPLICABLE:
+                rewritten.append(result)
+                continue
+
+            result.evidence = self._dedupe_evidence([*result.evidence, *contract_evidence])
+
+            if absent_types:
+                result.status = RuleStatus.RED
+                result.applicability = (
+                    result.applicability
+                    if result.applicability != Applicability.UNKNOWN
+                    else Applicability.TRUE
+                )
+                result.missing_facts = sorted(
+                    set(result.missing_facts)
+                    | {f"fact:{fact_type}:absent" for fact_type in absent_types}
+                )
+                result.reason = (
+                    "Frozen Fact input contract에서 필수 Fact가 absent로 확인되었습니다. "
+                    + result.reason
+                )
+                result.recommendation = (
+                    "absent인 필수 Fact를 원문/구조화 Form 근거로 보완한 뒤 다시 평가하세요."
+                )
+            else:
+                # Unknown and a missing Fact envelope are unresolved input
+                # states.  They must not collapse to graph-level RED simply
+                # because no confirmed triple was emitted by the mapper.
+                result.status = RuleStatus.AMBER
+                result.uncertain_facts = sorted(
+                    set(result.uncertain_facts)
+                    | {f"fact:{fact_type}:unknown" for fact_type in unknown_types}
+                    | {f"fact:{fact_type}:missing_envelope" for fact_type in missing_types}
+                )
+                result.reason = (
+                    "Frozen Fact input contract가 불완전하거나 UNKNOWN 상태를 포함합니다. "
+                    + result.reason
+                )
+                result.recommendation = (
+                    "필수 Fact의 value_state를 confirmed 또는 명시적 absent로 확정한 뒤 다시 평가하세요."
+                )
+            rewritten.append(result)
+
+        return rewritten
 
     @staticmethod
     def _status_for_instances(instance_results: list[InstanceRuleResult]) -> RuleStatus:
@@ -392,16 +588,48 @@ class P0RuleEngine:
         results = []
         for activity in activities:
             purposes = self._objects(graph, activity, PIPA.hasPurpose)
-            if purposes:
+            evidence = self._assertion_evidence(graph, activity, PIPA.hasPurpose)
+            described_purposes: list[Node] = []
+            ambiguous_purposes: list[Node] = []
+            for purpose in purposes:
+                evidence += self._assertion_evidence(graph, purpose, PIPA.hasPurposeDescription)
+                if self._nonempty_values(graph, purpose, PIPA.hasPurposeDescription):
+                    described_purposes.append(purpose)
+                else:
+                    ambiguous_purposes.append(purpose)
+
+            if purposes and not ambiguous_purposes:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
                         status=RuleStatus.GREEN,
                         applicability=Applicability.TRUE,
+                        matched_facts=[
+                            self._fact_key(activity, PIPA.hasPurpose),
+                            *[
+                                self._fact_key(purpose, PIPA.hasPurposeDescription)
+                                for purpose in described_purposes
+                            ],
+                        ],
+                        evidence=self._dedupe_evidence(evidence),
+                        reason="처리행위별 구체적인 처리목적이 확인됩니다.",
+                        recommendation="현재 목적-처리행위 연결과 목적 설명을 유지하세요.",
+                    )
+                )
+            elif purposes:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(activity),
+                        status=RuleStatus.AMBER,
+                        applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(activity, PIPA.hasPurpose)],
-                        evidence=self._assertion_evidence(graph, activity, PIPA.hasPurpose),
-                        reason="처리행위에 목적이 연결되어 있습니다.",
-                        recommendation="현재 목적-처리행위 연결을 유지하세요.",
+                        uncertain_facts=[
+                            self._fact_key(purpose, PIPA.hasPurposeDescription)
+                            for purpose in ambiguous_purposes
+                        ],
+                        evidence=self._dedupe_evidence(evidence),
+                        reason="처리목적 연결은 있으나 F1-02에 해당하는 구체 목적 값이 모호합니다.",
+                        recommendation="각 ProcessingPurpose에 구체적인 hasPurposeDescription을 명시하세요.",
                     )
                 )
             else:
@@ -519,7 +747,19 @@ class P0RuleEngine:
         for activity in activities:
             missing = [predicate for predicate in required if not self._objects(graph, activity, predicate)]
             evidence = [item for predicate in required for item in self._assertion_evidence(graph, activity, predicate)]
-            if not missing:
+            ambiguous: list[tuple[Node, URIRef]] = []
+            detail_requirements = (
+                (PIPA.hasRecipient, PIPA.hasName),
+                (PIPA.hasPersonalInformation, PIPA.hasItemName),
+                (PIPA.hasPurpose, PIPA.hasPurposeDescription),
+            )
+            for relation, detail in detail_requirements:
+                for linked in self._objects(graph, activity, relation):
+                    evidence += self._assertion_evidence(graph, linked, detail)
+                    if not self._nonempty_values(graph, linked, detail):
+                        ambiguous.append((linked, detail))
+
+            if not missing and not ambiguous:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
@@ -529,6 +769,21 @@ class P0RuleEngine:
                         evidence=self._dedupe_evidence(evidence),
                         reason="제3자 제공의 수령자·항목·목적이 모두 확인됩니다.",
                         recommendation="현재 제3자 제공 정보를 유지하세요.",
+                    )
+                )
+            elif not missing:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(activity),
+                        status=RuleStatus.AMBER,
+                        applicability=Applicability.TRUE,
+                        matched_facts=[self._fact_key(activity, predicate) for predicate in required],
+                        uncertain_facts=[
+                            self._fact_key(linked, detail) for linked, detail in ambiguous
+                        ],
+                        evidence=self._dedupe_evidence(evidence),
+                        reason="제3자 제공 연결은 있으나 수령자명·항목명·목적 값 중 일부가 모호합니다.",
+                        recommendation="F1-05/F1-06/F1-07에 해당하는 구체 값을 모두 명시하세요.",
                     )
                 )
             else:
@@ -813,48 +1068,39 @@ class P0RuleEngine:
         results = []
         for incident in incidents:
             raw_affected = self._objects(graph, incident, PIPA.affectsPersonalInformation)
-            affected = self._nonempty_values(graph, incident, PIPA.affectsPersonalInformation)
-            raw_obligations = self._objects(graph, incident, PIPA.triggersNotificationObligation)
-            obligations = self._nonempty_values(graph, incident, PIPA.triggersNotificationObligation)
+            affected_names, affected_complete = self._item_name_set(graph, raw_affected)
             raw_notices = self._objects(graph, incident, PIPA.hasNotificationNotice)
             notices = self._nonempty_values(graph, incident, PIPA.hasNotificationNotice)
 
             evidence = self._assertion_evidence(graph, incident, PIPA.affectsPersonalInformation)
-            evidence += self._assertion_evidence(graph, incident, PIPA.triggersNotificationObligation)
             evidence += self._assertion_evidence(graph, incident, PIPA.hasNotificationNotice)
+            for item in raw_affected:
+                evidence += self._assertion_evidence(graph, item, PIPA.hasItemName)
 
-            matched: list[str] = []
-            uncertain: list[str] = []
-            if affected:
-                matched.append(self._fact_key(incident, PIPA.affectsPersonalInformation))
-            else:
-                uncertain.append(self._fact_key(incident, PIPA.affectsPersonalInformation))
-
-            if obligations:
-                matched.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
-            else:
-                uncertain.append(self._fact_key(incident, PIPA.triggersNotificationObligation))
-
-            if uncertain:
+            if not raw_affected or not affected_complete or not affected_names:
                 notes = []
                 if not raw_affected:
-                    notes.append(self._absence_evidence(incident, "affectsPersonalInformation", "실제 영향 개인정보 Fact를 확인하지 못함"))
-                if not raw_obligations:
-                    notes.append(self._absence_evidence(incident, "triggersNotificationObligation", "통지의무 Fact를 확인하지 못함"))
+                    notes.append(
+                        self._absence_evidence(
+                            incident,
+                            "affectsPersonalInformation",
+                            "실제 영향 개인정보 Fact를 확인하지 못함",
+                        )
+                    )
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
                         status=RuleStatus.AMBER,
                         applicability=Applicability.TRUE,
-                        matched_facts=matched,
-                        uncertain_facts=uncertain,
+                        uncertain_facts=[self._fact_key(incident, PIPA.affectsPersonalInformation)],
                         evidence=self._dedupe_evidence(evidence) + notes,
-                        reason="유출등 사고는 확인되지만 영향 개인정보 또는 통지의무 Fact가 UNKNOWN/모호합니다.",
-                        recommendation="affectsPersonalInformation과 triggersNotificationObligation을 명확히 구조화하세요.",
+                        reason="DataBreachIncident는 확인되지만 F2-02 실제 영향 개인정보 항목명이 UNKNOWN/모호합니다.",
+                        recommendation="F2-02 affectsPersonalInformation을 사고 사실에 맞게 구조화하세요.",
                     )
                 )
                 continue
 
+            matched = [self._fact_key(incident, PIPA.affectsPersonalInformation)]
             if notices:
                 matched.append(self._fact_key(incident, PIPA.hasNotificationNotice))
                 results.append(
@@ -864,8 +1110,11 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=matched,
                         evidence=self._dedupe_evidence(evidence),
-                        reason="영향 개인정보, 통지의무, NotificationNotice가 모두 확인됩니다.",
-                        recommendation="통지 사실 및 증거를 유지하세요.",
+                        reason=(
+                            "DataBreachIncident, 실제 영향 개인정보, NotificationNotice 존재가 확인됩니다. "
+                            "P2-R01은 통지 대상 여부나 신고 threshold를 자동판정하지 않습니다."
+                        ),
+                        recommendation="사고 사실과 통지문 존재 근거를 유지하세요.",
                     )
                 )
             elif raw_notices:
@@ -877,8 +1126,8 @@ class P0RuleEngine:
                         matched_facts=matched,
                         uncertain_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
                         evidence=self._dedupe_evidence(evidence),
-                        reason="통지의무는 확인되지만 NotificationNotice 값이 UNKNOWN/모호합니다.",
-                        recommendation="정보주체 통지 실시 여부와 통지문을 명확히 구조화하세요.",
+                        reason="사고 사실은 확인되지만 NotificationNotice 값이 UNKNOWN/모호합니다.",
+                        recommendation="F2-03 hasNotificationNotice의 존재 여부를 명확히 구조화하세요.",
                     )
                 )
             else:
@@ -890,10 +1139,17 @@ class P0RuleEngine:
                         matched_facts=matched,
                         missing_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
                         evidence=self._dedupe_evidence(evidence) + [
-                            self._absence_evidence(incident, "hasNotificationNotice", "통지의무가 확인되지만 통지문/통지 사실이 없음")
+                            self._absence_evidence(
+                                incident,
+                                "hasNotificationNotice",
+                                "사고 사실은 확인되지만 NotificationNotice가 없음",
+                            )
                         ],
-                        reason="통지의무가 확인되지만 NotificationNotice가 없습니다.",
-                        recommendation="정보주체 통지 실시 여부와 통지문을 확인하세요.",
+                        reason=(
+                            "DataBreachIncident와 실제 영향 개인정보는 확인되지만 NotificationNotice가 없습니다. "
+                            "이 결과는 통지 의무 대상 여부 판정이 아닙니다."
+                        ),
+                        recommendation="제공된 사고 기록에 대응하는 NotificationNotice 존재 여부를 확인하세요.",
                     )
                 )
         return results
@@ -1104,8 +1360,10 @@ class P0RuleEngine:
 
             found_roles = set(role_map)
             confirmed_required_roles = required_roles & found_roles
+            missing_roles = sorted(required_roles - found_roles)
+            unexpected_roles = sorted(found_roles - required_roles)
 
-            if required_roles.issubset(found_roles):
+            if found_roles == required_roles:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
@@ -1113,25 +1371,37 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=[f"measure_role:{role}" for role in sorted(required_roles)],
                         evidence=self._dedupe_evidence(evidence),
-                        reason="필수 4개 역할의 대응·구제 정보가 모두 확인됩니다.",
+                        reason="v1에서 허용된 필수 4개 역할의 대응·구제 정보가 모두 확인됩니다.",
                         recommendation="역할별 대응정보와 원문 근거를 유지하세요.",
                     )
                 )
             elif measures:
-                missing_roles = sorted(required_roles - confirmed_required_roles)
+                uncertain_facts = [f"measure_role:{role}" for role in missing_roles]
+                uncertain_facts += [f"unexpected_measure_role:{role}" for role in unexpected_roles]
+                notes = [
+                    self._absence_evidence(incident, "measureRole", f"미확인 역할: {role}")
+                    for role in missing_roles
+                ]
+                notes += [
+                    self._absence_evidence(incident, "measureRole", f"v1 비허용 역할: {role}")
+                    for role in unexpected_roles
+                ]
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
                         status=RuleStatus.AMBER,
                         applicability=Applicability.TRUE,
                         matched_facts=[f"measure_role:{role}" for role in sorted(confirmed_required_roles)],
-                        uncertain_facts=[f"measure_role:{role}" for role in missing_roles],
-                        evidence=self._dedupe_evidence(evidence) + [
-                            self._absence_evidence(incident, "measureRole", f"미확인 역할: {role}")
-                            for role in missing_roles
-                        ],
-                        reason="대응정보는 존재하지만 필수 4개 역할 중 일부가 누락되거나 역할 분류가 모호합니다.",
-                        recommendation="정보주체 안내, 처리자 대응, 피해구제절차, 사고 후 피해 최소화 조치를 각각 구분해 명시하세요.",
+                        uncertain_facts=uncertain_facts,
+                        evidence=self._dedupe_evidence(evidence) + notes,
+                        reason=(
+                            "대응정보는 존재하지만 v1 필수 4개 역할 중 일부가 누락되었거나 "
+                            "허용되지 않은 역할 값이 포함되어 있습니다."
+                        ),
+                        recommendation=(
+                            "measure_role을 data_subject_guidance, controller_response, remedy_procedure, "
+                            "post_incident_mitigation 4종으로만 구분해 명시하세요."
+                        ),
                     )
                 )
             else:
@@ -1402,11 +1672,35 @@ class P0RuleEngine:
                 )
                 continue
 
+            requests = self._objects(graph, activity, PIPA.hasConsentRequest)
             retentions = self._objects(graph, activity, PIPA.hasRetention)
             complete, evidence, matched = self._retention_complete(graph, activity)
             combined_evidence = self._dedupe_evidence(
-                self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) + evidence
+                self._assertion_evidence(graph, activity, PIPA.hasLegalBasis)
+                + self._assertion_evidence(graph, activity, PIPA.hasConsentRequest)
+                + evidence
             )
+
+            if not requests:
+                results.append(
+                    InstanceRuleResult(
+                        instance_id=str(activity),
+                        status=RuleStatus.RED,
+                        applicability=Applicability.TRUE,
+                        matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis), *matched],
+                        missing_facts=[self._fact_key(activity, PIPA.hasConsentRequest)],
+                        evidence=combined_evidence + [
+                            self._absence_evidence(
+                                activity,
+                                "hasConsentRequest",
+                                "P3-R04 frozen coverage의 F3-03 동의요청 설계가 없음",
+                            )
+                        ],
+                        reason="동의 기반 처리이나 F3-03 ConsentRequest 설계가 확인되지 않습니다.",
+                        recommendation="CollectionAndUse에 ConsentRequest를 연결하고 보유·이용기간/종료조건을 함께 명시하세요.",
+                    )
+                )
+                continue
 
             if complete:
                 results.append(
@@ -1414,9 +1708,13 @@ class P0RuleEngine:
                         instance_id=str(activity),
                         status=RuleStatus.GREEN,
                         applicability=Applicability.TRUE,
-                        matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis), *matched],
+                        matched_facts=[
+                            self._fact_key(activity, PIPA.hasLegalBasis),
+                            self._fact_key(activity, PIPA.hasConsentRequest),
+                            *matched,
+                        ],
                         evidence=combined_evidence,
-                        reason="동의 기반 처리의 보유기간 또는 식별 가능한 종료조건이 설계되어 있습니다.",
+                        reason="동의요청과 보유기간 또는 식별 가능한 종료조건이 함께 설계되어 있습니다.",
                         recommendation="현재 보유기간 설계를 유지하세요.",
                     )
                 )
@@ -1434,7 +1732,11 @@ class P0RuleEngine:
                         instance_id=str(activity),
                         status=RuleStatus.AMBER,
                         applicability=Applicability.TRUE,
-                        matched_facts=[self._fact_key(activity, PIPA.hasRetention)],
+                        matched_facts=[
+                            self._fact_key(activity, PIPA.hasLegalBasis),
+                            self._fact_key(activity, PIPA.hasConsentRequest),
+                            self._fact_key(activity, PIPA.hasRetention),
+                        ],
                         uncertain_facts=["Retention.hasRetentionPeriod/hasRetentionEndCondition"],
                         evidence=combined_evidence,
                         reason="보유정보 연결은 있으나 기간 값 또는 식별 가능한 종료조건이 모호합니다.",
@@ -1447,6 +1749,10 @@ class P0RuleEngine:
                         instance_id=str(activity),
                         status=RuleStatus.RED,
                         applicability=Applicability.TRUE,
+                        matched_facts=[
+                            self._fact_key(activity, PIPA.hasLegalBasis),
+                            self._fact_key(activity, PIPA.hasConsentRequest),
+                        ],
                         missing_facts=[self._fact_key(activity, PIPA.hasRetention)],
                         evidence=combined_evidence + [
                             self._absence_evidence(activity, "hasRetention", "동의 기반 보유기간/종료조건 미설계")
@@ -1799,8 +2105,7 @@ class P0RuleEngine:
 
         results = []
         for activity in activities:
-            raw_processors = self._objects(graph, activity, PIPA.hasProcessor)
-            processors = self._nonempty_values(graph, activity, PIPA.hasProcessor)
+            processors = self._objects(graph, activity, PIPA.hasProcessor)
             raw_task = self._objects(graph, activity, PIPA.entrustedTaskText)
             task = self._nonempty_values(graph, activity, PIPA.entrustedTaskText)
             evidence = self._assertion_evidence(graph, activity, PIPA.hasProcessor)
@@ -1810,12 +2115,37 @@ class P0RuleEngine:
             uncertain_facts: list[str] = []
             matched_facts: list[str] = []
 
+            processors_missing_name: list[Node] = []
+            processors_uncertain_name: list[Node] = []
+            processors_with_name: list[Node] = []
+            for processor in processors:
+                raw_names = self._objects(graph, processor, PIPA.hasName)
+                names = self._nonempty_values(graph, processor, PIPA.hasName)
+                evidence += self._assertion_evidence(graph, processor, PIPA.hasName)
+                if names:
+                    processors_with_name.append(processor)
+                elif raw_names:
+                    processors_uncertain_name.append(processor)
+                else:
+                    processors_missing_name.append(processor)
+
             if processors:
                 matched_facts.append(self._fact_key(activity, PIPA.hasProcessor))
-            elif raw_processors:
-                uncertain_facts.append(self._fact_key(activity, PIPA.hasProcessor))
             else:
                 missing_facts.append(self._fact_key(activity, PIPA.hasProcessor))
+
+            missing_facts.extend(
+                self._fact_key(processor, PIPA.hasName)
+                for processor in processors_missing_name
+            )
+            uncertain_facts.extend(
+                self._fact_key(processor, PIPA.hasName)
+                for processor in processors_uncertain_name
+            )
+            matched_facts.extend(
+                self._fact_key(processor, PIPA.hasName)
+                for processor in processors_with_name
+            )
 
             if task:
                 matched_facts.append(self._fact_key(activity, PIPA.entrustedTaskText))
@@ -1837,8 +2167,8 @@ class P0RuleEngine:
                             self._absence_evidence(activity, fact.rsplit(":", 1)[-1], "처리위탁 설계 필수정보 누락")
                             for fact in missing_facts
                         ],
-                        reason="처리위탁 설계에서 수탁자 연결 또는 위탁업무가 누락되었습니다.",
-                        recommendation="hasProcessor와 entrustedTaskText를 모두 명시하세요.",
+                        reason="처리위탁 설계에서 F3-12 수탁자명 또는 F3-13 위탁업무가 누락되었습니다.",
+                        recommendation="각 EntrustedProcessor의 hasName과 entrustedTaskText를 모두 명시하세요.",
                     )
                 )
             elif uncertain_facts:
@@ -1850,8 +2180,8 @@ class P0RuleEngine:
                         matched_facts=matched_facts,
                         uncertain_facts=uncertain_facts,
                         evidence=self._dedupe_evidence(evidence),
-                        reason="수탁자 연결 또는 위탁업무 값이 UNKNOWN/모호하여 자동 확정할 수 없습니다.",
-                        recommendation="수탁자 연결과 위탁업무 내용을 구체적으로 명시하세요.",
+                        reason="수탁자명 또는 위탁업무 값이 UNKNOWN/모호하여 자동 확정할 수 없습니다.",
+                        recommendation="수탁자명과 위탁업무 내용을 구체적으로 명시하세요.",
                     )
                 )
             else:
@@ -1862,7 +2192,7 @@ class P0RuleEngine:
                         applicability=Applicability.TRUE,
                         matched_facts=matched_facts,
                         evidence=self._dedupe_evidence(evidence),
-                        reason="처리위탁 설계의 수탁자 연결과 위탁업무가 확인됩니다.",
+                        reason="처리위탁 설계의 수탁자명과 위탁업무가 확인됩니다.",
                         recommendation="현재 수탁자-위탁업무 설계를 유지하세요.",
                     )
                 )

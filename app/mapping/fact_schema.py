@@ -17,11 +17,9 @@ SOURCE_TYPES = {
     "structured_form",
     "derived",
 }
+POC2_INCIDENT_FACTS = {"F2-01", "F2-02", "F2-05", "F2-06"}
+POC2_NOTICE_FACTS = {"F2-03", "F2-04", "F2-07", "F2-08", "F2-09", "F2-10"}
 PIPA_NAMESPACE = "https://w3id.org/pipa-compliance/ontology#"
-
-# 처리행위 유형의 부재를 선언하는 Fact value의 키 (F1-00 / F2-00 / F3-00).
-# Fact Dictionary에 대응 ID가 없어 추가한 규약이며, 이 Fact가 있어야 N/A가 나온다.
-ABSENT_ACTIVITY_KEY = "activity_class_absent"
 FACT_TYPE_PATTERN = re.compile(r"^(F[123]-\d{2})(?:[-_:].+)?$")
 
 REQUIRED_FIELDS = {
@@ -64,6 +62,8 @@ def local_name(value: str | None) -> str | None:
 def _validate_evidence(evidence: Any, fact_id: str) -> None:
     if not isinstance(evidence, list):
         raise FactValidationError(f"{fact_id}: evidence는 배열이어야 함")
+    if not evidence:
+        raise FactValidationError(f"{fact_id}: evidence는 하나 이상이어야 함")
     for index, item in enumerate(evidence):
         if not isinstance(item, Mapping):
             raise FactValidationError(f"{fact_id}: evidence[{index}]는 객체여야 함")
@@ -103,6 +103,12 @@ def validate_fact(raw: Mapping[str, Any]) -> dict[str, Any]:
     fact["ontology_class"] = local_name(fact["ontology_class"])
     fact["ontology_property"] = local_name(fact["ontology_property"])
 
+    # Rights facts are global to the data subject. Every other frozen P0 Fact
+    # belongs to a processing activity or incident group and must retain that
+    # scope explicitly; falling back to subject_id would hide malformed input.
+    if fact_type(identifier) not in {"F1-11", "F1-12"} and not fact["activity_id"]:
+        raise FactValidationError(f"{identifier}: activity_id가 필요함")
+
     if fact["value_state"] not in VALUE_STATES:
         raise FactValidationError(
             f"{identifier}: value_state는 {sorted(VALUE_STATES)} 중 하나여야 함"
@@ -111,6 +117,15 @@ def validate_fact(raw: Mapping[str, Any]) -> dict[str, Any]:
         raise FactValidationError(
             f"{identifier}: source_type은 {sorted(SOURCE_TYPES)} 중 하나여야 함"
         )
+    base_type = fact_type(identifier)
+    if base_type.startswith("F1-") and fact["source_type"] not in {"policy_text", "derived"}:
+        raise FactValidationError(f"{identifier}: PoC1 Fact source_type은 policy_text여야 함")
+    if base_type in POC2_INCIDENT_FACTS and fact["source_type"] not in {"incident_record", "derived"}:
+        raise FactValidationError(f"{identifier}: 사고 Fact source_type은 incident_record여야 함")
+    if base_type in POC2_NOTICE_FACTS and fact["source_type"] not in {"notification_notice", "derived"}:
+        raise FactValidationError(f"{identifier}: 통지 Fact source_type은 notification_notice여야 함")
+    if base_type.startswith("F3-") and fact["source_type"] not in {"structured_form", "derived"}:
+        raise FactValidationError(f"{identifier}: PoC3 Fact source_type은 structured_form이어야 함")
     if fact["schema_version"] != FACT_SCHEMA_VERSION:
         raise FactValidationError(
             f"{identifier}: schema_version은 {FACT_SCHEMA_VERSION!r}이어야 함"
@@ -127,4 +142,3 @@ def validate_facts(raw_facts: Iterable[Mapping[str, Any]]) -> list[dict[str, Any
     if duplicate_ids:
         raise FactValidationError(f"중복 fact_id: {duplicate_ids}")
     return facts
-

@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 import pytest
-from app.facts.graph import facts_to_graph
+from app.facts.graph import facts_to_graph, facts_to_mapping
 from app.facts.models import Evidence, FactEnvelope
 from app.facts.validator import FactValidationError, group_by_activity, validate_facts
 from app.rules.engine import P0RuleEngine
@@ -161,7 +161,7 @@ def test_gold_facts_reproduce_sc_p01_statuses(gold: dict, policy: str):
     그 정본 규약과 맞는지, 그리고 결과가 SC-P01 Freeze 기대값과 같은지 본다.
     """
     facts = validate_facts(gold["facts"], document=policy)
-    results = P0RuleEngine().evaluate_graph(facts_to_graph(facts), poc="poc1")
+    results = P0RuleEngine().evaluate_mapping_result(facts_to_mapping(facts), poc="poc1")
     actual = {result.rule_id: result.status.value for result in results}
     assert actual == gold["expected_rule_status"]
 

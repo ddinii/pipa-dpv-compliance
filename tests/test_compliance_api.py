@@ -127,13 +127,6 @@ def test_unknown_form_field_is_rejected(client: TestClient, form: dict):
     assert client.post(ENDPOINT, json=payload).status_code == 422
 
 
-def test_contradicting_absence_flag_is_rejected(client: TestClient, form: dict):
-    payload = mutate(form, lambda d: d.update(entrustment=False))
-    response = client.post(ENDPOINT, json=payload)
-    assert response.status_code == 400
-    assert "비어 있지 않습니다" in response.json()["detail"]
-
-
 def test_design_without_any_activity_is_rejected(client: TestClient):
     """정본 Builder는 처리행위가 최소 하나 있어야 한다. 빈 설계는 점검 대상이 아니다."""
     response = client.post(ENDPOINT, json={"scenario_id": "EMPTY"})
@@ -154,7 +147,7 @@ def test_design_without_any_activity_is_rejected(client: TestClient):
             ),
             "P3-R06", "RED",
         ),
-        (lambda d: d.update(entrustments=[], entrustment=False), "P3-R11", "N/A"),
+        (lambda d: d.update(entrustments=[]), "P3-R11", "AMBER"),
     ],
 )
 def test_status_transitions_through_the_api(

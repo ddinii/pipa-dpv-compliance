@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 
 from app.extractors.prompts import (
-    ABSENCE_ELIGIBLE_CLASSES,
     PASS1_SYSTEM,
     PASS2_SYSTEM,
     POC1_FACT_CATALOG,
@@ -98,12 +97,6 @@ def test_no_prompt_mentions_a_property_the_registry_rejects(name: str):
     known = {spec.ontology_property for spec in FACT_SPECS.values()} - {None}
     mentioned = set(re.findall(r"ontology_property=(\w+)", PROMPTS[name])) - {"null"}
     assert mentioned <= known, f"{name}: 레지스트리에 없는 property {sorted(mentioned - known)}"
-
-
-def test_absence_whitelist_is_stated_in_the_pass1_prompt():
-    """후처리 가드와 프롬프트가 같은 목록을 봐야 한다."""
-    for name in ABSENCE_ELIGIBLE_CLASSES:
-        assert name in PASS1_SYSTEM
 
 
 # --- 정답지와의 동기화 ----------------------------------------------------

@@ -16,7 +16,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from app.facts.graph import facts_to_graph
+from app.facts.graph import facts_to_mapping
 from app.mapping.fact_schema import FactValidationError as FactMappingError
 from app.facts.validator import FactValidationError, validate_facts
 from app.forms.poc3 import DesignForm, build_facts
@@ -78,11 +78,11 @@ def design_check(form: DesignForm) -> ComplianceResponse:
     facts = design_form_to_facts(form)
 
     try:
-        graph = facts_to_graph(facts)
+        mapping = facts_to_mapping(facts)
     except FactMappingError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    results = get_engine().evaluate_graph(graph, poc="poc3")
+    results = get_engine().evaluate_mapping_result(mapping, poc="poc3")
     profile = load_rule_profile()
 
     return ComplianceResponse(

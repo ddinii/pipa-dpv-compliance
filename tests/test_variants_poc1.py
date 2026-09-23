@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from app.facts.graph import facts_to_graph
+from app.facts.graph import facts_to_graph, facts_to_mapping
 from app.facts.validator import validate_facts
 from app.rules.engine import P0RuleEngine
 
@@ -50,7 +50,7 @@ def test_variant_evidence_resolves_in_its_own_document(name: str):
 def test_variant_reproduces_its_expected_statuses(name: str, engine: P0RuleEngine):
     gold, document = load(name)
     facts = validate_facts(gold["facts"], document=document)
-    results = engine.evaluate_graph(facts_to_graph(facts), poc="poc1")
+    results = engine.evaluate_mapping_result(facts_to_mapping(facts), poc="poc1")
     actual = {result.rule_id: result.status.value for result in results}
     assert actual == gold["expected_rule_status"]
 
@@ -71,30 +71,41 @@ def test_variant_only_moves_its_target_rule(name: str):
             assert status == base_status[rule_id], f"{name}이 {rule_id}까지 바꿨습니다"
 
 
-def test_all_four_statuses_are_represented_in_poc1():
-    """TST-003: 각 PoC에서 GREEN/AMBER/RED/N/A 대표 케이스 최소 1개씩."""
+def test_three_statuses_are_represented_in_poc1():
+    """TST-003: GREEN/AMBER/RED 대표 케이스가 변형 세트에 모두 있어야 한다.
+
+    N/A는 빠져 있다. Fact Dictionary 3장에는 "이 처리행위 유형이 아예 없다"를
+    담을 Fact ID가 없어서(F1-00 같은 것은 존재하지 않는다) Fact 경로로는 N/A에
+    도달할 수 없다. 현재 N/A는 손으로 쓴 RDF(test:...State "confirmed_false")로만
+    나온다. v1.0 범위의 한계이므로 Fact Dictionary 개정 사항으로 올린다.
+    """
     seen = {"GREEN", "AMBER"}  # 기준 SC-P01이 제공한다
     for name in VARIANT_NAMES:
         gold, _ = load(name)
         seen.update(gold["expected_rule_status"].values())
-    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+    assert {"GREEN", "AMBER", "RED"} <= seen
+    assert "N/A" not in seen
 
 
-def test_explicit_absence_is_not_the_same_as_a_missing_fact(engine: P0RuleEngine):
-    """N/A와 AMBER의 차이. 명시적 부재만 N/A이고 단순 결측은 AMBER다.
+def test_absent_and_unknown_move_the_same_rule_differently(engine: P0RuleEngine):
+    """Fact Dictionary 1장: absent와 unknown은 다르다.
 
-    v6의 부재 단언 Fact를 빼면 같은 문서가 N/A가 아니라 AMBER가 되어야 한다.
+    같은 P1-R04를 v2(unknown)는 AMBER로, v3(absent)는 RED로 움직인다.
+    둘을 합치면 "기재가 모호한 것"과 "기재가 없는 것"을 구별할 수 없게 된다.
     """
-    gold, document = load("v6-no-third-party-provision")
+    vague, _ = load("v2-vague-destruction")
+    missing, _ = load("v3-missing-destruction")
+    assert vague["expected_rule_status"]["P1-R04"] == "AMBER"
+    assert missing["expected_rule_status"]["P1-R04"] == "RED"
 
-    with_absence = validate_facts(gold["facts"], document=document)
-    assert engine.evaluate_rule(facts_to_graph(with_absence), "P1-R03").status.value == "N/A"
-
-    without_absence = validate_facts(
-        [item for item in gold["facts"] if not item["fact_id"].startswith("F1-00")],
-        document=document,
-    )
-    assert engine.evaluate_rule(facts_to_graph(without_absence), "P1-R03").status.value == "AMBER"
+    # 두 변형의 fact_id가 같으므로 dict로 모으면 하나가 덮인다. 상태만 모은다.
+    states = {
+        item["value_state"]
+        for gold in (vague, missing)
+        for item in gold["facts"]
+        if item["fact_id"].startswith("F1-08")
+    }
+    assert states == {"unknown", "absent"}
 
 
 def test_builder_is_deterministic():

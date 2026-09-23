@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from rdflib import RDF
 
-from app.facts.graph import facts_to_graph
+from app.facts.graph import facts_to_graph, facts_to_mapping
 from app.forms.poc3 import DesignForm, build_facts
 from app.mapping.fact_schema import fact_type
 from app.mapping.ontology_mapper import PIPA
@@ -52,13 +52,16 @@ def facts_for(form_dict: dict) -> list[dict]:
 
 def evaluate(form_dict: dict, engine: P0RuleEngine) -> dict[str, str]:
     form = DesignForm.model_validate(form_dict)
-    graph = facts_to_graph(
+    mapping = facts_to_mapping(
         build_facts(form),
         analysis_id=form.scenario_id,
         controller_id=form.controller_id,
         controller_name=form.controller_name,
     )
-    return {item.rule_id: item.status.value for item in engine.evaluate_graph(graph, poc="poc3")}
+    return {
+        item.rule_id: item.status.value
+        for item in engine.evaluate_mapping_result(mapping, poc="poc3")
+    }
 
 
 def mutate(raw_form: dict, change) -> dict:
@@ -176,14 +179,9 @@ def test_item_facts_identify_their_item_by_name(raw_form: dict):
             "P3-R04", "AMBER",
         ),
         (
-            "위탁 목록만 비어 있음 (여부 미정)",
-            lambda d: d.update(entrustments=[], entrustment=None),
+            "위탁 목록이 비어 있음",
+            lambda d: d.update(entrustments=[]),
             "P3-R11", "AMBER",
-        ),
-        (
-            "위탁 없음이 확인됨",
-            lambda d: d.update(entrustments=[], entrustment=False),
-            "P3-R11", "N/A",
         ),
     ],
 )
@@ -210,53 +208,13 @@ def test_false_denial_is_green_but_unset_denial_is_amber(raw_form: dict, engine:
     assert evaluate(unset, engine)["P3-R06"] == "AMBER"
 
 
-def test_absence_flag_contradicting_the_list_is_rejected(raw_form: dict):
-    """위탁이 없다고 해놓고 수탁자를 입력한 Form은 모순이므로 거부한다."""
-    contradiction = mutate(raw_form, lambda d: d.update(entrustment=False))
-    with pytest.raises(ValueError, match="비어 있지 않습니다"):
-        build_facts(DesignForm.model_validate(contradiction))
+def test_untouched_activity_types_create_no_instances(raw_form: dict):
+    """Form에 없는 처리행위 유형은 그래프에 만들지 않는다.
 
-
-def test_explicit_absence_does_not_create_the_activity(raw_form: dict):
+    Fact Dictionary 3·5장에 "이 유형이 없음"을 담을 Fact ID가 없으므로,
+    없다는 사실은 Fact가 없다는 것으로만 나타난다.
+    """
     form = DesignForm.model_validate(raw_form)
     graph = facts_to_graph(build_facts(form), controller_id=form.controller_id)
     assert not list(graph.subjects(RDF.type, PIPA.ThirdPartyProvision))
     assert not list(graph.subjects(RDF.type, PIPA.CrossBorderTransfer))
-
-
-# --- 발견 사항 -----------------------------------------------------------
-
-
-def test_p3_r11_does_not_evaluate_the_processor_name(engine: P0RuleEngine):
-    """P3-R11이 수탁자 '이름'을 보지 않는다. 같은 상황에서 P1-R06은 RED다.
-
-    Fact Dictionary 7장은 P3-R11 = F3-12 + F3-13이고, F3-12는
-    `EntrustedProcessing.hasProcessor -> EntrustedProcessor.hasName` (string)이다.
-    즉 P3-R11은 수탁자명을 소비해야 하는데, 엔진은 hasProcessor 링크의 존재만 본다.
-
-    설계단계에서 '수탁자 미정'은 매우 흔한 상태이고 PoC3의 존재 이유이기도 하므로
-    AMBER로 잡히는 것이 맞아 보인다. 다만 기능명세서 14장 2번이 "P0 Rule의 조건/status
-    의미를 코드 편의상 바꾸지 않는다"고 정하므로 엔진을 고치지 않고 현재 동작을 기록한다.
-    Rule 담당자가 판단하면 이 테스트를 뒤집어야 한다.
-    """
-    from rdflib import Graph, Literal, Namespace
-
-    ex = Namespace("https://example.org/t#")
-
-    def build(processor_name: str | None) -> Graph:
-        graph = Graph()
-        graph.add((ex.act, RDF.type, PIPA.EntrustedProcessing))
-        graph.add((ex.act, PIPA.hasProcessor, ex.proc))
-        graph.add((ex.proc, RDF.type, PIPA.EntrustedProcessor))
-        graph.add((ex.act, PIPA.entrustedTaskText, Literal("상품 배송")))
-        if processor_name is not None:
-            graph.add((ex.proc, PIPA.hasName, Literal(processor_name)))
-        return graph
-
-    named = build("빠른택배 주식회사")
-    assert engine.evaluate_rule(named, "P1-R06").status.value == "GREEN"
-    assert engine.evaluate_rule(named, "P3-R11").status.value == "GREEN"
-
-    nameless = build(None)
-    assert engine.evaluate_rule(nameless, "P1-R06").status.value == "RED"
-    assert engine.evaluate_rule(nameless, "P3-R11").status.value == "GREEN"  # 불일치
