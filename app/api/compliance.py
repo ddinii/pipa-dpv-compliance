@@ -2,7 +2,12 @@ from typing import Any
 
 from fastapi import APIRouter, Body, HTTPException
 
-from app.services.compliance import ComplianceInputError, run_design_check, run_policy_check
+from app.services.compliance import (
+    ComplianceInputError,
+    run_breach_check,
+    run_design_check,
+    run_policy_check,
+)
 
 
 router = APIRouter(
@@ -37,5 +42,20 @@ def policy_check(
 
     return {
         "poc": "PoC1",
+        "rule_results": [result.to_dict() for result in results],
+    }
+
+
+@router.post("/breach-check")
+def breach_check(
+    request: dict[str, Any] = Body(...),
+) -> dict[str, Any]:
+    try:
+        results = run_breach_check(request)
+    except ComplianceInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {
+        "poc": "PoC2",
         "rule_results": [result.to_dict() for result in results],
     }
