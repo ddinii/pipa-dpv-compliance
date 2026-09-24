@@ -119,6 +119,14 @@ Read:
 Do not read all three PoC documents unless the endpoint task actually
 covers all three PoCs.
 
+Task: PoC1/PoC2 real (non-mock) LLM extractor integration
+Read:
+- backend/LLM_EXTRACTOR_HANDOFF.md
+- core/CONTRACTS.md
+
+Read the PoC-specific FACTS.md/RULES.md only if the handoff document's
+minimum field/ID summary is insufficient.
+
 
 ## Frontend
 
