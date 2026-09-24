@@ -1,0 +1,8 @@
+{
+  "analysis_id": "poc1-synthetic-analysis-001",
+  "controller": {
+    "controller_id": "synthetic-controller-001",
+    "name": "Synthetic Test Corp (합성 테스트용 가상 회사)"
+  },
+  "policy_text": "[SYNTHETIC TEST FIXTURE] 이 문서는 PoC1 MockPoC1Extractor 통합 테스트를 위한 합성 데이터입니다. 실제 개인정보 처리방침이 아니며 실제 회사, 실제 이용자, 실제 개인정보와 관련이 없습니다. MockPoC1Extractor는 이 텍스트의 내용을 파싱하지 않고 고정된 합성 시나리오를 반환합니다."
+}
