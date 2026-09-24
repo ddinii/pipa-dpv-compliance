@@ -13,6 +13,14 @@
   flex-wrap: wrap;
 }
 
+.rule-summary {
+  margin-bottom: 12px;
+}
+
+.rule-reason {
+  margin: 8px 0 4px;
+}
+
 .status-badge {
   font-family: var(--mono);
   font-size: 13px;
@@ -34,6 +42,13 @@
   color: var(--text);
 }
 
+.evaluated-at {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  opacity: 0.75;
+}
+
 .recommendation {
   font-weight: 500;
 }
@@ -52,6 +67,17 @@
   padding: 8px 0;
 }
 
+.instance-results-section {
+  margin: 16px 0;
+  padding-top: 12px;
+  border-top: 2px solid var(--border);
+}
+
+.instance-results-section h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
 .instance-header {
   display: flex;
   align-items: center;
@@ -65,9 +91,73 @@
   color: var(--text);
 }
 
+.evidence-details {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.evidence-details > summary {
+  cursor: pointer;
+  color: var(--text);
+}
+
+.evidence-item {
+  padding: 6px 0;
+}
+
+.evidence-item-compact {
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.evidence-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .evidence-type {
   font-family: var(--mono);
   font-size: 13px;
+}
+
+.evidence-item-compact .evidence-type {
+  font-size: 12px;
+}
+
+.evidence-predicate {
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+.evidence-value {
+  font-family: var(--mono);
+}
+
+.evidence-subject {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.evidence-note {
+  font-style: italic;
+}
+
+.implementation-notes-details {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.implementation-notes-details > summary {
+  cursor: pointer;
+  color: var(--text);
 }
 
 .compliance-error-banner {
