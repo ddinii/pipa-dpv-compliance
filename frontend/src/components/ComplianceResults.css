@@ -1,0 +1,81 @@
+.rule-result-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.rule-result-card header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.status-disclaimer {
+  font-size: 13px;
+  color: var(--text);
+  font-style: italic;
+}
+
+.rule-version,
+.evaluated-at {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.recommendation {
+  font-weight: 500;
+}
+
+.evidence-list,
+.instance-results,
+.implementation-notes {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.instance-results > li,
+.evidence-list > li {
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+}
+
+.instance-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.evidence-empty {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.evidence-type {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+
+.compliance-error-banner {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-left: 4px solid #c0392b;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--code-bg);
+}
