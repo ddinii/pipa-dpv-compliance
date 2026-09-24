@@ -2,12 +2,19 @@ import { postJson } from './client'
 import type { ComplianceResponse } from '../types/api'
 
 /**
- * Outer request bodies are currently only confirmed as opaque JSON objects
- * (app/api/compliance.py accepts each as `Body(...)` typed `dict[str, Any]`).
- * Field-level PoC1/PoC2/PoC3 request schemas are not yet frozen, so these are
- * intentionally conservative and kept separate per PoC rather than shared.
+ * PoC1's outer request contract is confirmed (see app/services/compliance.py
+ * run_policy_check()). PoC2/PoC3 outer request bodies are still only
+ * confirmed as opaque JSON objects (app/api/compliance.py accepts each as
+ * `Body(...)` typed `dict[str, Any]`), so those remain conservative.
  */
-export type PolicyCheckRequest = Record<string, unknown>
+export interface PolicyCheckRequest {
+  analysis_id: string
+  controller: {
+    controller_id: string
+    name?: string | null
+  }
+  policy_text: string
+}
 export type BreachCheckRequest = Record<string, unknown>
 export type DesignCheckRequest = Record<string, unknown>
 
