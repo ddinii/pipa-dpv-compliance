@@ -2,10 +2,12 @@ import { postJson } from './client'
 import type { ComplianceResponse } from '../types/api'
 
 /**
- * PoC1's outer request contract is confirmed (see app/services/compliance.py
- * run_policy_check()). PoC2/PoC3 outer request bodies are still only
- * confirmed as opaque JSON objects (app/api/compliance.py accepts each as
- * `Body(...)` typed `dict[str, Any]`), so those remain conservative.
+ * PoC1's and PoC2's outer request contracts are confirmed (see
+ * app/services/compliance.py run_policy_check()/run_breach_check() and
+ * examples/poc2_synthetic_breach_fixture.json, exercised by
+ * tests/test_poc2_breach_check_api.py). PoC3's outer request body is still
+ * only confirmed as an opaque JSON object (app/api/compliance.py accepts it
+ * as `Body(...)` typed `dict[str, Any]`), so that one remains conservative.
  */
 export interface PolicyCheckRequest {
   analysis_id: string
@@ -15,7 +17,31 @@ export interface PolicyCheckRequest {
   }
   policy_text: string
 }
-export type BreachCheckRequest = Record<string, unknown>
+
+/**
+ * incident and notification are intentionally separate, differently-shaped
+ * objects: they become distinct Facts (e.g. incident.affectsPersonalInformation
+ * vs. notice.mentionsPersonalInformation, incidentDate vs. the notice-stated
+ * incident time) and must never be merged or derived from one another.
+ * notification is optional — the backend supports a request with no
+ * notification (omitted or null).
+ */
+export interface BreachCheckRequest {
+  analysis_id: string
+  controller: {
+    controller_id: string
+    name?: string | null
+  }
+  incident: {
+    incident_id: string
+    description: string
+  }
+  notification?: {
+    notice_id: string
+    notice_text: string
+  } | null
+}
+
 export type DesignCheckRequest = Record<string, unknown>
 
 export function policyCheck(payload: PolicyCheckRequest): Promise<ComplianceResponse> {
