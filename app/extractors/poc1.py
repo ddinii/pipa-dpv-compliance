@@ -233,7 +233,7 @@ class PoC1Extractor:
         subject_id, ontology_class = self._subject_for(raw, expected_activity)
 
         result.facts.append({
-            "fact_id": f"{raw.fact_id}:{subject_id}",
+            "fact_id": self._unique_fact_id(result, raw.fact_id, subject_id),
             "subject_id": subject_id,
             "activity_id": raw.activity_id,
             "ontology_class": ontology_class,
@@ -246,19 +246,42 @@ class PoC1Extractor:
         })
 
     @staticmethod
+    def _unique_fact_id(result: ExtractionResult, fact_type: str, subject_id: str) -> str:
+        """같은 subject에 같은 유형 Fact가 여러 개 나와도 fact_id가 겹치지 않게 한다.
+
+        P1-R07이 대표적이다. 엔진은 모든 DataSubjectRight에 행사절차를 요구하므로
+        F1-12는 권리 수만큼 나오는데, 셋 다 subject가 정보주체 하나다. 접미사가
+        없으면 정본 검증이 "중복 fact_id"로 전부 거부한다.
+
+        번호는 추출 순서에서 결정론적으로 정해진다 (NFR-03).
+        """
+        base = f"{fact_type}:{subject_id}"
+        seen = sum(
+            1 for item in result.facts
+            if item["fact_id"] == base or item["fact_id"].startswith(f"{base}#")
+        )
+        return base if seen == 0 else f"{base}#{seen + 1}"
+
+    @staticmethod
     def _subject_for(
         raw: ExtractedFact, activity: IdentifiedActivity | None
     ) -> tuple[str, str]:
         """Fact의 subject와 그 Class를 정한다.
 
-        대부분은 처리행위 자신이 subject지만, F1-09(수탁자명)만 수탁자 개체가 subject다.
+        Fact Dictionary 3장의 Ontology Mapping은 화살표로 경로를 적지만, Fact의
+        subject는 그 경로의 **출발 Class**다. F1-09
+        (EntrustedProcessing.hasProcessor -> EntrustedProcessor.hasName)의 subject는
+        처리행위이고, 수탁자 개체는 매퍼가 만든다. 정본 레지스트리의 subject_class가
+        이 규약을 고정한다 (app/mapping/mapping_registry.py).
         """
         if activity is None:
+            # 3장: F1-11은 DataSubject.hasRight, F1-12는
+            # DataSubjectRight.hasExerciseProcedure다. subject Class가 다르다.
+            if raw.fact_id == "F1-12":
+                return "subj-001", "DataSubjectRight"
             return "subj-001", "DataSubject"
-        if raw.fact_id == "F1-09":
-            return f"{activity.activity_id}-processor", "EntrustedProcessor"
-        if raw.fact_id == "F1-03":
-            # 보유 Fact는 상위 클래스로 단언한다 (Fact Dictionary 3장 매핑)
+        if raw.fact_id in {"F1-03", "F1-04"}:
+            # 보유 Fact는 상위 클래스로 단언한다 (3장 PersonalInformationProcessing)
             return activity.activity_id, "PersonalInformationProcessing"
         return activity.activity_id, activity.ontology_class
 

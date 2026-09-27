@@ -293,6 +293,40 @@ F1-12는 값 타입과 개수가 함께 틀려 있었습니다. "문자열 하�
 F1-03과 F1-04가 같은 property를 쓰게 되었으므로, 값의 성격으로 둘을 가르는 규칙
 (기간이면 F1-03, 종료 사건이면 F1-04)을 PASS2 프롬프트에 명시했습니다.
 
+## 정본 파이프라인에 연결되어 있습니다
+
+`app/extractors/poc1_llm_extractor.py`의 `LlmPoC1Extractor`가 `Poc1Extractor`
+Protocol을 구현합니다 (`app/extractors/base.py`). 주입만 하면 실제 API 경로가 됩니다.
+
+```python
+from app.extractors.poc1_llm_extractor import LlmPoC1Extractor
+from app.services.compliance import run_policy_check
+
+run_policy_check(request, extractor=LlmPoC1Extractor.from_environment())
+```
+
+`from_environment()`는 `ANTHROPIC_API_KEY`를 SDK가 직접 읽게 하고 이 코드가 키 값을
+보지 않습니다. 키가 없으면 실행 전에 실패합니다.
+
+**기본값은 여전히 `MockPoC1Extractor`입니다.** `app/services/compliance.py`의
+모듈 기본값을 바꾸면 `/policy-check` 호출마다 과금되므로, 실제 연결은 키가 준비된
+뒤 팀이 결정합니다 (handoff 6장).
+
+### 연결하면서 드러난 Extractor 결함 3건
+
+정본 `validate_facts()`와 `OntologyMapper`를 통과시키자 그동안 안 보이던 것들이
+나왔습니다. 제 테스트가 정본이 아니라 `app.facts.models.FactEnvelope`로만 검증하고
+있어서 가려져 있었습니다.
+
+| 결함 | 증상 | 근거 |
+|---|---|---|
+| F1-09의 subject를 수탁자 개체로 둠 | 매퍼가 `ontology_class='EntrustedProcessor'` 거부 | 3장 매핑의 출발 Class는 `EntrustedProcessing` |
+| F1-12의 subject Class가 `DataSubject` | 매퍼가 `DataSubjectRight` 기대값과 불일치로 거부 | 3장 F1-12 = `DataSubjectRight.hasExerciseProcedure` |
+| 같은 subject의 동형 Fact가 fact_id 충돌 | 권리 4개의 F1-12가 전부 `F1-12:subj-001` → "중복 fact_id" | P1-R07은 권리마다 절차를 요구 |
+
+`tests/test_poc1_llm_extractor.py`가 이제 정본 검증기와 매퍼, Rule Engine까지
+한 번에 통과시키므로 같은 유형의 결함이 다시 숨지 않습니다.
+
 ## 아직 실행하지 않았습니다
 
 Extractor는 **실제 API로 한 번도 돌리지 않았습니다.** 자격증명이 없고, 모델 호출은 비용이
