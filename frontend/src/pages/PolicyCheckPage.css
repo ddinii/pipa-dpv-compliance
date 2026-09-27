@@ -1,0 +1,59 @@
+.policy-check-page {
+  text-align: left;
+  padding: 32px 24px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.page-subtitle {
+  color: var(--text);
+  margin-bottom: 24px;
+}
+
+.policy-check-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.policy-check-form label {
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.policy-check-form input,
+.policy-check-form textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.policy-check-form textarea {
+  font-family: var(--mono);
+  font-size: 14px;
+  resize: vertical;
+}
+
+.policy-check-form button {
+  align-self: flex-start;
+  margin-top: 16px;
+  padding: 10px 20px;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.policy-check-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.policy-check-results {
+  margin-top: 24px;
+}

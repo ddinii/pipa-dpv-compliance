@@ -1,0 +1,35 @@
+.dev-shell {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.dev-shell h1 {
+  margin-bottom: 8px;
+}
+
+.dev-shell p {
+  color: var(--text);
+}
+
+.poc-nav {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.poc-nav button {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.poc-nav button.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
+}

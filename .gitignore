@@ -1,10 +1,56 @@
-﻿.venv/
+# =========================
+# Secrets / Environment
+# =========================
+.env
+.env.*
+!.env.example
+
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# =========================
+# Python
+# =========================
+.venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
-.env
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Frontend / Node
+# =========================
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.vite/
+coverage/
+
+# =========================
+# Runtime / Generated
+# =========================
+generated/
+logs/
+*.log
+tmp/
+temp/
+
+# =========================
+# IDE / OS
+# =========================
 .DS_Store
 .idea/
 .vscode/
@@ -13,3 +59,8 @@ generated/
 
 # 평가 실행 산출물 (gold set은 커밋, 예측은 제외)
 evals/*/predictions/
+
+# =========================
+# Claude local-only settings
+# =========================
+.claude/settings.local.json
