@@ -43,13 +43,20 @@ export interface RuleResult {
   reason: string
   recommendation: string
   evaluated_at: string
+  // 기능명세서 8장 필수 필드 (입력 추적 ID)
+  source_document_id: string
   instance_results: InstanceRuleResult[]
   implementation_notes: string[]
 }
 
 export type PocId = 'PoC1' | 'PoC2' | 'PoC3'
 
+// 기능명세서 9.1 공통 API 응답
 export interface ComplianceResponse {
+  analysis_id: string
   poc: PocId
-  rule_results: RuleResult[]
+  ontology_version: string
+  rule_version: string
+  fact_schema_version: string
+  results: RuleResult[]
 }

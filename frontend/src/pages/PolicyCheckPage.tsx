@@ -88,7 +88,7 @@ export function PolicyCheckPage() {
 
       {result && (
         <div className="policy-check-results">
-          {result.rule_results.map((ruleResult) => (
+          {result.results.map((ruleResult) => (
             <RuleResultCard key={ruleResult.rule_id} result={ruleResult} />
           ))}
         </div>

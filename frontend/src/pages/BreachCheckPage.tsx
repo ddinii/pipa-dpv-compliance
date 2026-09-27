@@ -160,7 +160,7 @@ export function BreachCheckPage() {
 
       {result && (
         <div className="breach-check-results">
-          {result.rule_results.map((ruleResult) => (
+          {result.results.map((ruleResult) => (
             <RuleResultCard key={ruleResult.rule_id} result={ruleResult} />
           ))}
         </div>

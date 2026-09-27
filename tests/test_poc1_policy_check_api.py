@@ -45,9 +45,9 @@ def test_policy_check_returns_exactly_the_6_frozen_poc1_rule_ids():
     )
 
     body = response.json()
-    rule_ids = {result["rule_id"] for result in body["rule_results"]}
+    rule_ids = {result["rule_id"] for result in body["results"]}
     assert rule_ids == POC1_RULE_IDS
-    assert len(body["rule_results"]) == 6
+    assert len(body["results"]) == 6
 
 
 def test_policy_check_preserves_rule_result_status_and_applicability_semantics():
@@ -56,7 +56,7 @@ def test_policy_check_preserves_rule_result_status_and_applicability_semantics()
     )
 
     body = response.json()
-    for result in body["rule_results"]:
+    for result in body["results"]:
         assert result["status"] in {"GREEN", "AMBER", "RED", "N/A"}
         assert result["applicability"] in {"TRUE", "FALSE", "UNKNOWN"}
         assert "matched_facts" in result
