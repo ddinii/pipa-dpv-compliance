@@ -12,6 +12,8 @@ GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린�
     $env:ANTHROPIC_API_KEY = "sk-ant-..."
     python evals\\run_extraction.py
 
+자격증명은 환경변수에서만 읽는다. 키를 인자나 소스에 넣지 않는다.
+
 옵션:
     --poc        평가할 PoC (기본 poc1). evals/dataset.py의 POC_DATASETS 참고
     --model      기본 claude-opus-5
@@ -152,12 +154,6 @@ def main() -> int:
         print(f"{args.poc}용 Extractor가 아직 없습니다. 있는 것: {sorted(EXTRACTORS)}")
         return 2
 
-    try:
-        import anthropic
-    except ModuleNotFoundError:
-        print("anthropic SDK가 없습니다: python -m pip install anthropic")
-        return 2
-
     out_dir = args.out_dir or POC_DATASETS[args.poc].prediction_directory
     cases = load_cases(args.poc)
     if args.case:
@@ -172,12 +168,21 @@ def main() -> int:
 
     # 거부 사유를 러너가 볼 수 있도록 훅을 단다. 원문은 기록하지 않는다.
     diagnostics: list = []
-    extractor = EXTRACTORS[args.poc](
-        anthropic.Anthropic().messages,
-        model=args.model,
-        cache_document=not args.no_cache,
-        on_result=diagnostics.append,
-    )
+    try:
+        # from_environment()가 키 유무를 먼저 본다. 키를 인자로 받지 않으므로
+        # 이 코드가 키 값을 보지 않는다 (handoff 7장).
+        extractor = EXTRACTORS[args.poc].from_environment(
+            model=args.model,
+            cache_document=not args.no_cache,
+            on_result=diagnostics.append,
+        )
+    except ModuleNotFoundError:
+        print("anthropic SDK가 없습니다: python -m pip install anthropic")
+        return 2
+    except RuntimeError as exc:
+        print(exc)
+        print('  PowerShell: $env:ANTHROPIC_API_KEY = "sk-ant-..."')
+        return 2
     engine = P0RuleEngine()
 
     rows = []

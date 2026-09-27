@@ -124,10 +124,22 @@ APP_ENV=development
 APP_HOST=127.0.0.1
 APP_PORT=8000
 FRONTEND_ORIGIN=http://localhost:5173
+ANTHROPIC_API_KEY=
 LLM_PROVIDER=
 LLM_MODEL=
-LLM_API_KEY=
 ```
+
+The real LLM extractors read `ANTHROPIC_API_KEY` from the **process
+environment**, not from `.env` — nothing in this repository loads `.env`
+automatically. Export it in your shell before running an extraction:
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+```
+
+`LlmPoC1Extractor.from_environment()` / `LlmPoc2Extractor.from_environment()`
+check that the variable is set and fail before any request is made. Neither
+they nor `evals/run_extraction.py` accept the key as an argument.
 
 Frontend — copy `frontend/.env.example` to `frontend/.env` to point the UI
 at a non-default backend URL:
