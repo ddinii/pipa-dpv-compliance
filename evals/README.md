@@ -7,6 +7,7 @@ evals/
 ├─ dataset.py                  # PoC별 평가 세트 탐색 (POC_DATASETS)
 ├─ score.py                    # Fact-level 채점기
 ├─ run_extraction.py           # 실제 추출 + 채점 (API 호출)
+├─ compare_runs.py             # 실행 간 비교 (API 호출 없음)
 └─ poc1/
    ├─ sc_p01_policy.txt        # 처리방침 원문 (가상)
    ├─ sc_p01_gold_facts.json   # gold Fact set (생성물)
@@ -462,9 +463,48 @@ PoC1이 비싼 이유는 **처리행위가 12개**라 케이스마다 Pass 2가 
 `--case`를 씁니다.
 
 ```powershell
-python evalsun_extraction.py --poc poc2                    # 12회 호출
-python evalsun_extraction.py --case base                   # 14회 호출
+python evals
+un_extraction.py --poc poc2                    # 12회 호출
+python evals
+un_extraction.py --case base                   # 14회 호출
 ```
+
+## 실행 결과는 실행마다 따로 남습니다
+
+실행마다 `<out-dir>/runs/<label>.json`이 생깁니다. label 기본값은
+`<poc>-<model>-cache|nocache`이고 `--label`로 바꿀 수 있습니다. **덮어쓰지 않으므로
+모델 비교와 캐시 효과 측정이 가능합니다.**
+
+```powershell
+python evalsun_extraction.py --model claude-opus-5
+python evalsun_extraction.py --model claude-sonnet-5
+python evalsun_extraction.py --no-cache
+python evals\compare_runs.py evals\poc1\predictionsuns
+```
+
+`compare_runs.py`는 추출 품질과 호출량을 표로 세우고 **위험 오판율로 순위를**
+매깁니다. F1이 아닙니다 — Fact를 몇 개 맞췄는지보다 "추출 오류가 판정을 뒤집는가"가
+실무 영향이기 때문입니다.
+
+## 호출량을 기록합니다
+
+각 응답의 `usage`를 `app/extractors/usage.py`가 누적하고, 추출 결과와 실행
+리포트에 함께 실립니다.
+
+| 값 | 왜 보는가 |
+|---|---|
+| `calls` | 호출 수 |
+| `total_input_tokens` | 캐시 쓰기·읽기 포함. 빼먹으면 비용을 과소평가한다 |
+| `output_tokens` | `thinking: adaptive` 사용량 실측 |
+| `cache_hit_rate` | **0이면 캐시가 전혀 안 먹은 것** |
+
+`cache_hit_rate`가 중요합니다. 프롬프트에 `cache_control`을 걸었다는 사실만으로는
+캐시가 먹었는지 알 수 없습니다. 캐시 prefix는 처음부터 정확히 일치해야 하는데
+지침 블록이 pass마다 다르면 원문 블록이 같아도 어긋납니다. 이 값이 예상보다 낮으면
+프롬프트 구조를 고쳐야 한다는 신호입니다.
+
+스텁으로 돌린 결과는 토큰이 0이므로 `format_usage()`가 "토큰 정보 없음"이라고
+분명히 적습니다. 스텁 실행을 실제 측정치처럼 보이게 하지 않기 위해서입니다.
 
 ## 자격증명
 

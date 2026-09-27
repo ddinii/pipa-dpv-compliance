@@ -20,6 +20,11 @@ GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린�
     --case       특정 케이스만 실행 (반복 지정 가능). 생략하면 전체
     --no-cache   원문 prompt caching 비활성화 (캐시 효과 측정용)
     --out-dir    예측 Fact 저장 위치 (기본 evals/<poc>/predictions)
+    --label      실행 이름 (기본 <poc>-<model>-cache|nocache). 실행마다 결과가
+                 <out-dir>/runs/<label>.json으로 따로 남아 서로 덮어쓰지 않는다.
+
+여러 실행을 비교하려면:
+    python evals\\compare_runs.py evals\\poc1\\predictions\\runs
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,6 +47,7 @@ from app.mapping.fact_schema import FactValidationError as FactMappingError  # n
 from app.facts.models import FactEnvelope  # noqa: E402
 from app.facts.validator import FactValidationError, validate_facts  # noqa: E402
 from app.rules.engine import P0RuleEngine  # noqa: E402
+from app.extractors.usage import Usage, format_usage  # noqa: E402
 from evals.dataset import POC_DATASETS, EvalCase, load_cases  # noqa: E402
 from evals.score import (  # noqa: E402
     RuleScore,
@@ -71,6 +78,7 @@ def run_case(
         extractor, analysis_id=case.name, controller_id=CONTROLLER_ID
     )
     rejected = diagnostics[0].rejected if diagnostics else []
+    usage = diagnostics[0].usage if diagnostics else Usage()
     print(f"  Fact {len(raw_facts)}개 추출 · {len(rejected)}개 거부")
     for item in rejected:
         quote = f" | 인용={item.quote!r}" if item.quote else ""
@@ -101,13 +109,13 @@ def run_case(
         print(f"  Fact 검증 실패 {len(exc.issues)}건")
         for issue in exc.issues[:10]:
             print(f"    {issue}")
-        return {"case": case, "facts": None, "statuses": {}, "rejected": len(result.rejected)}
+        return {"case": case, "facts": None, "statuses": {}, "rejected": len(result.rejected), "usage": usage}
 
     try:
         mapping = facts_to_mapping(facts)
     except FactMappingError as exc:
         print(f"  매핑 실패: {exc}")
-        return {"case": case, "facts": facts, "statuses": {}, "rejected": len(result.rejected)}
+        return {"case": case, "facts": facts, "statuses": {}, "rejected": len(result.rejected), "usage": usage}
 
     statuses = {
         item.rule_id: item.status.value
@@ -118,10 +126,13 @@ def run_case(
         "facts": facts,
         "statuses": statuses,
         "rejected": len(result.rejected),
+        "usage": usage,
     }
 
 
-def summarize(rows: list[dict], fact_score: Score, rule_score: RuleScore) -> None:
+def summarize(
+    rows: list[dict], fact_score: Score, rule_score: RuleScore, usage: Usage
+) -> None:
     print("\n" + "=" * 78)
     print("케이스별 요약")
     print("=" * 78)
@@ -139,6 +150,9 @@ def summarize(rows: list[dict], fact_score: Score, rule_score: RuleScore) -> Non
     print(format_report(fact_score))
     print()
     print(format_rule_report(rule_score))
+    print()
+    print("호출량")
+    print(f"  {format_usage(usage)}")
 
 
 def main() -> int:
@@ -148,13 +162,21 @@ def main() -> int:
     parser.add_argument("--case", action="append", default=None)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--out-dir", type=Path, default=None)
+    parser.add_argument("--label", default=None)
     args = parser.parse_args()
+    started_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     if args.poc not in EXTRACTORS:
         print(f"{args.poc}용 Extractor가 아직 없습니다. 있는 것: {sorted(EXTRACTORS)}")
         return 2
 
     out_dir = args.out_dir or POC_DATASETS[args.poc].prediction_directory
+    # 실행마다 다른 이름을 붙여 서로 덮어쓰지 않게 한다. 모델 비교와 캐시 효과
+    # 측정이 이것 없이는 불가능하다.
+    label = args.label or (
+        f"{args.poc}-{args.model}-{'nocache' if args.no_cache else 'cache'}"
+    )
+    run_dir = out_dir / label
     cases = load_cases(args.poc)
     if args.case:
         wanted = set(args.case)
@@ -163,7 +185,7 @@ def main() -> int:
             print(f"해당 케이스가 없습니다: {sorted(wanted)}")
             return 2
 
-    print(f"[{args.poc}] 평가 세트 {len(cases)}개 · model={args.model} "
+    print(f"[{label}] 평가 세트 {len(cases)}개 · model={args.model} "
           f"· caching={'off' if args.no_cache else 'on'}")
 
     # 거부 사유를 러너가 볼 수 있도록 훅을 단다. 원문은 기록하지 않는다.
@@ -188,10 +210,12 @@ def main() -> int:
     rows = []
     fact_score = Score()
     rule_score = RuleScore()
+    total_usage = Usage()
 
     for case in cases:
-        row = run_case(case, extractor, engine, out_dir, diagnostics)
+        row = run_case(case, extractor, engine, run_dir, diagnostics)
         rows.append(row)
+        total_usage.merge(row["usage"])
 
         if row["facts"] is not None:
             gold_facts = [FactEnvelope.model_validate(item) for item in case.gold_facts]
@@ -200,14 +224,20 @@ def main() -> int:
 
         rule_score.add(case.name, case.expected_rule_status, row["statuses"])
 
-    summarize(rows, fact_score, rule_score)
+    summarize(rows, fact_score, rule_score, total_usage)
 
-    report = out_dir / "report.json"
+    runs_dir = out_dir / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    report = runs_dir / f"{label}.json"
     report.write_text(
         json.dumps(
             {
+                "label": label,
                 "poc": args.poc,
                 "model": args.model,
+                "caching": not args.no_cache,
+                "started_at": started_at,
+                "usage": total_usage.as_dict(),
                 "cases": [row["case"].name for row in rows],
                 "fact_level": fact_score.as_dict(),
                 "rule_level": rule_score.as_dict(),

@@ -31,6 +31,7 @@ from app.extractors.prompts_poc2 import (
     incident_user_message,
     notice_user_message,
 )
+from app.extractors.usage import Usage
 from app.facts.models import FACT_SCHEMA_VERSION
 
 # v1은 요청 하나가 사고 하나를 뜻한다 (EXTRACTOR_DECISIONS #4).
@@ -90,6 +91,7 @@ class Poc2InputError(ValueError):
 class Poc2ExtractionResult:
     facts: list[dict] = field(default_factory=list)
     rejected: list[RejectedFact] = field(default_factory=list)
+    usage: Usage = field(default_factory=Usage)
 
     @property
     def hallucination_rate(self) -> float:
@@ -121,6 +123,7 @@ class PoC2Extractor:
         self.messages = messages
         self.model = model
         self.cache_document = cache_document
+        self.usage = Usage()
 
     # -- LLM 호출 --------------------------------------------------------
 
@@ -141,6 +144,7 @@ class PoC2Extractor:
             messages=[{"role": "user", "content": user}],
             output_format=Poc2FactList,
         )
+        self.usage.record(response)
         if getattr(response, "stop_reason", None) == "refusal":
             raise RuntimeError(f"모델이 요청을 거부했습니다: {response.stop_details}")
         return response.parsed_output
@@ -167,6 +171,7 @@ class PoC2Extractor:
         self, incident: dict[str, Any], notification: dict[str, Any] | None
     ) -> Poc2ExtractionResult:
         result = Poc2ExtractionResult()
+        self.usage = Usage()  # 호출마다 새로 센다
 
         record = pick_text(incident, INCIDENT_TEXT_KEYS, "incident")
         for raw in self.extract_incident_facts(record):
@@ -176,12 +181,14 @@ class PoC2Extractor:
             # 통지문이 제공되지 않았다. 통지문을 지어내지 않고 명시적 부재로 남긴다
             # (EXTRACTOR_DECISIONS #6). 인용할 문서가 없으므로 source_type은 derived다.
             result.facts.extend(self._notice_absence_facts())
+            result.usage = self.usage
             return result
 
         notice = pick_text(notification, NOTICE_TEXT_KEYS, "notification")
         for raw in self.extract_notice_facts(notice):
             self._collect(result, raw, notice, allowed=NOTICE_FACT_IDS, side="notice")
 
+        result.usage = self.usage
         return result
 
     # -- 후처리 ----------------------------------------------------------

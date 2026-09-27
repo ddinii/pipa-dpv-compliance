@@ -21,6 +21,7 @@ from app.extractors.prompts import (
     pass1_user_message,
     pass2_user_message,
 )
+from app.extractors.usage import Usage
 from app.facts.models import FACT_SCHEMA_VERSION
 
 DEFAULT_MODEL = "claude-opus-5"
@@ -68,6 +69,7 @@ class ExtractionResult:
     facts: list[dict] = field(default_factory=list)
     activities: list[IdentifiedActivity] = field(default_factory=list)
     rejected: list[RejectedFact] = field(default_factory=list)
+    usage: Usage = field(default_factory=Usage)
 
     @property
     def hallucination_rate(self) -> float:
@@ -99,6 +101,8 @@ class PoC1Extractor:
         self.messages = messages
         self.model = model
         self.cache_document = cache_document
+        # 호출 하나하나의 usage를 여기에 쌓고 extract()가 결과에 실어 보낸다.
+        self.usage = Usage()
 
     # -- LLM 호출 --------------------------------------------------------
 
@@ -128,6 +132,7 @@ class PoC1Extractor:
             messages=[{"role": "user", "content": user}],
             output_format=output_format,
         )
+        self.usage.record(response)
         if getattr(response, "stop_reason", None) == "refusal":
             raise RuntimeError(f"모델이 요청을 거부했습니다: {response.stop_details}")
         return response.parsed_output
@@ -165,6 +170,7 @@ class PoC1Extractor:
 
     def extract(self, document: str) -> ExtractionResult:
         result = ExtractionResult()
+        self.usage = Usage()  # 호출마다 새로 센다
         pass1 = self.identify_activities(document)
         result.activities = pass1.activities
 
@@ -185,6 +191,7 @@ class PoC1Extractor:
         for raw in self.extract_rights_facts(document):
             self._collect(result, raw, document, expected_activity=None)
 
+        result.usage = self.usage
         return result
 
     # -- 후처리 ----------------------------------------------------------
