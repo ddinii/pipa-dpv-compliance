@@ -9,7 +9,8 @@ import type {
 } from '../api/compliance'
 import type { ComplianceResponse } from '../types/api'
 import { ComplianceErrorBanner } from '../components/ComplianceErrorBanner'
-import { RuleResultCard } from '../components/RuleResultCard'
+import { ComplianceResultsPanel } from '../components/ComplianceResultsPanel'
+import { designDemo } from '../data/demoExamples'
 import './DesignCheckPage.css'
 
 let localIdCounter = 0
@@ -98,6 +99,57 @@ export function DesignCheckPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [result, setResult] = useState<ComplianceResponse | null>(null)
+
+  function activityFromExample(
+    activity: DesignCheckCollectionActivity,
+  ): ActivityDraft {
+    return {
+      localId: nextLocalId('activity'),
+      activity_id: activity.activity_id,
+      purpose: activity.purpose,
+      legal_basis_type: activity.legal_basis.type,
+      legal_basis_status: activity.legal_basis.status,
+      consent_planned: activity.consent_request.planned,
+      personal_information_items: activity.personal_information_items.map((item) => ({
+        localId: nextLocalId('item'),
+        ...item,
+      })),
+      retention_end_condition: activity.retention.end_condition,
+      retention_destruction_method: activity.retention.destruction_method,
+      denies_service_on_optional_refusal: activity.denies_service_on_optional_refusal,
+    }
+  }
+
+  function entrustedFromExample(entry: DesignCheckEntrustedProcessing): EntrustedDraft {
+    return {
+      localId: nextLocalId('entrusted'),
+      ...entry,
+    }
+  }
+
+  function loadDemo() {
+    setAnalysisId(designDemo.analysis_id)
+    setControllerId(designDemo.controller.controller_id)
+    setControllerName(designDemo.controller.name ?? '')
+    setActivities(designDemo.collection_activities.map(activityFromExample))
+    setEntrustedProcessings(designDemo.entrusted_processings.map(entrustedFromExample))
+    setThirdPartyProvisionState(designDemo.third_party_provision_state ?? 'unspecified')
+    setCrossBorderTransferState(designDemo.cross_border_transfer_state ?? 'unspecified')
+    setError(null)
+    setResult(null)
+  }
+
+  function resetForm() {
+    setAnalysisId('')
+    setControllerId('')
+    setControllerName('')
+    setActivities([newActivity()])
+    setEntrustedProcessings([])
+    setThirdPartyProvisionState('unspecified')
+    setCrossBorderTransferState('unspecified')
+    setError(null)
+    setResult(null)
+  }
 
   function updateActivity(localId: string, patch: Partial<ActivityDraft>) {
     setActivities((current) =>
@@ -232,11 +284,20 @@ export function DesignCheckPage() {
 
   return (
     <section className="design-check-page">
-      <h1>Privacy-by-Design 개발지원</h1>
-      <p className="page-subtitle">PoC3 — 구조화된 설계 폼 기반 P0 Rule 점검</p>
+      <h2 className="page-title">Privacy-by-Design 개발지원</h2>
+      <p className="page-subtitle">PoC3 — 구조화된 서비스 설계정보로 8개 P0 규칙을 검토함.</p>
+
+      <div className="form-actions form-actions-top">
+        <button type="button" className="secondary-button" onClick={loadDemo} disabled={loading}>
+          CampusMate 예제 불러오기
+        </button>
+        <button type="button" className="ghost-button" onClick={resetForm} disabled={loading}>
+          입력 초기화
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit} className="design-check-form">
-        <label htmlFor="analysis-id">Analysis ID</label>
+        <label htmlFor="analysis-id">분석 ID</label>
         <input
           id="analysis-id"
           type="text"
@@ -245,7 +306,7 @@ export function DesignCheckPage() {
           required
         />
 
-        <label htmlFor="controller-id">Controller ID</label>
+        <label htmlFor="controller-id">개인정보처리자 ID</label>
         <input
           id="controller-id"
           type="text"
@@ -254,7 +315,7 @@ export function DesignCheckPage() {
           required
         />
 
-        <label htmlFor="controller-name">Controller Name (optional)</label>
+        <label htmlFor="controller-name">서비스·개인정보처리자명 (선택)</label>
         <input
           id="controller-name"
           type="text"
@@ -280,7 +341,7 @@ export function DesignCheckPage() {
                 )}
               </div>
 
-              <label htmlFor={`${activity.localId}-activity-id`}>Activity ID</label>
+              <label htmlFor={`${activity.localId}-activity-id`}>처리행위 ID</label>
               <input
                 id={`${activity.localId}-activity-id`}
                 type="text"
@@ -289,7 +350,7 @@ export function DesignCheckPage() {
                 required
               />
 
-              <label htmlFor={`${activity.localId}-purpose`}>Purpose</label>
+              <label htmlFor={`${activity.localId}-purpose`}>처리 목적</label>
               <textarea
                 id={`${activity.localId}-purpose`}
                 value={activity.purpose}
@@ -300,28 +361,35 @@ export function DesignCheckPage() {
 
               <div className="field-row">
                 <div>
-                  <label htmlFor={`${activity.localId}-legal-basis-type`}>Legal Basis Type</label>
-                  <input
+                  <label htmlFor={`${activity.localId}-legal-basis-type`}>설계상 처리 근거</label>
+                  <select
                     id={`${activity.localId}-legal-basis-type`}
-                    type="text"
                     value={activity.legal_basis_type}
                     onChange={(event) =>
                       updateActivity(activity.localId, { legal_basis_type: event.target.value })
                     }
                     required
-                  />
+                  >
+                    <option value="Consent">동의</option>
+                    <option value="Contract">계약 이행</option>
+                    <option value="LegalObligation">법적 의무</option>
+                    <option value="LegitimateInterest">정당한 이익 검토</option>
+                  </select>
                 </div>
                 <div>
-                  <label htmlFor={`${activity.localId}-legal-basis-status`}>Legal Basis Status</label>
-                  <input
+                  <label htmlFor={`${activity.localId}-legal-basis-status`}>근거 확인 상태</label>
+                  <select
                     id={`${activity.localId}-legal-basis-status`}
-                    type="text"
                     value={activity.legal_basis_status}
                     onChange={(event) =>
                       updateActivity(activity.localId, { legal_basis_status: event.target.value })
                     }
                     required
-                  />
+                  >
+                    <option value="planned">설계 예정</option>
+                    <option value="confirmed">확인됨</option>
+                    <option value="unknown">추가 검토 필요</option>
+                  </select>
                 </div>
               </div>
 
@@ -355,7 +423,7 @@ export function DesignCheckPage() {
                       )}
                     </div>
 
-                    <label htmlFor={`${item.localId}-item-name`}>Item Name</label>
+                    <label htmlFor={`${item.localId}-item-name`}>개인정보 항목명</label>
                     <input
                       id={`${item.localId}-item-name`}
                       type="text"
@@ -378,7 +446,7 @@ export function DesignCheckPage() {
                       필수 항목 (is_required)
                     </label>
 
-                    <label htmlFor={`${item.localId}-design-rationale`}>Design Rationale</label>
+                    <label htmlFor={`${item.localId}-design-rationale`}>수집 필요성·설계 사유</label>
                     <textarea
                       id={`${item.localId}-design-rationale`}
                       value={item.design_rationale}
@@ -398,7 +466,7 @@ export function DesignCheckPage() {
 
               <div className="field-row">
                 <div>
-                  <label htmlFor={`${activity.localId}-retention-end`}>Retention End Condition</label>
+                  <label htmlFor={`${activity.localId}-retention-end`}>보유 종료조건</label>
                   <input
                     id={`${activity.localId}-retention-end`}
                     type="text"
@@ -410,7 +478,7 @@ export function DesignCheckPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${activity.localId}-retention-destruction`}>Destruction Method</label>
+                  <label htmlFor={`${activity.localId}-retention-destruction`}>파기 방법</label>
                   <input
                     id={`${activity.localId}-retention-destruction`}
                     type="text"
@@ -460,7 +528,7 @@ export function DesignCheckPage() {
                 </button>
               </div>
 
-              <label htmlFor={`${entry.localId}-activity-id`}>Activity ID</label>
+              <label htmlFor={`${entry.localId}-activity-id`}>위탁 처리행위 ID</label>
               <input
                 id={`${entry.localId}-activity-id`}
                 type="text"
@@ -469,7 +537,7 @@ export function DesignCheckPage() {
                 required
               />
 
-              <label htmlFor={`${entry.localId}-processor`}>Processor</label>
+              <label htmlFor={`${entry.localId}-processor`}>수탁자</label>
               <input
                 id={`${entry.localId}-processor`}
                 type="text"
@@ -478,7 +546,7 @@ export function DesignCheckPage() {
                 required
               />
 
-              <label htmlFor={`${entry.localId}-task`}>Task</label>
+              <label htmlFor={`${entry.localId}-task`}>위탁업무</label>
               <input
                 id={`${entry.localId}-task`}
                 type="text"
@@ -494,13 +562,15 @@ export function DesignCheckPage() {
           </button>
         </fieldset>
 
-        <fieldset className="scenario-state-fieldset">
-          <legend>시나리오 상태 (Scenario State)</legend>
+        <details className="advanced-scenario-details">
+          <summary>고급 시나리오 메타데이터</summary>
+          <fieldset className="scenario-state-fieldset">
+          <legend>조건부 처리 상태</legend>
           <p className="fieldset-hint">
-            백엔드 계약상 확인된 값은 "confirmed_false" 뿐입니다. 확정되지 않았다면 미지정 상태로 두세요.
+            현재 PoC3의 8개 P0 규칙에서 직접 판정하지 않는 보조 시나리오 정보임. 확정되지 않았다면 미지정으로 둠.
           </p>
 
-          <label htmlFor="third-party-provision-state">Third-Party Provision State</label>
+          <label htmlFor="third-party-provision-state">제3자 제공 여부</label>
           <select
             id="third-party-provision-state"
             value={thirdPartyProvisionState}
@@ -508,11 +578,11 @@ export function DesignCheckPage() {
               setThirdPartyProvisionState(event.target.value as ScenarioStateChoice)
             }
           >
-            <option value="unspecified">미지정 (omit)</option>
-            <option value="confirmed_false">confirmed_false</option>
+            <option value="unspecified">미지정</option>
+            <option value="confirmed_false">제3자 제공하지 않음</option>
           </select>
 
-          <label htmlFor="cross-border-transfer-state">Cross-Border Transfer State</label>
+          <label htmlFor="cross-border-transfer-state">국외이전 여부</label>
           <select
             id="cross-border-transfer-state"
             value={crossBorderTransferState}
@@ -520,25 +590,20 @@ export function DesignCheckPage() {
               setCrossBorderTransferState(event.target.value as ScenarioStateChoice)
             }
           >
-            <option value="unspecified">미지정 (omit)</option>
-            <option value="confirmed_false">confirmed_false</option>
+            <option value="unspecified">미지정</option>
+            <option value="confirmed_false">국외이전하지 않음</option>
           </select>
-        </fieldset>
+          </fieldset>
+        </details>
 
         <button type="submit" disabled={loading}>
-          {loading ? 'Checking...' : 'Run Design Check'}
+          {loading ? '분석 중...' : '설계 검토하기'}
         </button>
       </form>
 
       {error !== null && <ComplianceErrorBanner error={error} />}
 
-      {result && (
-        <div className="design-check-results">
-          {result.rule_results.map((ruleResult) => (
-            <RuleResultCard key={ruleResult.rule_id} result={ruleResult} />
-          ))}
-        </div>
-      )}
+      {result && <ComplianceResultsPanel result={result} />}
     </section>
   )
 }
