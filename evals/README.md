@@ -12,6 +12,11 @@ evals/
    ├─ sc_p01_gold_facts.json   # gold Fact set (생성물)
    ├─ build_gold_facts.py      # 생성기
    └─ variants/                # controlled variants 6개
+└─ poc2/
+   ├─ sc_p02_incident.txt      # 사고 기록 (가상)
+   ├─ sc_p02_notice.txt        # 통지문 (가상)
+   ├─ sc_p02_gold_facts.json   # gold Fact set (생성물)
+   └─ build_gold_facts.py      # 생성기
 ```
 
 PoC를 늘릴 때는 `evals/dataset.py`의 `POC_DATASETS`에 `DatasetSpec` 한 줄,
@@ -358,6 +363,54 @@ Fact를 낸 문서에서만 찾으므로, 상대 문서의 문장을 인용하�
 `tests/test_poc2_llm_extractor.py`가 이 경계들을 고정합니다. 특히
 `test_each_pass_only_sees_its_own_document`는 실제 호출 인자를 뒤져서 사고
 프롬프트에 통지문 문장이 섞이지 않았는지 확인합니다.
+
+## SC-P02 gold set
+
+`evals/poc2/`. 문서가 둘이라는 점이 PoC1과 다릅니다.
+
+| | |
+|---|---|
+| 입력 | `sc_p02_incident.txt` (사고 기록) + `sc_p02_notice.txt` (통지문) |
+| 정답지 | F2-01~F2-10 **10개** — 사고 4 · 통지문 5 · derived 1 |
+| Rule 기대값 | P2-R01/R02/R03/R08 **전부 GREEN** (`tests/SC-P02_FINAL_Protege.ttl` Freeze) |
+
+```powershell
+python evals\poc2uild_gold_facts.py
+python -m pytest -q tests	est_gold_facts_poc2.py
+```
+
+### 근거를 문서별로 찾습니다
+
+빌더의 `inc()`는 사고 기록에서, `note()`는 통지문에서만 근거를 찾습니다. 한 문서에서
+찾지 못하면 다른 문서를 뒤지지 않고 실패합니다. 이 분리가 Fact Dictionary 8장의
+"F2-02와 F2-04, F2-05와 F2-08을 합치지 않는다"를 **빌더 단계에서** 강제합니다.
+
+`EvalCase.document_for(source_type)`이 채점 단계에서 같은 선택을 합니다.
+`incident_record`는 사고 기록, `notification_notice`는 통지문, `derived`는 양쪽입니다.
+
+### F2-05와 F2-08은 값이 같습니다
+
+Freeze 시나리오에서 실제 사고 발생시점과 통지문 기재 시점이 둘 다
+`2026-09-05T14:30:00+09:00`입니다. **값이 우연히 같은 경우가 가장 헷갈리므로**
+정답지가 그 경우를 일부러 담습니다. 둘은 subject도, source_type도, 근거 문장도
+다릅니다 — 하나를 다른 하나에서 파생시키면 그 차이가 사라지고
+`test_incident_date_and_notice_stated_time_are_separate_facts`가 깨집니다.
+
+### 평가 하네스에 등록되어 있습니다
+
+```powershell
+python evalsun_extraction.py --poc poc2
+```
+
+`EvalCase.extract_with()`가 PoC별 Protocol 호출 규약(PoC1은 `policy_text`,
+PoC2는 `incident` + `notification`)을 흡수하므로 러너는 PoC를 몰라도 됩니다.
+
+## 남은 일
+
+1. PoC2 controlled variants — 기준 세트는 끝났고 RED 케이스가 남았습니다
+2. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가) — **실제 실행 전 필수**
+3. 첫 실제 실행과 프롬프트 튜닝
+4. 모델 비교(`--model claude-sonnet-5`)와 캐시 효과 실측(`--no-cache`)
 
 ## 아직 실행하지 않았습니다
 

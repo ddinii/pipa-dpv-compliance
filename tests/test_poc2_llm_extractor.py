@@ -329,3 +329,62 @@ def test_diagnostics_are_opt_in():
     )
     assert len(seen) == 1
     assert seen[0].rejected == []
+
+
+# --- SC-P02 gold set 왕복 -------------------------------------------------
+
+
+def test_gold_shaped_extraction_reproduces_sc_p02():
+    """모델이 gold set과 같은 것을 뽑으면 SC-P02 Freeze 기대값이 나온다.
+
+    정답지와 Extractor 후처리가 서로 맞는지 보는 자리다. 둘 중 하나가 틀어지면
+    여기서 드러난다. LLM은 호출하지 않는다.
+    """
+    import json
+    from pathlib import Path
+
+    from app.facts.graph import facts_to_mapping
+    from app.rules.engine import P0RuleEngine
+
+    root = Path(__file__).resolve().parents[1]
+    gold = json.loads(
+        (root / "evals" / "poc2" / "sc_p02_gold_facts.json").read_text(encoding="utf-8")
+    )
+    incident_text = (root / "evals" / "poc2" / "sc_p02_incident.txt").read_text(encoding="utf-8")
+    notice_text = (root / "evals" / "poc2" / "sc_p02_notice.txt").read_text(encoding="utf-8")
+
+    def as_extracted(item):
+        return ExtractedPoc2Fact(
+            fact_id=fact_type(item["fact_id"]),
+            ontology_property=item["ontology_property"],
+            value=item["value"],
+            value_state=item["value_state"],
+            evidence_text=[piece["text"] for piece in item["evidence"]],
+        )
+
+    incident_side = [
+        as_extracted(i) for i in gold["facts"]
+        if fact_type(i["fact_id"]) in INCIDENT_SIDE | {"F2-10"}
+    ]
+    notice_side = [
+        as_extracted(i) for i in gold["facts"] if fact_type(i["fact_id"]) in NOTICE_SIDE
+    ]
+
+    extractor = LlmPoc2Extractor(
+        StubMessages([fact_list(*incident_side), fact_list(*notice_side)])
+    )
+    facts = extractor.extract(
+        analysis_id="SC-P02",
+        controller_id="ctrl-001",
+        controller_name="모아커머스",
+        incident={"record": incident_text},
+        notification={"notice_text": notice_text},
+    )
+
+    assert len(validate_facts(facts)) == len(gold["facts"])
+    mapping = facts_to_mapping(facts, analysis_id="SC-P02", controller_id="ctrl-001")
+    statuses = {
+        item.rule_id: item.status.value
+        for item in P0RuleEngine().evaluate_mapping_result(mapping, poc="poc2")
+    }
+    assert statuses == gold["expected_rule_status"]

@@ -31,7 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.extractors.poc1 import DEFAULT_MODEL, ExtractionResult, PoC1Extractor  # noqa: E402
+from app.extractors.poc1 import DEFAULT_MODEL  # noqa: E402
+from app.extractors.poc1_llm_extractor import LlmPoC1Extractor  # noqa: E402
+from app.extractors.poc2_llm_extractor import LlmPoc2Extractor  # noqa: E402
 from app.facts.graph import facts_to_mapping
 from app.mapping.fact_schema import FactValidationError as FactMappingError  # noqa: E402
 from app.facts.models import FactEnvelope  # noqa: E402
@@ -46,25 +48,33 @@ from evals.score import (  # noqa: E402
     score_facts,
 )
 
-# PoC별 Extractor. PoC2가 생기면 여기에 한 줄 더한다.
-EXTRACTORS = {"poc1": PoC1Extractor}
+# PoC별 Extractor. 모두 app/extractors/base.py의 Protocol을 구현한다.
+EXTRACTORS = {"poc1": LlmPoC1Extractor, "poc2": LlmPoc2Extractor}
+
+CONTROLLER_ID = "ctrl-001"
 
 
 def run_case(
     case: EvalCase,
-    extractor: PoC1Extractor,
+    extractor,
     engine: P0RuleEngine,
     out_dir: Path,
+    diagnostics: list,
 ) -> dict:
-    """한 문서를 추출부터 Rule 판정까지 돌린다."""
+    """한 케이스를 추출부터 Rule 판정까지 돌린다."""
     print(f"\n[{case.name}] {case.description}")
 
-    result: ExtractionResult = extractor.extract(case.document)
-    print(f"  처리행위 {len(result.activities)}개 · Fact {len(result.facts)}개 추출 "
-          f"· {len(result.rejected)}개 거부")
-    for item in result.rejected:
+    diagnostics.clear()
+    raw_facts = case.extract_with(
+        extractor, analysis_id=case.name, controller_id=CONTROLLER_ID
+    )
+    rejected = diagnostics[0].rejected if diagnostics else []
+    print(f"  Fact {len(raw_facts)}개 추출 · {len(rejected)}개 거부")
+    for item in rejected:
         quote = f" | 인용={item.quote!r}" if item.quote else ""
-        print(f"    거부 {item.fact_id} ({item.activity_id}): {item.reason}{quote}")
+        print(f"    거부 {item.fact_id}: {item.reason}{quote}")
+
+    result = type("R", (), {"facts": raw_facts, "rejected": rejected})()
 
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{case.name}.json").write_text(
@@ -84,7 +94,7 @@ def run_case(
 
     # COM-002. 검증에 실패하면 이 케이스는 Rule까지 가지 않는다.
     try:
-        facts = validate_facts(result.facts, document=case.document)
+        facts = validate_facts(result.facts)
     except FactValidationError as exc:
         print(f"  Fact 검증 실패 {len(exc.issues)}건")
         for issue in exc.issues[:10]:
@@ -160,10 +170,13 @@ def main() -> int:
     print(f"[{args.poc}] 평가 세트 {len(cases)}개 · model={args.model} "
           f"· caching={'off' if args.no_cache else 'on'}")
 
+    # 거부 사유를 러너가 볼 수 있도록 훅을 단다. 원문은 기록하지 않는다.
+    diagnostics: list = []
     extractor = EXTRACTORS[args.poc](
         anthropic.Anthropic().messages,
         model=args.model,
         cache_document=not args.no_cache,
+        on_result=diagnostics.append,
     )
     engine = P0RuleEngine()
 
@@ -172,12 +185,12 @@ def main() -> int:
     rule_score = RuleScore()
 
     for case in cases:
-        row = run_case(case, extractor, engine, out_dir)
+        row = run_case(case, extractor, engine, out_dir, diagnostics)
         rows.append(row)
 
         if row["facts"] is not None:
             gold_facts = [FactEnvelope.model_validate(item) for item in case.gold_facts]
-            case_score = score_facts(gold_facts, row["facts"], case.document)
+            case_score = score_facts(gold_facts, row["facts"], case.document_for)
             _accumulate(fact_score, case_score)
 
         rule_score.add(case.name, case.expected_rule_status, row["statuses"])
