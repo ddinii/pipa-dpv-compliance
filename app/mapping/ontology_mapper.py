@@ -17,6 +17,7 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
 
 from .fact_schema import FactValidationError, local_name, validate_facts
 from .mapping_registry import FACT_SPECS
+from .presence_metadata import validate_system_metadata
 
 
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
@@ -74,8 +75,14 @@ class OntologyMapper:
         self._end_conditions: list[URIRef] = []
         self._destructions: list[URIRef] = []
 
-    def map(self, raw_facts: list[dict[str, Any]]) -> MappingResult:
+    def map(
+        self,
+        raw_facts: list[dict[str, Any]],
+        *,
+        system_metadata: list[dict[str, Any]] | None = None,
+    ) -> MappingResult:
         facts = validate_facts(raw_facts)
+        self.system_metadata.extend(validate_system_metadata(system_metadata))
         for fact in facts:
             self._assert_mapping_contract(fact)
             trace_item = {

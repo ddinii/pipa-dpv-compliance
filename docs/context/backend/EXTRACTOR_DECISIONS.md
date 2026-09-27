@@ -18,9 +18,9 @@ The current scope remains:
 Do not introduce a new Fact or ontology mapping solely to represent
 confirmed absence of an optional processing category.
 
-If the current frozen contract cannot represent a scenario precisely,
-preserve the existing UNKNOWN/AMBER behavior rather than inventing a
-new ontology term or mapping.
+Do not invent a new Fact or core ontology term. Explicit absence of one of the
+approved conditional activities is represented as validated system metadata,
+not as a Fact.
 
 ## 2. PoC2 non-rule Facts
 
@@ -87,10 +87,11 @@ A future real LLM extractor must be swappable without changing:
 A missing notification must never cause the extractor to fabricate a
 NotificationNotice.
 
-Handling of F2-03 absence must remain inside the existing Frozen Fact
-state contract and must be verified by tests before relying on it.
-
-Do not add a new ontology term or Rule condition to represent this case.
+F2-03 property absence remains in the Frozen Fact state contract. The absence
+of the entire notification input is separately represented as
+`NotificationNotice=confirmed_false` activity-presence metadata. P2-R01 stays
+RED, while P2-R02 and P2-R03 become N/A. This distinction is verified through
+the service pipeline.
 
 ## 7. Error boundary
 

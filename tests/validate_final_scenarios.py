@@ -156,7 +156,10 @@ def check_d01(graph, errors):
 
 
 def main():
-    shapes = Graph().parse(BASE / "PIPA_Process_Centered_SHACL_v1.0.ttl", format="turtle")
+    shapes = Graph().parse(
+        BASE.parent / "ontology" / "PIPA_Process_Centered_SHACL_v1.0.ttl",
+        format="turtle",
+    )
     graphs = {name: Graph().parse(path, format="turtle") for name, path in FILES.items()}
     errors = []
 
@@ -177,4 +180,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
