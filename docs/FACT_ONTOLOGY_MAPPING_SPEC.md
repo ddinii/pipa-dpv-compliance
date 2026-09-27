@@ -15,7 +15,12 @@
 | F1-09 | `EntrustedProcessing.hasProcessor → EntrustedProcessor.hasName` |
 | F1-10 | `system_metadata.entrusted_task_text` + `pipa:entrustedTaskText` Annotation triple |
 | F1-11 | `DataSubject.hasRight → DataSubjectRight` |
-| F1-12 | `DataSubjectRight.hasExerciseProcedure → RightsExerciseProcedure` |
+| F1-12 | `DataSubjectRight.hasExerciseProcedure → RightsExerciseProcedure` (`value`: string, `subject_id`: F1-11 권리명) |
+
+> **F1-12 v1 확정 계약:** Fact Dictionary v1.0의 Type은 `string`이다.
+> `subject_id`에는 연결 대상인 F1-11 권리명을 사용하며, 매퍼는 F1-11과 F1-12에서
+> 동일한 `_derived_uri("right", 권리명)`을 생성한다. 기존 PoC1 Extractor가 출력하는
+> `{right, procedure}` 객체형은 통합 호환 입력으로 수용한 뒤 동일한 RDF로 정규화한다.
 
 ## PoC2
 

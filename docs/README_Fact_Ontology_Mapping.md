@@ -21,6 +21,7 @@
 - PoC2 사고 사실/통지문 Fact 분리
 - 시스템 메타데이터와 RDF Annotation triple의 용도별 이중 보존
 - 기존 SHACL 구조 검증
+- F1-12 문자열 계약 및 F1-11 권리 노드와의 동일 URI 연결
 
 ## 디렉터리
 
@@ -180,6 +181,19 @@ P0RuleEngine
 5. `unknown/absent`가 확정 RDF assertion으로 생성되지 않음
 6. legacy namespace가 거부됨
 7. PoC3 Form 결과가 기존 SHACL을 통과함
+8. F1-12 문자열이 F1-11에서 생성된 동일 권리 노드에 연결됨
+9. 기존 PoC1 Extractor의 F1-12 객체형 입력도 동일 권리 노드로 정규화됨
+
+## 아직 확정이 필요한 N/A 계약
+
+TST-003은 GREEN/AMBER/RED/N/A 네 상태 재현을 요구하지만, Frozen Fact 35종에는
+"해당 처리행위 유형 자체가 없음"을 표현하는 전용 Fact ID가 없다. 기존 Fact ID에
+`value_state=absent`를 넣는 방식은 존재하는 활동의 속성 부재를 나타낼 뿐, 조건부 Rule의
+적용 대상 자체가 없다는 N/A와 동일하지 않다.
+
+따라서 이 패키지는 임의 Fact ID나 온톨로지 개념을 추가하지 않는다. Rule Definition
+담당자와 Fact/Ontology 담당자가 Fact Dictionary 개정을 승인한 뒤 별도 버전으로 반영해야
+한다. 결정 전까지 N/A end-to-end 검증은 미완료로 표시한다.
 
 ## 현재 남은 통합 작업
 
