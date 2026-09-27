@@ -18,6 +18,7 @@ from app.extractors.poc1 import (
     locate_quotes,
 )
 from app.facts.models import FactEnvelope
+from app.mapping import OntologyMapper
 from evals.score import score_facts, value_supported_by
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,13 +85,13 @@ def make_extractor(responses: list) -> tuple[PoC1Extractor, StubMessages]:
     return PoC1Extractor(stub), stub
 
 
-def activity_list(*activities, absent=()):
+def activity_list(*activities):
     """Pass 1 응답 스텁.
 
     덕 타이핑 대신 실제 ActivityList를 쓴다. 그래야 Pass 1 스키마가 바뀌었을 때
     스텁이 조용히 어긋나지 않고 여기서 같이 드러난다.
     """
-    return ActivityList(activities=list(activities), absent_activity_classes=list(absent))
+    return ActivityList(activities=list(activities))
 
 
 def fact_list(*facts):
@@ -218,8 +219,15 @@ def test_document_block_is_marked_for_caching(policy: str):
     assert "cache_control" not in pass2_system[0]
 
 
-def test_processor_facts_get_their_own_subject(policy: str):
-    """F1-09의 subject는 처리행위가 아니라 수탁자 개체다."""
+def test_processor_fact_is_asserted_on_the_processing_activity(policy: str):
+    """F1-09의 subject는 처리행위다. 수탁자 개체는 매퍼가 만든다.
+
+    Fact Dictionary 3장은 F1-09를
+    EntrustedProcessing.hasProcessor -> EntrustedProcessor.hasName으로 적지만,
+    Fact의 subject는 그 경로의 출발 Class다. 정본 레지스트리가
+    subject_class="EntrustedProcessing", ontology_property="hasProcessor"로
+    고정하므로 수탁자 개체를 subject로 두면 매핑 단계에서 거부된다.
+    """
     extractor, _ = make_extractor([
         activity_list(IdentifiedActivity(
             activity_id="act-entrust-001",
@@ -229,7 +237,7 @@ def test_processor_facts_get_their_own_subject(policy: str):
         fact_list(ExtractedFact(
             fact_id="F1-09",
             activity_id="act-entrust-001",
-            ontology_property="hasName",
+            ontology_property="hasProcessor",
             value="빠른택배 주식회사",
             value_state="confirmed",
             evidence_text=["빠른택배 주식회사"],
@@ -239,8 +247,10 @@ def test_processor_facts_get_their_own_subject(policy: str):
     result = extractor.extract(policy)
 
     fact = FactEnvelope.model_validate(result.facts[0])
-    assert fact.ontology_class == "EntrustedProcessor"
-    assert fact.subject_id != fact.activity_id
+    assert fact.ontology_class == "EntrustedProcessing"
+    assert fact.subject_id == fact.activity_id
+    # 정본 매퍼를 통과해야 한다
+    OntologyMapper("stale-check", controller_id="c").map(result.facts)
 
 
 # --- 채점기 -------------------------------------------------------------
