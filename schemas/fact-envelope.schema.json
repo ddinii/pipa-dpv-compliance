@@ -46,6 +46,33 @@
     },
     "schema_version": {"const": "fact-1.0"}
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "fact_id": {"pattern": "^F1-12(?:[-_:].+)?$"},
+          "value_state": {"const": "confirmed"}
+        },
+        "required": ["fact_id", "value_state"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "oneOf": [
+              {"type": "string", "minLength": 1},
+              {
+                "type": "object",
+                "properties": {
+                  "right": {"type": "string", "minLength": 1},
+                  "procedure": {"type": "string", "minLength": 1}
+                },
+                "required": ["right", "procedure"]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": true
 }
-
