@@ -327,6 +327,38 @@ run_policy_check(request, extractor=LlmPoC1Extractor.from_environment())
 `tests/test_poc1_llm_extractor.py`가 이제 정본 검증기와 매퍼, Rule Engine까지
 한 번에 통과시키므로 같은 유형의 결함이 다시 숨지 않습니다.
 
+## PoC2 — 사고/통지 분리를 호출 경계로 강제합니다
+
+`app/extractors/poc2.py`는 **사고 기록과 통지문을 서로 다른 호출로** 처리합니다.
+
+```text
+사고 pass   사고 기록만 본다  -> F2-01, F2-02, F2-05, F2-06, F2-10
+통지 pass   통지문만 본다     -> F2-03, F2-04, F2-07, F2-08, F2-09
+```
+
+기능명세서 6장의 핵심 원칙이 "실제 사고 Fact와 통지문에 적힌 Fact를 절대 합치지
+않는다"이고 Fact Dictionary 8장도 F2-02↔F2-04, F2-05↔F2-08을 합치지 말라고
+못박습니다. 한 호출에 두 문서를 같이 주면 모델이 빈 칸을 상대 문서로 메우려 합니다.
+호출을 나누면 **프롬프트 경계가 곧 사고/통지 경계**가 되어 혼합이 구조적으로
+불가능해집니다. PoC1에서 처리행위별로 Pass 2를 쪼갠 것과 같은 이유입니다.
+
+그래도 한쪽 pass가 상대편 Fact ID를 내면 후처리가 버립니다. 근거 offset도 그
+Fact를 낸 문서에서만 찾으므로, 상대 문서의 문장을 인용하면 그 Fact는 탈락합니다.
+
+| 방어 | 무엇을 막나 |
+|---|---|
+| 호출 분리 | 모델이 상대 문서를 볼 수 없다 |
+| Fact ID 화이트리스트 | 사고 pass의 F2-04, 통지 pass의 F2-02를 버린다 |
+| 문서별 인용 대조 | 없는 문장을 인용하면 그 Fact를 버린다 (NFR-07) |
+| `measure_role` enum 검사 | 4장의 4종 외 값과 중복 역할을 버린다 |
+
+통지문이 제공되지 않으면 통지문을 **지어내지 않고** F2-03/04/07/08/09를
+`absent` + `source_type="derived"`로 남깁니다 (EXTRACTOR_DECISIONS #6).
+
+`tests/test_poc2_llm_extractor.py`가 이 경계들을 고정합니다. 특히
+`test_each_pass_only_sees_its_own_document`는 실제 호출 인자를 뒤져서 사고
+프롬프트에 통지문 문장이 섞이지 않았는지 확인합니다.
+
 ## 아직 실행하지 않았습니다
 
 Extractor는 **실제 API로 한 번도 돌리지 않았습니다.** 자격증명이 없고, 모델 호출은 비용이
