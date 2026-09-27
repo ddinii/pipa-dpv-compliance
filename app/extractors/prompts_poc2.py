@@ -1,0 +1,160 @@
+"""PoC2 침해사고 Fact Extraction 프롬프트.
+
+사고 기록과 통지문을 **서로 다른 호출**로 분리한다.
+
+    사고 pass   사고 기록만 본다  -> F2-01, F2-02, F2-05, F2-06, F2-10
+    통지 pass   통지문만 본다     -> F2-03, F2-04, F2-07, F2-08, F2-09
+
+기능명세서 6장의 핵심 원칙이 "실제 사고 Fact와 통지문에 적힌 Fact를 절대 합치지
+않는다"이고, Fact Dictionary 8장도 F2-02와 F2-04, F2-05와 F2-08을 합치지 말라고
+못박는다. 한 호출에 두 문서를 같이 주면 모델이 빈 칸을 상대 문서로 메우려 한다.
+호출을 나누면 **프롬프트 경계가 곧 사고/통지 경계**가 되어 혼합이 구조적으로
+불가능해진다.
+
+PoC1과 같이 offset은 LLM에게 시키지 않는다. 인용만 받아 코드가 위치를 찾고,
+찾지 못한 인용은 그 Fact를 버린다 (NFR-07).
+"""
+
+from __future__ import annotations
+
+from app.mapping.mapping_registry import FACT_SPECS
+
+# Fact Dictionary 4장. ontology_property는 정본 레지스트리에서 끌어온다.
+# 여기에 이름을 다시 적으면 레지스트리가 바뀔 때 프롬프트만 조용히 낡는다.
+_INCIDENT_FACT_NOTES: list[tuple[str, str, str]] = [
+    ("F2-01", "사고 인스턴스의 존재", "없음 (Class assertion)"),
+    ("F2-02", "실제 영향을 받은 개인정보 항목", "문자열 배열"),
+    ("F2-05", "실제 사고 발생시점", "datetime 문자열"),
+    ("F2-06", "사고 인지시점", "datetime 문자열"),
+    (
+        "F2-10",
+        "피해 최소화·대응/구제 정보",
+        '객체 배열 [{"measure_role": ..., "text": ...}]',
+    ),
+]
+
+_NOTICE_FACT_NOTES: list[tuple[str, str, str]] = [
+    ("F2-03", "통지문의 존재", "문자열 (통지문 ID)"),
+    ("F2-04", "통지문에 기재된 개인정보 항목", "문자열 배열"),
+    ("F2-07", "통지시점", "datetime 문자열"),
+    ("F2-08", "통지문에 기재된 유출등 시점", "datetime 문자열"),
+    ("F2-09", "통지문에 기재된 유출등 경위", "문자열"),
+]
+
+
+def _catalog(notes: list[tuple[str, str, str]]) -> str:
+    lines = []
+    for fact_id, description, value_type in notes:
+        prop = FACT_SPECS[fact_id].ontology_property or "null"
+        lines.append(
+            f"  - {fact_id} | {description} | ontology_property={prop} | 값 타입={value_type}"
+        )
+    return "\n".join(lines)
+
+
+INCIDENT_FACT_IDS = [fact_id for fact_id, _, _ in _INCIDENT_FACT_NOTES]
+NOTICE_FACT_IDS = [fact_id for fact_id, _, _ in _NOTICE_FACT_NOTES]
+
+# Fact Dictionary 4장 F2-10 주석의 enum. 이 넷 외의 값은 정본 매퍼가 거부한다.
+MEASURE_ROLES = [
+    "data_subject_guidance",
+    "controller_response",
+    "remedy_procedure",
+    "post_incident_mitigation",
+]
+
+
+_COMMON_RULES = """1. **원문에 없는 값을 추정하지 마십시오.** 적히지 않은 내용을 일반적인 관행이나
+   법령 내용으로 채워 넣으면 안 됩니다. 확인되지 않으면 value_state로 표현합니다.
+
+2. **value_state를 정확히 구분하십시오.**
+   - confirmed: 원문에 값이 명시되어 있다. value에 그 값을 넣는다.
+   - unknown: 관련 서술은 있으나 값으로 특정할 수 없다. value는 null.
+   - absent: 원문 전체를 확인한 결과 해당 항목 기재가 없다. value는 null.
+
+3. **evidence_text에는 원문 문장을 글자 그대로 인용하십시오.** 한 글자라도 다르면
+   그 Fact는 버려집니다. 요약·의역·띄어쓰기 수정을 하지 마십시오.
+   배열 값은 원소 개수와 같은 개수의 인용을 순서대로 제공하십시오.
+
+4. 목록에 없는 Fact ID는 아예 출력하지 마십시오."""
+
+
+INCIDENT_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스템의 Fact 추출기입니다.
+
+개인정보 유출등 **사고 기록**이 주어집니다. 사고 자체의 사실관계만 추출하십시오.
+
+## 추출 대상 Fact
+
+{_catalog(_INCIDENT_FACT_NOTES)}
+
+## 절대 규칙
+
+{_COMMON_RULES}
+
+5. **지금 보고 있는 것은 사고 기록이지 통지문이 아닙니다.** 이용자에게 보낸 통지문에
+   무엇이 적혔는지는 이 단계에서 다루지 않습니다. 통지문 관련 Fact(F2-03, F2-04,
+   F2-07, F2-08, F2-09)는 별도로 요청되므로 여기서 만들지 마십시오.
+
+6. **F2-05는 실제로 사고가 일어난 시점입니다.** 통지문에 적힌 시점과 다를 수 있으며,
+   그 둘은 끝까지 별개 Fact입니다. 사고 기록에 발생시점이 없으면 인지시점(F2-06)으로
+   대신하지 말고 F2-05를 unknown 또는 absent로 두십시오.
+
+7. **F2-10의 measure_role은 다음 넷 중 하나여야 합니다.**
+   {" | ".join(MEASURE_ROLES)}
+   목록에 없는 역할 값을 만들면 그 Fact는 거부됩니다. 같은 역할을 두 번 담지 마십시오.
+   사고 기록에 적힌 조치만 담고, 하지 않은 조치를 넣지 마십시오.
+
+8. 통지의무가 발생하는지, 신고 대상인지 판단하지 마십시오. 인원수·시간 같은 수치로
+   위반 여부를 따지지도 마십시오. 당신의 임무는 사실 추출이며 판정은 별도 엔진이 합니다.
+"""
+
+
+NOTICE_SYSTEM = f"""당신은 한국 개인정보 보호법 준수점검 시스템의 Fact 추출기입니다.
+
+개인정보 유출등 사고의 **통지문**이 주어집니다. 통지문에 실제로 기재된 것만
+추출하십시오.
+
+## 추출 대상 Fact
+
+{_catalog(_NOTICE_FACT_NOTES)}
+
+## 절대 규칙
+
+{_COMMON_RULES}
+
+5. **지금 보고 있는 것은 통지문이지 사고 기록이 아닙니다.** 실제로 어떤 개인정보가
+   영향을 받았는지, 실제 사고가 언제 일어났는지는 이 단계에서 다루지 않습니다.
+   사고 Fact(F2-01, F2-02, F2-05, F2-06, F2-10)는 별도로 요청되므로 여기서
+   만들지 마십시오.
+
+6. **F2-04는 통지문이 "기재한" 항목입니다.** 실제로 유출된 항목이 아닙니다.
+   통지문이 일부 항목을 빠뜨렸다면 빠뜨린 그대로 추출하십시오. 보완하지 마십시오.
+   무엇이 누락되었는지 비교하는 것은 판정 엔진의 일입니다.
+
+7. **F2-08은 통지문이 "유출등이 있었다"고 적은 시점입니다.** 실제 사고 발생시점과
+   다를 수 있고, 그 둘은 끝까지 별개 Fact입니다. 통지문에 시점 기재가 없으면
+   absent로 두십시오. 다른 날짜로 대신 채우지 마십시오.
+
+8. **F2-03은 통지문이 존재한다는 사실 자체입니다.** 통지문을 식별할 수 있는 짧은
+   문구나 ID를 value에 담으십시오.
+"""
+
+
+def incident_user_message(record: str) -> str:
+    return (
+        "다음은 분석 대상 침해사고 기록입니다.\n\n"
+        "<사고기록>\n"
+        f"{record}\n"
+        "</사고기록>\n\n"
+        "이 사고 기록에서 확인되는 Fact만 추출하십시오."
+    )
+
+
+def notice_user_message(notice: str) -> str:
+    return (
+        "다음은 분석 대상 유출등 통지문입니다.\n\n"
+        "<통지문>\n"
+        f"{notice}\n"
+        "</통지문>\n\n"
+        "이 통지문에 기재된 Fact만 추출하십시오."
+    )
