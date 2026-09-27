@@ -28,14 +28,14 @@ def test_design_check_traverses_sc_d01_example():
     assert response.status_code == 200
     body = response.json()
     assert body["poc"] == "PoC3"
-    assert len(body["rule_results"]) == 8
+    assert len(body["results"]) == 8
 
 
 def test_design_check_returns_exactly_the_8_frozen_poc3_rule_ids():
     response = client.post("/api/v1/compliance/design-check", json=load_sc_d01_form())
 
     body = response.json()
-    rule_ids = {result["rule_id"] for result in body["rule_results"]}
+    rule_ids = {result["rule_id"] for result in body["results"]}
     assert rule_ids == POC3_RULE_IDS
 
 
@@ -43,7 +43,7 @@ def test_design_check_preserves_rule_result_status_and_applicability_semantics()
     response = client.post("/api/v1/compliance/design-check", json=load_sc_d01_form())
 
     body = response.json()
-    for result in body["rule_results"]:
+    for result in body["results"]:
         assert result["status"] in {"GREEN", "AMBER", "RED", "N/A"}
         assert result["applicability"] in {"TRUE", "FALSE", "UNKNOWN"}
         assert "matched_facts" in result
@@ -56,7 +56,7 @@ def test_design_check_preserves_rule_result_status_and_applicability_semantics()
         assert "evaluated_at" in result
 
     # SC-D01 is the frozen all-GREEN acceptance fixture for PoC3.
-    statuses = {result["rule_id"]: result["status"] for result in body["rule_results"]}
+    statuses = {result["rule_id"]: result["status"] for result in body["results"]}
     assert statuses == {rule_id: "GREEN" for rule_id in POC3_RULE_IDS}
 
 

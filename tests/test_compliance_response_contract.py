@@ -28,14 +28,16 @@ def test_policy_check_response_json_unchanged_shape_and_values():
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body.keys()) == {"poc", "rule_results"}
+    assert set(body.keys()) == {"analysis_id", "poc", "ontology_version", "rule_version",
+         "fact_schema_version", "results"}
     assert body["poc"] == "PoC1"
-    for result in body["rule_results"]:
+    for result in body["results"]:
         assert set(result.keys()) == {
             "rule_id", "rule_version", "status", "applicability",
             "matched_facts", "missing_facts", "uncertain_facts",
             "evidence", "legal_basis", "reason", "recommendation",
-            "evaluated_at", "instance_results", "implementation_notes",
+            "evaluated_at", "source_document_id",
+            "instance_results", "implementation_notes",
         }
         for evidence_item in result["evidence"]:
             assert set(evidence_item.keys()) == {
@@ -58,9 +60,10 @@ def test_breach_check_response_json_unchanged_shape_and_values():
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body.keys()) == {"poc", "rule_results"}
+    assert set(body.keys()) == {"analysis_id", "poc", "ontology_version", "rule_version",
+         "fact_schema_version", "results"}
     assert body["poc"] == "PoC2"
-    assert len(body["rule_results"]) == 4
+    assert len(body["results"]) == 4
 
 
 def test_design_check_response_json_unchanged_shape_and_values():
@@ -71,9 +74,10 @@ def test_design_check_response_json_unchanged_shape_and_values():
 
     assert response.status_code == 200
     body = response.json()
-    assert set(body.keys()) == {"poc", "rule_results"}
+    assert set(body.keys()) == {"analysis_id", "poc", "ontology_version", "rule_version",
+         "fact_schema_version", "results"}
     assert body["poc"] == "PoC3"
-    assert len(body["rule_results"]) == 8
+    assert len(body["results"]) == 8
 
 
 def test_openapi_exposes_explicit_response_schema_for_all_three_endpoints():
@@ -104,6 +108,7 @@ def test_openapi_rule_result_schema_includes_nested_instance_and_evidence_fields
         "rule_id", "rule_version", "status", "applicability",
         "matched_facts", "missing_facts", "uncertain_facts", "evidence",
         "legal_basis", "reason", "recommendation", "evaluated_at",
+        "source_document_id",
         "instance_results", "implementation_notes",
     }
 

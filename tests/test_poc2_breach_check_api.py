@@ -43,9 +43,9 @@ def test_breach_check_returns_exactly_the_4_frozen_poc2_rule_ids():
     )
 
     body = response.json()
-    rule_ids = {result["rule_id"] for result in body["rule_results"]}
+    rule_ids = {result["rule_id"] for result in body["results"]}
     assert rule_ids == POC2_RULE_IDS
-    assert len(body["rule_results"]) == 4
+    assert len(body["results"]) == 4
 
 
 def test_breach_check_preserves_rule_result_status_and_applicability_semantics():
@@ -54,7 +54,7 @@ def test_breach_check_preserves_rule_result_status_and_applicability_semantics()
     )
 
     body = response.json()
-    for result in body["rule_results"]:
+    for result in body["results"]:
         assert result["status"] in {"GREEN", "AMBER", "RED", "N/A"}
         assert result["applicability"] in {"TRUE", "FALSE", "UNKNOWN"}
         assert "matched_facts" in result
@@ -111,7 +111,7 @@ def test_breach_check_notification_omitted_returns_200_not_500():
     assert response.status_code == 200
     body = response.json()
     assert body["poc"] == "PoC2"
-    rule_ids = {result["rule_id"] for result in body["rule_results"]}
+    rule_ids = {result["rule_id"] for result in body["results"]}
     assert rule_ids == POC2_RULE_IDS
 
 
