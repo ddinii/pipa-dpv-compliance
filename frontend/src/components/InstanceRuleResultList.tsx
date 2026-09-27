@@ -15,8 +15,10 @@ export function InstanceRuleResultList({ instances }: InstanceRuleResultListProp
       {instances.map((instance) => (
         <li key={instance.instance_id}>
           <div className="instance-header">
-            <span className="status-badge">{instance.status}</span>
-            <span>Applicability: {instance.applicability}</span>
+            <span className={`status-badge status-${instance.status.replace('/', '-').toLowerCase()}`}>
+              {instance.status}
+            </span>
+            <span>적용 여부: {instance.applicability}</span>
             <span>{instance.instance_id}</span>
           </div>
           {instance.reason && <p>{instance.reason}</p>}
