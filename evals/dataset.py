@@ -1,17 +1,21 @@
 """평가 데이터셋 탐색.
 
-한 PoC의 평가 세트는 기준 문서 1개 + controlled variants n개다. 기준 문서 하나로만
-재면 GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 포함한 전체를 쓸어야 한다.
+한 PoC의 평가 세트는 기준 문서 1묶음 + controlled variants n개다. 기준 문서 하나로만
+재면 GREEN/AMBER 경로만 보게 되므로 RED 케이스까지 포함한 전체를 쓸어야 한다.
 
-PoC를 늘릴 때는 아래 POC_DATASETS에 한 줄을 더한다. 로더·러너·채점기는 손대지 않는다.
+PoC마다 입력 문서 수가 다르다. PoC1은 처리방침 하나, PoC2는 사고 기록과 통지문
+둘이다. EvalCase가 문서를 이름으로 들고, Extractor 호출 규약도 PoC별로 안다.
+
+PoC를 늘릴 때는 아래 POC_DATASETS에 한 줄을 더한다. 러너와 채점기는 손대지 않는다.
 """
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 EVAL_ROOT = ROOT / "evals"
@@ -19,12 +23,16 @@ EVAL_ROOT = ROOT / "evals"
 
 @dataclass(frozen=True)
 class DatasetSpec:
-    """한 PoC의 평가 세트가 디스크에 놓인 모양."""
+    """한 PoC의 평가 세트가 디스크에 놓인 모양.
+
+    ``base_documents``와 ``variant_documents``는 {논리 이름: 파일명}이다. 논리
+    이름은 Extractor 호출 규약과 채점기의 근거 대조에서 문서를 고르는 키다.
+    """
 
     poc: str
-    base_document: str
     base_gold: str
-    document_name: str = "policy.txt"
+    base_documents: dict[str, str]
+    variant_documents: dict[str, str] = field(default_factory=dict)
     gold_name: str = "gold_facts.json"
 
     @property
@@ -43,24 +51,67 @@ class DatasetSpec:
 POC_DATASETS: dict[str, DatasetSpec] = {
     "poc1": DatasetSpec(
         poc="poc1",
-        base_document="sc_p01_policy.txt",
         base_gold="sc_p01_gold_facts.json",
+        base_documents={"policy": "sc_p01_policy.txt"},
+        variant_documents={"policy": "policy.txt"},
     ),
-    # poc2는 SC-P02 원문과 gold set이 준비되면 추가한다. 그 전에 등록하면
-    # load_cases()가 빈 세트를 조용히 돌려주어 "0건 평가 통과"가 되어 버린다.
+    "poc2": DatasetSpec(
+        poc="poc2",
+        base_gold="sc_p02_gold_facts.json",
+        base_documents={
+            "incident": "sc_p02_incident.txt",
+            "notice": "sc_p02_notice.txt",
+        },
+        # 변형 세트는 아직 없다. 디렉터리가 생기면 자동으로 잡힌다.
+        variant_documents={"incident": "incident.txt", "notice": "notice.txt"},
+    ),
+}
+
+# Fact의 source_type -> 그 근거가 실재해야 하는 문서의 논리 이름.
+# PoC2는 사고 Fact와 통지문 Fact의 근거 문서가 다르다 (Fact Dictionary 8장).
+SOURCE_TYPE_DOCUMENT = {
+    "policy_text": "policy",
+    "incident_record": "incident",
+    "notification_notice": "notice",
 }
 
 
 @dataclass(frozen=True)
 class EvalCase:
     name: str
-    document_path: Path
+    document_paths: dict[str, Path]
     gold_path: Path
     poc: str = "poc1"
 
     @cached_property
+    def documents(self) -> dict[str, str]:
+        return {
+            name: path.read_text(encoding="utf-8")
+            for name, path in self.document_paths.items()
+        }
+
+    @property
     def document(self) -> str:
-        return self.document_path.read_text(encoding="utf-8")
+        """문서가 하나뿐인 PoC의 원문.
+
+        둘 이상이면 어느 것을 뜻하는지 알 수 없으므로 실패한다.
+        """
+        if len(self.documents) != 1:
+            raise ValueError(
+                f"{self.poc}는 문서가 {len(self.documents)}개다. documents[이름]을 쓸 것"
+            )
+        return next(iter(self.documents.values()))
+
+    def document_for(self, source_type: str) -> str:
+        """Fact의 source_type에 맞는 근거 문서를 고른다.
+
+        ``derived``는 특정 문서를 가리키지 않으므로 전체를 이어 붙여 돌려준다.
+        근거가 어느 쪽에서든 해결되면 통과시키기 위해서다.
+        """
+        name = SOURCE_TYPE_DOCUMENT.get(source_type)
+        if name is not None and name in self.documents:
+            return self.documents[name]
+        return "\n".join(self.documents.values())
 
     @cached_property
     def payload(self) -> dict:
@@ -84,6 +135,32 @@ class EvalCase:
         variant = self.payload.get("variant")
         return variant["target_rule"] if variant else None
 
+    def extract_with(
+        self, extractor: Any, *, analysis_id: str, controller_id: str,
+        controller_name: str | None = None,
+    ) -> list[dict]:
+        """PoC별 Protocol 호출 규약에 맞춰 Extractor를 부른다.
+
+        app/extractors/base.py의 Poc1Extractor / Poc2Extractor는 파라미터가
+        다르다. 그 차이를 러너가 아니라 여기서 흡수한다.
+        """
+        common = {
+            "analysis_id": analysis_id,
+            "controller_id": controller_id,
+            "controller_name": controller_name,
+        }
+        if self.poc == "poc1":
+            return extractor.extract(**common, policy_text=self.documents["policy"])
+        if self.poc == "poc2":
+            return extractor.extract(
+                **common,
+                incident={"record": self.documents["incident"]},
+                notification={"notice_text": self.documents["notice"]}
+                if "notice" in self.documents
+                else None,
+            )
+        raise ValueError(f"Extractor 호출 규약이 정의되지 않은 PoC입니다: {self.poc}")
+
 
 def load_cases(poc: str = "poc1") -> list[EvalCase]:
     """기준 문서를 먼저, 그다음 변형을 이름순으로 돌려준다."""
@@ -96,23 +173,27 @@ def load_cases(poc: str = "poc1") -> list[EvalCase]:
             "evals/dataset.py의 POC_DATASETS에 DatasetSpec을 추가하세요."
         ) from None
 
-    base_document = spec.directory / spec.base_document
+    base_documents = {
+        name: spec.directory / filename for name, filename in spec.base_documents.items()
+    }
     base_gold = spec.directory / spec.base_gold
-    if not base_document.is_file() or not base_gold.is_file():
-        raise FileNotFoundError(
-            f"{poc} 기준 문서 또는 gold set이 없습니다: {base_document}, {base_gold}"
-        )
+    missing = [str(p) for p in [*base_documents.values(), base_gold] if not p.is_file()]
+    if missing:
+        raise FileNotFoundError(f"{poc} 평가 세트 파일이 없습니다: {missing}")
 
-    cases = [EvalCase("base", base_document, base_gold, poc=poc)]
+    cases = [EvalCase("base", base_documents, base_gold, poc=poc)]
 
-    if spec.variant_directory.is_dir():
+    if spec.variant_directory.is_dir() and spec.variant_documents:
         for directory in sorted(spec.variant_directory.iterdir()):
             if not directory.is_dir():
                 continue
-            document = directory / spec.document_name
+            documents = {
+                name: directory / filename
+                for name, filename in spec.variant_documents.items()
+            }
             gold = directory / spec.gold_name
-            if document.is_file() and gold.is_file():
-                cases.append(EvalCase(directory.name, document, gold, poc=poc))
+            if gold.is_file() and all(path.is_file() for path in documents.values()):
+                cases.append(EvalCase(directory.name, documents, gold, poc=poc))
 
     return cases
 

@@ -19,7 +19,7 @@ import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable, Union
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -111,10 +111,23 @@ class Score:
         }
 
 
+DocumentSource = Union[str, Callable[[str], str]]
+
+
+def _resolve_document(source: DocumentSource, source_type: str) -> str:
+    """Fact가 대조되어야 하는 문서를 고른다.
+
+    PoC1은 문서가 하나라 문자열을 그대로 쓴다. PoC2는 사고 Fact와 통지문 Fact의
+    근거 문서가 다르므로(Fact Dictionary 8장) source_type으로 고르는 함수를 받는다.
+    EvalCase.document_for가 그 함수다.
+    """
+    return source if isinstance(source, str) else source(source_type)
+
+
 def score_facts(
     gold: Iterable[FactEnvelope],
     predicted: Iterable[FactEnvelope],
-    document: str,
+    document: DocumentSource,
 ) -> Score:
     gold = list(gold)
     predicted = list(predicted)
@@ -135,14 +148,16 @@ def score_facts(
     unmatched = {key: list(items) for key, items in gold_by_key.items()}
 
     for fact in predicted:
+        source = _resolve_document(document, fact.source_type)
+
         # 근거 offset 정확도 (매칭 여부와 무관하게 센다)
         for piece in fact.evidence:
             result.evidence_total += 1
-            if piece.resolves_in(document):
+            if piece.resolves_in(source):
                 result.evidence_offset_correct += 1
 
         # NFR-07 환각: 원문에 없는 값을 실었다
-        if fact.value is not None and not value_supported_by(document, fact.value):
+        if fact.value is not None and not value_supported_by(source, fact.value):
             result.hallucinated.append(fact.fact_id)
 
         # TST-002 혼합: 값은 gold에 있는데 다른 처리행위의 것이다
