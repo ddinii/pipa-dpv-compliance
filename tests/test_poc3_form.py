@@ -13,6 +13,7 @@ import pytest
 from rdflib import RDF
 
 from app.facts.graph import facts_to_graph, facts_to_mapping
+from app.builders.poc3_fact_builder import Poc3FormError
 from app.forms.poc3 import DesignForm, build_facts
 from app.mapping.fact_schema import fact_type
 from app.mapping.ontology_mapper import PIPA
@@ -140,26 +141,8 @@ def test_item_facts_identify_their_item_by_name(raw_form: dict):
     "label, change, rule_id, expected",
     [
         (
-            "법적근거 미정",
-            lambda d: d["collection_activities"][0].update(legal_basis=None),
-            "P3-R01", "AMBER",
-        ),
-        (
-            "동의 처리목적 미정",
-            lambda d: d["collection_activities"][0].update(purpose=None),
-            "P3-R02", "AMBER",
-        ),
-        (
-            "필수항목 설계사유 미정",
-            lambda d: d["collection_activities"][0]["design_items"][0].update(design_rationale=None),
-            "P3-R05", "AMBER",
-        ),
-        (
-            "항목 필수여부 미정",
-            lambda d: d["collection_activities"][1]["design_items"][0].update(is_required=None),
-            "P3-R05", "AMBER",
-        ),
-        (
+            # Fact Dictionary 5장 F3-09 Type = boolean/unknown. 기능명세서 D01-004도
+            # "boolean/unknown으로 입력한다"이므로 이 필드만 미정 입력을 받는다.
             "선택항목 미동의 시 서비스 거부",
             lambda d: d["collection_activities"][1]["consent"].update(
                 denies_service_on_optional_refusal=True
@@ -174,9 +157,14 @@ def test_item_facts_identify_their_item_by_name(raw_form: dict):
             "P3-R06", "AMBER",
         ),
         (
-            "보유 종료조건 미정",
+            "보유 종료조건 없음",
             lambda d: d["collection_activities"][0]["retention"].update(end_condition=None),
-            "P3-R04", "AMBER",
+            "P3-R04", "RED",
+        ),
+        (
+            "파기방법 없음",
+            lambda d: d["collection_activities"][0]["retention"].update(destruction_method=None),
+            "P3-R08", "RED",
         ),
         (
             "위탁 목록이 비어 있음",
@@ -189,6 +177,33 @@ def test_form_change_moves_the_expected_rule(
     raw_form: dict, engine: P0RuleEngine, label: str, change, rule_id: str, expected: str
 ):
     assert evaluate(mutate(raw_form, change), engine)[rule_id] == expected, label
+
+
+@pytest.mark.parametrize(
+    "label, change",
+    [
+        ("법적근거", lambda d: d["collection_activities"][0].pop("legal_basis")),
+        ("처리목적", lambda d: d["collection_activities"][0].pop("purpose")),
+        (
+            "항목 필수여부",
+            lambda d: d["collection_activities"][1]["design_items"][0].pop("is_required"),
+        ),
+        (
+            "항목 설계사유",
+            lambda d: d["collection_activities"][0]["design_items"][0].pop("design_rationale"),
+        ),
+    ],
+)
+def test_missing_required_form_field_never_reaches_the_rule_engine(
+    raw_form: dict, label: str, change
+):
+    """TST-001 · COM-002: 필수 Form 필드가 빠지면 Rule Engine까지 가지 않는다.
+
+    Fact Dictionary 5장에서 unknown 입력이 허용되는 것은 F3-09(boolean/unknown)
+    하나뿐이다. 나머지를 결측으로 받아 AMBER로 넘기면 '임의 보완 금지'를 어긴다.
+    """
+    with pytest.raises(Poc3FormError):
+        build_facts(DesignForm.model_validate(mutate(raw_form, change)))
 
 
 def test_false_denial_is_green_but_unset_denial_is_amber(raw_form: dict, engine: P0RuleEngine):

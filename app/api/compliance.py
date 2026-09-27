@@ -1,131 +1,114 @@
-"""Compliance API (기능명세서 9장).
+from typing import Any, Literal
 
-API-003 POST /api/v1/compliance/design-check  PoC3 Privacy-by-Design 사전점검
+from fastapi import APIRouter, Body, HTTPException
+from pydantic import BaseModel
 
-PoC1(policy-check)과 PoC2(breach-check)는 Extractor가 붙은 뒤에 추가한다.
-세 endpoint 모두 같은 ComplianceResponse 계약을 쓴다.
-"""
-
-from __future__ import annotations
-
-import json
-from datetime import datetime, timezone
-from pathlib import Path
-from uuid import uuid4
-
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import HTMLResponse
-
-from app.facts.graph import facts_to_mapping
-from app.mapping.fact_schema import FactValidationError as FactMappingError
-from app.facts.validator import FactValidationError, validate_facts
-from app.forms.poc3 import DesignForm, build_facts
-from app.models.compliance import ComplianceResponse, RuleResultOut
-from app.rules.engine import P0RuleEngine
-from app.rules.metadata import load_rule_profile
-
-ROOT_DIR = Path(__file__).resolve().parents[2]
-DESIGN_HTML = ROOT_DIR / "app" / "web" / "design.html"
-EXAMPLE_FORM = ROOT_DIR / "evals" / "poc3" / "sc_d01_form.json"
-
-router = APIRouter(tags=["compliance"])
-
-_engine: P0RuleEngine | None = None
-
-
-def get_engine() -> P0RuleEngine:
-    global _engine
-    if _engine is None:
-        _engine = P0RuleEngine()
-    return _engine
-
-
-def _analysis_id() -> str:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
-    return f"A-{stamp}-{uuid4().hex[:8]}"
-
-
-def design_form_to_facts(form: DesignForm) -> list:
-    """Form -> Fact -> 검증. 검증 실패는 400으로 올린다 (COM-002)."""
-    try:
-        return validate_facts(build_facts(form))
-    except FactValidationError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "detail": "Fact 검증에 실패했습니다. 값을 임의로 보완하지 않습니다.",
-                "issues": [
-                    {"index": issue.index, "fact_id": issue.fact_id, "message": issue.message}
-                    for issue in exc.issues
-                ],
-            },
-        ) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-
-@router.post(
-    "/api/v1/compliance/design-check",
-    response_model=ComplianceResponse,
-    summary="API-003 PoC3 Privacy-by-Design 사전점검",
+from app.rules.models import Applicability, RuleStatus
+from app.services.compliance import (
+    ComplianceInputError,
+    run_breach_check,
+    run_design_check,
+    run_policy_check,
 )
-def design_check(form: DesignForm) -> ComplianceResponse:
-    """구조화 설계 Form을 P0 PoC3 Rule 8개로 점검한다.
-
-    LLM을 쓰지 않는다. Form -> Fact -> Ontology -> Rule 경로가 전부 결정론적이므로
-    같은 Form은 항상 같은 결과를 낸다 (NFR-03).
-    """
-    facts = design_form_to_facts(form)
-
-    try:
-        mapping = facts_to_mapping(facts)
-    except FactMappingError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    results = get_engine().evaluate_mapping_result(mapping, poc="poc3")
-    profile = load_rule_profile()
-
-    return ComplianceResponse(
-        analysis_id=_analysis_id(),
-        poc="poc3",
-        ontology_version=profile["ontology_version"],
-        rule_version=profile["rule_version"],
-        fact_schema_version=profile["fact_schema_version"],
-        source_document_id=form.scenario_id,
-        results=[
-            RuleResultOut(**result.to_dict(), source_document_id=form.scenario_id)
-            for result in results
-        ],
-    )
 
 
-@router.post(
-    "/api/v1/dev/design-facts",
-    summary="Form에서 생성된 Fact를 그대로 돌려준다 (개발용)",
+router = APIRouter(
+    prefix="/api/v1/compliance",
+    tags=["compliance"],
 )
-def design_facts(form: DesignForm) -> dict:
-    """Form -> Fact 변환 결과 확인용. API-003의 일부가 아니다."""
-    facts = design_form_to_facts(form)
+
+
+class EvidenceResponse(BaseModel):
+    """Mirrors app.rules.models.Evidence as serialized by RuleResult.to_dict()."""
+
+    evidence_type: str
+    subject: str | None = None
+    predicate: str | None = None
+    value: str | bool | None = None
+    source_text: str | None = None
+    note: str | None = None
+
+
+class InstanceRuleResultResponse(BaseModel):
+    """Mirrors app.rules.models.InstanceRuleResult as serialized by RuleResult.to_dict()."""
+
+    instance_id: str
+    status: RuleStatus
+    applicability: Applicability
+    matched_facts: list[str] = []
+    missing_facts: list[str] = []
+    uncertain_facts: list[str] = []
+    evidence: list[EvidenceResponse] = []
+    reason: str = ""
+    recommendation: str = ""
+
+
+class RuleResultResponse(BaseModel):
+    """Mirrors app.rules.models.RuleResult.to_dict() exactly (field-for-field)."""
+
+    rule_id: str
+    rule_version: str
+    status: RuleStatus
+    applicability: Applicability
+    matched_facts: list[str]
+    missing_facts: list[str]
+    uncertain_facts: list[str]
+    evidence: list[EvidenceResponse]
+    legal_basis: list[str]
+    reason: str
+    recommendation: str
+    evaluated_at: str
+    instance_results: list[InstanceRuleResultResponse] = []
+    implementation_notes: list[str] = []
+
+
+class ComplianceResponse(BaseModel):
+    """Common successful response envelope for all three compliance endpoints."""
+
+    poc: Literal["PoC1", "PoC2", "PoC3"]
+    rule_results: list[RuleResultResponse]
+
+
+@router.post("/design-check", response_model=ComplianceResponse)
+def design_check(
+    form: dict[str, Any] = Body(...),
+) -> dict[str, Any]:
+    try:
+        results = run_design_check(form)
+    except ComplianceInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     return {
-        "scenario_id": form.scenario_id,
-        "fact_count": len(facts),
-        "facts": [fact.model_dump(by_alias=True, exclude_none=False) for fact in facts],
+        "poc": "PoC3",
+        "rule_results": [result.to_dict() for result in results],
     }
 
 
-@router.get(
-    "/api/v1/dev/design-example",
-    summary="예시 설계 Form (개발/데모용)",
-)
-def design_example() -> dict:
-    """UI가 처음 열릴 때 채워 넣을 예시. SC-D01 설계와 정합한다."""
-    if not EXAMPLE_FORM.is_file():
-        raise HTTPException(status_code=500, detail="예시 Form 파일을 찾을 수 없습니다.")
-    return json.loads(EXAMPLE_FORM.read_text(encoding="utf-8"))
+@router.post("/policy-check", response_model=ComplianceResponse)
+def policy_check(
+    request: dict[str, Any] = Body(...),
+) -> dict[str, Any]:
+    try:
+        results = run_policy_check(request)
+    except ComplianceInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {
+        "poc": "PoC1",
+        "rule_results": [result.to_dict() for result in results],
+    }
 
 
-@router.get("/design", response_class=HTMLResponse, include_in_schema=False)
-def design_page() -> HTMLResponse:
-    if not DESIGN_HTML.is_file():
-        raise HTTPException(status_code=500, detail="design.html을 찾을 수 없습니다.")
-    return HTMLResponse(DESIGN_HTML.read_text(encoding="utf-8"))
+@router.post("/breach-check", response_model=ComplianceResponse)
+def breach_check(
+    request: dict[str, Any] = Body(...),
+) -> dict[str, Any]:
+    try:
+        results = run_breach_check(request)
+    except ComplianceInputError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return {
+        "poc": "PoC2",
+        "rule_results": [result.to_dict() for result in results],
+    }
