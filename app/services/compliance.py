@@ -5,11 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from app.builders.poc3_fact_builder import Poc3FormError, build_poc3_facts
-from app.extractors.base import Poc1Extractor, Poc2Extractor
+from app.extractors.base import ExtractionResult, Poc1Extractor, Poc2Extractor
 from app.extractors.poc1_mock_extractor import MockPoC1Extractor
 from app.extractors.poc2_mock_extractor import MockPoc2Extractor
 from app.mapping.fact_schema import FactValidationError
 from app.mapping.ontology_mapper import OntologyMapper
+from app.mapping.presence_metadata import activity_presence_metadata
 from app.rules.engine import P0RuleEngine
 from app.rules.models import RuleResult
 
@@ -20,6 +21,16 @@ class ComplianceInputError(ValueError):
 
 _default_poc1_extractor = MockPoC1Extractor()
 _default_poc2_extractor = MockPoc2Extractor()
+
+
+def _split_extractor_output(
+    output: list[dict[str, Any]] | ExtractionResult,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Accept legacy list extractors and the presence-aware output contract."""
+
+    if isinstance(output, ExtractionResult):
+        return output.facts, list(output.system_metadata)
+    return output, []
 
 
 def run_design_check(form: dict[str, Any]) -> list[RuleResult]:
@@ -48,13 +59,24 @@ def run_design_check(form: dict[str, Any]) -> list[RuleResult]:
     except Poc3FormError as exc:
         raise ComplianceInputError(str(exc)) from exc
 
+    presence_metadata: list[dict[str, Any]] = []
+    if "entrusted_processings" in form and form.get("entrusted_processings") == []:
+        presence_metadata.append(
+            activity_presence_metadata(
+                "EntrustedProcessing",
+                "confirmed_false",
+                source_type="structured_form",
+                evidence=[{"field_path": "entrusted_processings"}],
+            )
+        )
+
     try:
         mapper = OntologyMapper(
             analysis_id,
             controller_id=controller_id,
             controller_name=controller_name,
         )
-        mapping_result = mapper.map(facts)
+        mapping_result = mapper.map(facts, system_metadata=presence_metadata)
     except FactValidationError as exc:
         raise ComplianceInputError(str(exc)) from exc
 
@@ -95,12 +117,14 @@ def run_policy_check(
         raise ComplianceInputError("필수 요청 필드 누락: policy_text")
 
     active_extractor = extractor if extractor is not None else _default_poc1_extractor
-    facts = active_extractor.extract(
+    extractor_output = active_extractor.extract(
         analysis_id=analysis_id,
         controller_id=controller_id,
         controller_name=controller_name,
         policy_text=policy_text,
     )
+
+    facts, presence_metadata = _split_extractor_output(extractor_output)
 
     try:
         mapper = OntologyMapper(
@@ -108,7 +132,7 @@ def run_policy_check(
             controller_id=controller_id,
             controller_name=controller_name,
         )
-        mapping_result = mapper.map(facts)
+        mapping_result = mapper.map(facts, system_metadata=presence_metadata)
     except FactValidationError as exc:
         raise ComplianceInputError(str(exc)) from exc
 
@@ -156,7 +180,7 @@ def run_breach_check(
         raise ComplianceInputError("notification은 JSON 객체 또는 생략되어야 함")
 
     active_extractor = extractor if extractor is not None else _default_poc2_extractor
-    facts = active_extractor.extract(
+    extractor_output = active_extractor.extract(
         analysis_id=analysis_id,
         controller_id=controller_id,
         controller_name=controller_name,
@@ -164,13 +188,29 @@ def run_breach_check(
         notification=notification,
     )
 
+    facts, presence_metadata = _split_extractor_output(extractor_output)
+    has_notice_presence_metadata = any(
+        item.get("field") == "activity_presence"
+        and item.get("activity_type") == "NotificationNotice"
+        for item in presence_metadata
+    )
+    if notification is None and not has_notice_presence_metadata:
+        presence_metadata.append(
+            activity_presence_metadata(
+                "NotificationNotice",
+                "confirmed_false",
+                source_type="derived",
+                evidence=[{"field_path": "notification"}],
+            )
+        )
+
     try:
         mapper = OntologyMapper(
             analysis_id,
             controller_id=controller_id,
             controller_name=controller_name,
         )
-        mapping_result = mapper.map(facts)
+        mapping_result = mapper.map(facts, system_metadata=presence_metadata)
     except FactValidationError as exc:
         raise ComplianceInputError(str(exc)) from exc
 

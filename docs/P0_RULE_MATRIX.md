@@ -10,6 +10,7 @@
 - `RED`: Applicability=TRUE이고 필수 Fact의 명시적 부재 또는 금지조건이 확인됨
 - `N/A`: Applicability=FALSE가 명시적으로 확인됨. 단순 결측은 N/A로 처리하지 않음
 - 동일 Rule의 여러 인스턴스는 `RED > AMBER > GREEN` 우선순위로 대표 상태를 요약하며 N/A 인스턴스는 적용 대상 집계에서 제외
+- 조건부 활동 자체의 명시적 부재는 `system_metadata.activity_presence=confirmed_false`로 전달함. 속성 Fact의 `value_state=absent`와 구분함.
 
 ## PoC1
 
@@ -56,3 +57,6 @@ P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_proc
 - `rules/p0_rules.json`은 Rule ID, PoC, 법적 근거, applicability, ontology term metadata를 관리합니다.
 - P2-R01은 v1에서 `F2-01 DataBreachIncident`, `F2-02 affectsPersonalInformation`, `F2-03 hasNotificationNotice`만 Required Fact로 사용합니다. 통지 대상 여부 자체, 신고 threshold, `ReportingObligation`, `triggersNotificationObligation` 자동판정은 범위 밖입니다.
 - `noticeIncidentTime`, `measureRole`, `entrustedTaskText`는 Rule 입력용 보조 metadata이며 ontology v1.0에서는 annotation property로만 정의되어 있습니다.
+- N/A 적용성 메타데이터를 실제 사용하는 핵심 Rule은 P1-R03, P1-R06, P2-R02, P2-R03, P3-R11입니다.
+- P2-R01은 사고 입력이 존재하는 상태에서 통지문이 없으면 RED이며, P2-R02/P2-R03만 N/A입니다.
+- Presence State는 Frozen Fact가 아닌 system metadata이므로 Fact/Ontology v1.0을 유지합니다.

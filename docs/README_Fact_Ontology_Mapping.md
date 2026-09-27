@@ -22,6 +22,8 @@
 - 시스템 메타데이터와 RDF Annotation triple의 용도별 이중 보존
 - 기존 SHACL 구조 검증
 - F1-12 문자열 계약 및 F1-11 권리 노드와의 동일 URI 연결
+- 조건부 활동 presence metadata 검증 및 N/A Rule 전달
+- SHACL 단일 원본(`ontology/PIPA_Process_Centered_SHACL_v1.0.ttl`)
 
 ## 디렉터리
 
@@ -32,6 +34,7 @@ app/
 └─ mapping/
    ├─ fact_schema.py
    ├─ mapping_registry.py
+   ├─ presence_metadata.py
    └─ ontology_mapper.py
 schemas/
 └─ fact-envelope.schema.json
@@ -184,22 +187,16 @@ P0RuleEngine
 8. F1-12 문자열이 F1-11에서 생성된 동일 권리 노드에 연결됨
 9. 기존 PoC1 Extractor의 F1-12 객체형 입력도 동일 권리 노드로 정규화됨
 
-## 아직 확정이 필요한 N/A 계약
+## N/A 적용성 계약
 
-TST-003은 GREEN/AMBER/RED/N/A 네 상태 재현을 요구하지만, Frozen Fact 35종에는
-"해당 처리행위 유형 자체가 없음"을 표현하는 전용 Fact ID가 없다. 기존 Fact ID에
-`value_state=absent`를 넣는 방식은 존재하는 활동의 속성 부재를 나타낼 뿐, 조건부 Rule의
-적용 대상 자체가 없다는 N/A와 동일하지 않다.
-
-따라서 이 패키지는 임의 Fact ID나 온톨로지 개념을 추가하지 않는다. Rule Definition
-담당자와 Fact/Ontology 담당자가 Fact Dictionary 개정을 승인한 뒤 별도 버전으로 반영해야
-한다. 결정 전까지 N/A end-to-end 검증은 미완료로 표시한다.
+Frozen Fact의 `value_state=absent`는 존재하는 활동의 속성 부재를 뜻한다. 조건부 활동
+자체의 명시적 부재는 `system_metadata.activity_presence=confirmed_false`로 별도
+전달한다. P1-R03, P1-R06, P2-R02, P2-R03, P3-R11의 실제 서비스 경로 회귀 테스트를
+추가했다. 세부 계약 및 승인 상태는
+`docs/context/backend/N_A_FACT_DECISION_REQUIRED.md`에 기록했다.
 
 ## 현재 남은 통합 작업
 
-이 패키지는 A 담당 범위인 Fact 생성·검증·온톨로지 매핑까지 구현한다. 팀 저장소에서 마지막으로 필요한 작업은 다음 두 가지다.
-
-1. API의 PoC1/PoC2 Extractor 출력과 이 매퍼의 Fact Envelope 연결
-2. `P0RuleEngine` 호출부가 `graph`, `facts`, `system_metadata`를 받도록 연결
-
-Rule Engine 조건과 API endpoint 자체는 B 담당 코드에서 연결해야 한다.
+Mock Extractor/Form → Mapper → Rule Engine 경로는 연결되어 있다. 실제 LLM Extractor는
+`ExtractionResult(facts, system_metadata)` 계약을 구현하고 동일 회귀 테스트를 통과해야
+한다. Rule 정의 담당자와 Rule Engine 담당자의 N/A 계약 승인은 별도로 남아 있다.
