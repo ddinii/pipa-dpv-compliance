@@ -16,7 +16,8 @@ evals/
    ├─ sc_p02_incident.txt      # 사고 기록 (가상)
    ├─ sc_p02_notice.txt        # 통지문 (가상)
    ├─ sc_p02_gold_facts.json   # gold Fact set (생성물)
-   └─ build_gold_facts.py      # 생성기
+   ├─ build_gold_facts.py      # 생성기
+   └─ variants/                # controlled variants 5개
 ```
 
 PoC를 늘릴 때는 `evals/dataset.py`의 `POC_DATASETS`에 `DatasetSpec` 한 줄,
@@ -399,16 +400,39 @@ Freeze 시나리오에서 실제 사고 발생시점과 통지문 기재 시점�
 ### 평가 하네스에 등록되어 있습니다
 
 ```powershell
-python evalsun_extraction.py --poc poc2
+python evals
+un_extraction.py --poc poc2
 ```
 
 `EvalCase.extract_with()`가 PoC별 Protocol 호출 규약(PoC1은 `policy_text`,
 PoC2는 `incident` + `notification`)을 흡수하므로 러너는 PoC를 몰라도 됩니다.
 
+### PoC2 Controlled Variants (TST-003)
+
+| 변형 | 조작 | 결과 |
+|---|---|---|
+| v1-incident-missing-items | 사고 기록의 실제 영향 항목 삭제 | P2-R01 **RED** + P2-R02 RED |
+| v2-notice-omits-items | 통지문의 항목 기재 삭제 | P2-R02 **RED** |
+| v3-notice-missing-incident-time | 통지문의 유출 시점 기재 삭제 | P2-R03 **RED** |
+| v4-partial-response-measures | 대응조치 4종 중 2종만 남김 | P2-R08 **AMBER** |
+| v5-no-response-measures | 대응조치 기재를 통째로 삭제 | P2-R08 **RED** |
+
+```powershell
+python evals\poc2uild_variants.py
+python -m pytest -q tests	est_variants_poc2.py
+```
+
+**v1은 Rule 두 개를 움직입니다.** F2-02를 7장 Coverage가 P2-R01과 P2-R02에서 함께
+소비하기 때문입니다. 그래서 PoC1처럼 "변형 하나가 Rule 하나만 움직인다"로 고정하지
+않고, **움직인 Rule이 그 Fact를 소비한다고 7장이 적은 Rule 안에 드는지**를 봅니다.
+그 밖의 Rule이 움직이면 변형이 문서를 의도보다 넓게 건드린 것입니다.
+
+v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(AMBER)와 "대응조치를
+안 한 경우"(RED)**가 달라야 하기 때문입니다. 둘이 같아지면 판정이 구별력을 잃습니다.
+
 ## 남은 일
 
-1. PoC2 controlled variants — 기준 세트는 끝났고 RED 케이스가 남았습니다
-2. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가) — **실제 실행 전 필수**
+1. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가) — **실제 실행 전 필수**
 3. 첫 실제 실행과 프롬프트 튜닝
 4. 모델 비교(`--model claude-sonnet-5`)와 캐시 효과 실측(`--no-cache`)
 
