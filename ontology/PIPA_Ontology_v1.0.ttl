@@ -12,7 +12,8 @@
     dct:title "PIPA Compliance Process-Centered Ontology"@en ,
               "개인정보 보호법 준수 지원 처리행위 중심 온톨로지"@ko ;
     dct:created "2026-09-11"^^xsd:date ;
-    rdfs:comment "PoC Freeze 문서의 P0 Rule/Fact와 처리행위 중심 모델링 원칙을 반영한 Protégé 호환 OWL 2 Turtle 온톨로지이다. 법적 판단을 확정하지 않는다."@ko .
+    rdfs:comment "PoC Freeze 문서의 P0 Rule/Fact와 처리행위 중심 모델링 원칙을 반영한 Protégé 호환 OWL 2 Turtle 온톨로지이다. 법적 판단을 확정하지 않는다."@ko ;
+    rdfs:comment "조건부 처리행위 자체의 존재·부재는 core ontology assertion이 아니라 검증된 system metadata로 관리한다. 속성 부재와 활동 부재를 혼동하지 않는다."@ko .
 
 #################################################################
 # Upper classes required for the Protégé class hierarchy

@@ -126,11 +126,30 @@ def both_passes() -> list[dict]:
 # --- handoff 2장: Protocol 계약 -----------------------------------------
 
 
-def test_signature_matches_the_protocol_exactly():
+def test_parameters_match_the_protocol_exactly():
+    """파라미터를 더하거나 빼면 주입 지점이 조용히 깨진다.
+
+    반환 타입은 비교하지 않는다. Protocol이 ExtractorOutput
+    (list[dict] | ExtractionResult) 유니온으로 넓어졌고, 좁은 쪽인
+    list[dict]를 돌려주는 것은 계약을 만족한다. 파라미터는 정확히 같아야 한다.
+    """
     assert (
-        inspect.signature(LlmPoc2Extractor.extract)
-        == inspect.signature(Poc2Extractor.extract)
+        inspect.signature(LlmPoc2Extractor.extract).parameters
+        == inspect.signature(Poc2Extractor.extract).parameters
     )
+
+
+def test_return_type_is_accepted_by_the_service_boundary():
+    """서비스가 legacy list 반환을 받아주는지 확인한다.
+
+    app/services/compliance.py의 _split_extractor_output이 list와
+    ExtractionResult를 모두 받는다. 그 계약이 사라지면 여기서 드러난다.
+    """
+    from app.services.compliance import _split_extractor_output
+
+    facts, presence = _split_extractor_output([{"fact_id": "F1-01:x"}])
+    assert facts == [{"fact_id": "F1-01:x"}]
+    assert presence == []
 
 
 # --- handoff 3·5장: Fact 출력 계약 ---------------------------------------

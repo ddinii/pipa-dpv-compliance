@@ -14,14 +14,14 @@ PoC1:
 
 policy input
 → PoC1 extractor
-→ frozen F1 Fact[]
+→ ExtractionResult(Frozen F1 Fact[], system metadata)
 → existing mapping/evaluation pipeline
 
 PoC2:
 
 incident + notification input
 → PoC2 extractor
-→ frozen F2 Fact[]
+→ ExtractionResult(Frozen F2 Fact[], system metadata)
 → existing mapping/evaluation pipeline
 
 The API and Rule Engine must not know whether Facts came from:
@@ -52,11 +52,10 @@ An extractor must not:
 
 ## Output Contract
 
-Extractor output is:
-
-list[dict]
-
-where every item is a valid frozen fact-1.0 Fact envelope.
+Extractor output is either a legacy `list[dict]` or
+`ExtractionResult(facts, system_metadata)`. New extractors should use
+`ExtractionResult` whenever they can confirm the absence of a conditional
+activity.
 
 Extractor output must pass the existing:
 
@@ -65,6 +64,9 @@ validate_facts(...)
 contract before deterministic evaluation.
 
 Do not create a second competing Fact schema.
+
+Activity absence metadata must pass `validate_system_metadata(...)`. It must
+not be encoded by changing a property Fact to `value_state=absent`.
 
 ## Provider Independence
 

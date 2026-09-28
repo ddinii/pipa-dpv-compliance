@@ -1,0 +1,16 @@
+PIPA Fact-Ontology Mapping validation — 2026-09-27
+
+Ran 15 tests
+OK
+PASS facts: 43
+PASS RDF triples: 124
+PASS system metadata: 2
+FINAL: FACT-TO-ONTOLOGY MAPPING TESTS PASSED
+
+New regression checks:
+- test_f1_12_string_links_procedure_to_f1_11_right_node: PASS
+- test_f1_12_object_value_is_rejected_by_frozen_contract: PASS
+
+Known unresolved contract:
+- TST-003 N/A representation requires O_Jeon + YENA decision under specification section 14-3.
+- No new Fact ID or ontology term was invented in this patch.

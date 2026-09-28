@@ -16,7 +16,7 @@ function formatEvidenceValue(value: Evidence['value']): string | null {
 
 export function EvidenceList({ evidence }: EvidenceListProps) {
   if (evidence.length === 0) {
-    return <p className="evidence-empty">No evidence recorded.</p>
+    return <p className="evidence-empty">기록된 근거 없음.</p>
   }
 
   return (

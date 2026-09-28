@@ -17,6 +17,7 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
 
 from .fact_schema import FactValidationError, local_name, validate_facts
 from .mapping_registry import FACT_SPECS
+from .presence_metadata import validate_system_metadata
 
 
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
@@ -74,8 +75,14 @@ class OntologyMapper:
         self._end_conditions: list[URIRef] = []
         self._destructions: list[URIRef] = []
 
-    def map(self, raw_facts: list[dict[str, Any]]) -> MappingResult:
+    def map(
+        self,
+        raw_facts: list[dict[str, Any]],
+        *,
+        system_metadata: list[dict[str, Any]] | None = None,
+    ) -> MappingResult:
         facts = validate_facts(raw_facts)
+        self.system_metadata.extend(validate_system_metadata(system_metadata))
         for fact in facts:
             self._assert_mapping_contract(fact)
             trace_item = {
@@ -317,17 +324,19 @@ class OntologyMapper:
             self.graph.add((subject, PIPA.hasRight, right))
 
     def _map_right_procedure(self, fact: dict[str, Any]) -> None:
+        # Canonical F1-12 is a string whose subject_id is the F1-11 right name.
+        # The existing PoC1 extractor emits {right, procedure}; normalize both
+        # forms here.  In either case F1-11 and F1-12 mint the same right URI.
         value = fact["value"]
         if isinstance(value, dict):
             right_name = self._object_name(value, "right", "right_name")
             description = self._object_name(value, "procedure", "description")
-            right = self._derived_uri("right", right_name)
-            self.graph.add((right, RDF.type, PIPA.DataSubjectRight))
-            self._add_label(right, right_name)
         else:
-            right = self._uri(fact["subject_id"])
-            self.graph.add((right, RDF.type, PIPA.DataSubjectRight))
-            description = str(value)
+            right_name = fact["subject_id"]
+            description = str(value).strip()
+        right = self._derived_uri("right", right_name)
+        self.graph.add((right, RDF.type, PIPA.DataSubjectRight))
+        self._add_label(right, right_name)
         procedure = self._derived_uri("rights-procedure", f"{right}|{description}")
         self.graph.add((procedure, RDF.type, PIPA.RightsExerciseProcedure))
         self.graph.add((procedure, PIPA.hasProcedureDescription, Literal(description)))

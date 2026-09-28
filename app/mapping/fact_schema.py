@@ -131,6 +131,25 @@ def validate_fact(raw: Mapping[str, Any]) -> dict[str, Any]:
             f"{identifier}: schema_version은 {FACT_SCHEMA_VERSION!r}이어야 함"
         )
 
+    # Frozen Fact Dictionary v1.0 defines F1-12 (권리 행사절차) as string.
+    # The existing PoC1 extractor predates that freeze and emits
+    # {right, procedure}.  Accept both at the integration boundary and map
+    # them to the same RDF shape so the frozen string form remains canonical
+    # without breaking the already integrated extractor.
+    if base_type == "F1-12" and fact["value_state"] == "confirmed":
+        value = fact["value"]
+        valid_string = isinstance(value, str) and bool(value.strip())
+        valid_legacy_object = (
+            isinstance(value, Mapping)
+            and any(value.get(key) not in (None, "") for key in ("right", "right_name"))
+            and any(value.get(key) not in (None, "") for key in ("procedure", "description"))
+        )
+        if not (valid_string or valid_legacy_object):
+            raise FactValidationError(
+                f"{identifier}: F1-12 value는 비어 있지 않은 문자열 또는 "
+                "right/procedure 객체여야 함"
+            )
+
     _validate_evidence(fact["evidence"], identifier)
     return fact
 

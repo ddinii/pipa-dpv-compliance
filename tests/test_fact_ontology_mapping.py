@@ -55,7 +55,7 @@ class FactOntologyMappingTests(unittest.TestCase):
             fact("F1-09-001", subject_id="entrust", activity_id="entrust", ontology_class="EntrustedProcessing", ontology_property="hasProcessor", value="K-Cloud", source_type="policy_text"),
             fact("F1-10-001", subject_id="entrust", activity_id="entrust", ontology_class="EntrustedProcessing", ontology_property=None, value="서비스 인프라 운영", source_type="policy_text"),
             fact("F1-11-001", subject_id="user", activity_id=None, ontology_class="DataSubject", ontology_property="hasRight", value=["열람", "정정·삭제"], source_type="policy_text"),
-            fact("F1-12-001", subject_id="right", activity_id=None, ontology_class="DataSubjectRight", ontology_property="hasExerciseProcedure", value={"right": "열람", "procedure": "마이페이지에서 신청"}, source_type="policy_text"),
+            fact("F1-12-001", subject_id="열람", activity_id=None, ontology_class="DataSubjectRight", ontology_property="hasExerciseProcedure", value="마이페이지에서 신청", source_type="policy_text"),
         ]
         result = OntologyMapper("poc1", controller_id="MoaCommerce").map(facts)
         graph = result.graph
@@ -68,6 +68,66 @@ class FactOntologyMappingTests(unittest.TestCase):
         self.assertTrue(any(graph.triples((None, PIPA.hasExerciseProcedure, None))))
         self.assertEqual("entrusted_task_text", result.system_metadata[0]["field"])
         self.assertTrue(any(graph.triples((None, PIPA.entrustedTaskText, None))))
+
+    def test_f1_12_string_links_procedure_to_f1_11_right_node(self):
+        facts = [
+            fact(
+                "F1-11-001",
+                subject_id="user",
+                activity_id=None,
+                ontology_class="DataSubject",
+                ontology_property="hasRight",
+                value=["열람"],
+                source_type="policy_text",
+            ),
+            fact(
+                "F1-12-001",
+                subject_id="열람",
+                activity_id=None,
+                ontology_class="DataSubjectRight",
+                ontology_property="hasExerciseProcedure",
+                value="마이페이지에서 신청",
+                source_type="policy_text",
+            ),
+        ]
+        graph = OntologyMapper("p1-r07", controller_id="MoaCommerce").map(facts).graph
+        data_subject = next(graph.subjects(RDF.type, PIPA.DataSubject))
+        right = next(graph.objects(data_subject, PIPA.hasRight))
+        procedures = list(graph.objects(right, PIPA.hasExerciseProcedure))
+
+        self.assertEqual(1, len(set(graph.subjects(RDF.type, PIPA.DataSubjectRight))))
+        self.assertEqual(1, len(procedures))
+        self.assertIn(
+            Literal("마이페이지에서 신청"),
+            set(graph.objects(procedures[0], PIPA.hasProcedureDescription)),
+        )
+
+    def test_f1_12_legacy_object_is_normalized_to_same_right_node(self):
+        facts = [
+            fact(
+                "F1-11-001",
+                subject_id="user",
+                activity_id=None,
+                ontology_class="DataSubject",
+                ontology_property="hasRight",
+                value=["열람"],
+                source_type="policy_text",
+            ),
+            fact(
+            "F1-12-001",
+                subject_id="right",
+                activity_id=None,
+                ontology_class="DataSubjectRight",
+                ontology_property="hasExerciseProcedure",
+                value={"right": "열람", "procedure": "마이페이지에서 신청"},
+                source_type="policy_text",
+            ),
+        ]
+        graph = OntologyMapper("p1-r07-compat", controller_id="MoaCommerce").map(facts).graph
+        data_subject = next(graph.subjects(RDF.type, PIPA.DataSubject))
+        right = next(graph.objects(data_subject, PIPA.hasRight))
+        self.assertEqual(1, len(set(graph.subjects(RDF.type, PIPA.DataSubjectRight))))
+        self.assertTrue(any(graph.objects(right, PIPA.hasExerciseProcedure)))
 
     def test_poc3_form_to_fact_to_rdf_and_shacl(self):
         form = json.loads((BASE / "examples/SC-D01_form.json").read_text(encoding="utf-8"))

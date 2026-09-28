@@ -146,3 +146,8 @@ It contains:
 - confirmed-false cross-border transfer scenario state
 
 The existing builder intentionally does not create new frozen Facts for the two confirmed-false scenario-state fields.
+
+An explicitly present empty `entrusted_processings` array is converted by the
+service into evidence-backed
+`system_metadata.activity_presence(EntrustedProcessing=confirmed_false)`.
+This makes P3-R11 N/A without inventing F3-14 or a core ontology property.

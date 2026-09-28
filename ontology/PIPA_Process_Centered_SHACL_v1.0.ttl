@@ -4,6 +4,10 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
+# Canonical SHACL source. Activity-presence applicability is validated as
+# system metadata before RDF mapping and is intentionally outside these
+# domain-graph shapes. Do not copy this file into tests/; tests load this file.
+
 pipa:ProcessingActivityShape a sh:NodeShape ;
     sh:targetClass pipa:ProcessingActivity ;
     sh:property [

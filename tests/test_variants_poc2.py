@@ -127,9 +127,10 @@ def test_variant_only_moves_rules_that_consume_the_changed_fact(
 def test_three_statuses_are_represented_in_poc2(cases: dict):
     """TST-003: GREEN/AMBER/RED 대표 케이스가 세트에 모두 있어야 한다.
 
-    N/A는 빠져 있다. Fact Dictionary 4장에는 "이 사고가 없음"을 담을 Fact ID가
-    없어 Fact 경로로는 N/A에 도달할 수 없다. PoC1과 같은 한계이며 Fact Dictionary
-    개정 사항으로 올린다 (기능명세서 14장 3번).
+    N/A는 빠져 있다. Rule Engine은 activity presence metadata로 N/A를 내지만
+    (app/mapping/presence_metadata.py), 이 변형 세트의 정답지는 그 메타데이터를
+    싣지 않는다. Extractor가 "하지 않는다고 명시됨"을 감지해 presence metadata로
+    내보내도록 붙이면 그때 N/A 케이스를 추가할 수 있다.
     """
     seen = set()
     for case in cases.values():

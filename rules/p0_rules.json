@@ -59,7 +59,7 @@
       "poc": "PoC1",
       "title": "제3자 제공 기재",
       "rule_version": "1.0",
-      "applicability": "ThirdPartyProvision 존재 여부에 따라 적용",
+      "applicability": "ThirdPartyProvision? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제3호",
         "개인정보 보호법 제17조"
@@ -79,7 +79,9 @@
         "F1-06",
         "F1-07"
       ],
-      "notes": []
+      "notes": [
+        "N/A? system_metadata.activity_presence? ThirdPartyProvision=confirmed_false?? ????, F1-05/F1-06/F1-07? value_state=absent? ?? ??? ??? ????? ???."
+      ]
     },
     {
       "rule_id": "P1-R04",
@@ -109,7 +111,7 @@
       "poc": "PoC1",
       "title": "처리위탁 기재",
       "rule_version": "1.0",
-      "applicability": "EntrustedProcessing 존재 여부에 따라 적용",
+      "applicability": "EntrustedProcessing? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제5호",
         "개인정보 보호법 제26조"
@@ -129,7 +131,9 @@
         "F1-09",
         "F1-10"
       ],
-      "notes": []
+      "notes": [
+        "N/A? system_metadata.activity_presence? EntrustedProcessing=confirmed_false?? ????, F1-09/F1-10? value_state=absent? ?? ??? ??? ????? ???."
+      ]
     },
     {
       "rule_id": "P1-R07",
@@ -188,7 +192,8 @@
       "notes": [
         "v1 required facts are F2-01 DataBreachIncident, F2-02 affectsPersonalInformation, and F2-03 hasNotificationNotice.",
         "P2-R01 does not determine whether an incident is legally subject to notification; it reviews the provided incident facts and NotificationNotice presence.",
-        "Notification/reporting thresholds and ReportingObligation are outside v1 scope. triggersNotificationObligation is not used."
+        "Notification/reporting thresholds and ReportingObligation are outside v1 scope. triggersNotificationObligation is not used.",
+        "NotificationNotice? ????? ???? P2-R01? DataBreachIncident? ?? ??? ?? ?? Rule??? N/A? ??? RED? ????."
       ]
     },
     {
@@ -196,7 +201,7 @@
       "poc": "PoC2",
       "title": "통지 개인정보 항목 완전성",
       "rule_version": "1.0",
-      "applicability": "NotificationNotice가 존재하면 적용",
+      "applicability": "NotificationNotice? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
       "legal_basis": [
         "개인정보 보호법 제34조제1항제1호"
       ],
@@ -214,14 +219,16 @@
         "F2-02",
         "F2-04"
       ],
-      "notes": []
+      "notes": [
+        "NotificationNotice=confirmed_false? ?? P2-R02? N/A??, ??? F2-04? absent? ???? N/A? ???? ???."
+      ]
     },
     {
       "rule_id": "P2-R03",
       "poc": "PoC2",
       "title": "통지 시점·경위 기재",
       "rule_version": "1.0",
-      "applicability": "NotificationNotice가 존재하면 적용",
+      "applicability": "NotificationNotice? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
       "legal_basis": [
         "개인정보 보호법 제34조제1항제2호"
       ],
@@ -238,7 +245,8 @@
         "F2-09"
       ],
       "notes": [
-        "F2-08 notice_incident_time is the time stated in the NotificationNotice and must remain distinct from the actual DataBreachIncident.incidentDate (F2-05)."
+        "F2-08 notice_incident_time is the time stated in the NotificationNotice and must remain distinct from the actual DataBreachIncident.incidentDate (F2-05).",
+        "NotificationNotice=confirmed_false? ?? P2-R03? N/A??, F2-08/F2-09? ? ??? ??? ??? ??? ????."
       ]
     },
     {
@@ -448,7 +456,7 @@
       "poc": "PoC3",
       "title": "처리위탁 설계",
       "rule_version": "1.0",
-      "applicability": "EntrustedProcessing 설계에 적용",
+      "applicability": "EntrustedProcessing? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
       "legal_basis": [
         "개인정보 보호법 제26조"
       ],
@@ -464,7 +472,9 @@
         "F3-12",
         "F3-13"
       ],
-      "notes": []
+      "notes": [
+        "N/A? system_metadata.activity_presence? EntrustedProcessing=confirmed_false?? ????, F3-12/F3-13? value_state=absent? ?? ?? ??? ??? ??? ???."
+      ]
     }
   ]
 }

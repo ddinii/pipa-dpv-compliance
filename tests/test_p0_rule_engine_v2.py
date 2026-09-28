@@ -7,7 +7,7 @@ from app.rules.engine import P0RuleEngine
 
 BASE = Path(__file__).resolve().parent
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
-TEST = Namespace("https://example.org/pipa-test/metadata#")
+META = Namespace("https://w3id.org/pipa-compliance/metadata#")
 
 
 def load(name: str) -> Graph:
@@ -491,7 +491,7 @@ def test_p2_r03_explicit_no_notice_can_be_not_applicable():
     graph = Graph()
     controller = ex.controller
     graph.add((controller, RDF.type, PIPA.PersonalInformationController))
-    graph.add((controller, TEST.notificationNoticeState, Literal("confirmed_false")))
+    graph.add((controller, META.notificationNoticeState, Literal("confirmed_false")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
     assert result.status.value == "N/A"
