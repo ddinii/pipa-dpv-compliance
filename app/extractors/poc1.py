@@ -40,11 +40,20 @@ class ActivityList(BaseModel):
     activities: list[IdentifiedActivity]
 
 
+class RightProcedure(BaseModel):
+    right: str = Field(description="F1-11에 담은 권리 문구")
+    procedure: str = Field(description="그 권리의 행사절차")
+
+
+# structured outputs는 타입 없는 필드(Any)를 받지 않는다. 3장의 값 타입만 나열한다.
+Poc1Value = str | list[str] | RightProcedure | None
+
+
 class ExtractedFact(BaseModel):
     fact_id: str = Field(description="F1-02 등 Fact Dictionary ID")
     activity_id: str | None = Field(description="처리행위 ID. 권리 Fact는 null")
     ontology_property: str | None
-    value: Any | None
+    value: Poc1Value
     value_state: str = Field(description="confirmed | unknown | absent")
     evidence_text: list[str] = Field(description="원문 그대로의 인용. 배열 값은 원소별로 제공")
 
@@ -245,7 +254,7 @@ class PoC1Extractor:
             "activity_id": raw.activity_id,
             "ontology_class": ontology_class,
             "ontology_property": raw.ontology_property,
-            "value": raw.value if raw.value_state == "confirmed" else None,
+            "value": raw.model_dump()["value"] if raw.value_state == "confirmed" else None,
             "value_state": raw.value_state,
             "source_type": "policy_text",
             "evidence": evidence,

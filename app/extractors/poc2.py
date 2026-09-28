@@ -71,10 +71,23 @@ FACT_SUBJECT: dict[str, tuple[str, str]] = {
 INCIDENT_DERIVED_FACT_IDS = {"F2-10"}
 
 
+class ResponseMeasure(BaseModel):
+    measure_role: str = Field(description="MEASURE_ROLES 넷 중 하나")
+    text: str = Field(description="사고 기록에 적힌 조치 내용")
+
+
+class NoticeRef(BaseModel):
+    notice_id: str = Field(description="통지문을 식별하는 짧은 문구나 ID")
+
+
+# structured outputs는 타입 없는 필드(Any)를 받지 않는다. 4장의 값 타입만 나열한다.
+Poc2Value = str | list[str] | list[ResponseMeasure] | NoticeRef | None
+
+
 class ExtractedPoc2Fact(BaseModel):
     fact_id: str = Field(description="F2-02 등 Fact Dictionary ID")
     ontology_property: str | None
-    value: Any | None
+    value: Poc2Value
     value_state: str = Field(description="confirmed | unknown | absent")
     evidence_text: list[str] = Field(description="원문 그대로의 인용. 배열 값은 원소별로 제공")
 
@@ -224,7 +237,7 @@ class PoC2Extractor:
             reject("근거 인용을 원문에서 찾지 못했습니다.", quote=missing)
             return
 
-        value = raw.value if raw.value_state == "confirmed" else None
+        value = raw.model_dump()["value"] if raw.value_state == "confirmed" else None
         if raw.fact_id == "F2-10" and raw.value_state == "confirmed":
             problem = self._measure_problem(value)
             if problem is not None:
