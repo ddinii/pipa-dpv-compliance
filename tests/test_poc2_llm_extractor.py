@@ -274,7 +274,6 @@ def test_absence_is_not_confused_with_unknown():
             ],
             "중복",
         ),
-        ("text 누락", [{"measure_role": "controller_response"}], "필요"),
     ],
 )
 def test_bad_response_measures_are_rejected(label, measures, reason):
@@ -287,6 +286,15 @@ def test_bad_response_measures_are_rejected(label, measures, reason):
     # 거부되었으므로 F2-10 Fact가 없다
     facts = extract([bad], notification=False)
     assert not any(fact_type(i["fact_id"]) == "F2-10" for i in facts), label
+
+
+def test_measure_without_text_is_rejected_by_the_output_schema():
+    """text 누락은 structured outputs 스키마가 막는다. 모델이 그런 응답을 낼 수 없다."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        EF("F2-10", "hasResponseMeasure", [{"measure_role": "controller_response"}],
+           ["침해 경로를 차단하였습니다"])
 
 
 # --- 입력 계약 -----------------------------------------------------------
