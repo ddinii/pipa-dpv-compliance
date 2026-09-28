@@ -74,10 +74,10 @@ def test_variant_only_moves_its_target_rule(name: str):
 def test_three_statuses_are_represented_in_poc1():
     """TST-003: GREEN/AMBER/RED 대표 케이스가 변형 세트에 모두 있어야 한다.
 
-    N/A는 빠져 있다. Fact Dictionary 3장에는 "이 처리행위 유형이 아예 없다"를
-    담을 Fact ID가 없어서(F1-00 같은 것은 존재하지 않는다) Fact 경로로는 N/A에
-    도달할 수 없다. 현재 N/A는 손으로 쓴 RDF(test:...State "confirmed_false")로만
-    나온다. v1.0 범위의 한계이므로 Fact Dictionary 개정 사항으로 올린다.
+    N/A는 빠져 있다. Rule Engine은 activity presence metadata로 N/A를 내지만
+    (app/mapping/presence_metadata.py), 이 변형 세트의 정답지는 그 메타데이터를
+    싣지 않는다. Extractor가 "하지 않는다고 명시됨"을 감지해 presence metadata로
+    내보내도록 붙이면 그때 N/A 케이스를 추가할 수 있다.
     """
     seen = {"GREEN", "AMBER"}  # 기준 SC-P01이 제공한다
     for name in VARIANT_NAMES:

@@ -13,7 +13,7 @@ duplicate the Fact Dictionary or Rule Specification — see
 PoC1:
 policy_text
   -> Poc1Extractor.extract(...)
-  -> Frozen Fact[] (fact-1.0)
+  -> ExtractionResult(Frozen Fact[], system metadata)
   -> run_policy_check() [app/services/compliance.py]
   -> OntologyMapper.map()
   -> P0RuleEngine.evaluate_mapping_result(..., poc="PoC1")
@@ -22,7 +22,7 @@ policy_text
 PoC2:
 incident / notification input
   -> Poc2Extractor.extract(...)
-  -> Frozen Fact[] (fact-1.0)
+  -> ExtractionResult(Frozen Fact[], system metadata)
   -> run_breach_check() [app/services/compliance.py]
   -> OntologyMapper.map()
   -> P0RuleEngine.evaluate_mapping_result(..., poc="PoC2")
@@ -51,7 +51,7 @@ class Poc1Extractor(Protocol):
         controller_id: str,
         controller_name: str | None,
         policy_text: str,
-    ) -> list[dict[str, Any]]:
+    ) -> ExtractorOutput:
         ...
 
 
@@ -64,12 +64,15 @@ class Poc2Extractor(Protocol):
         controller_name: str | None,
         incident: dict[str, Any],
         notification: dict[str, Any] | None,
-    ) -> list[dict[str, Any]]:
+    ) -> ExtractorOutput:
         ...
 ```
 
-Return value: `list[dict]`, each dict a raw Fact envelope (see §3) that must
-pass `app.mapping.fact_schema.validate_facts()` unchanged.
+Return value: legacy `list[dict]` or `ExtractionResult`. Each item in
+`ExtractionResult.facts` is a raw Fact envelope (see §3) that must pass
+`app.mapping.fact_schema.validate_facts()` unchanged. New real extractors
+should return `ExtractionResult` when they can explicitly establish activity
+absence.
 
 Current implementations of each Protocol (integration test doubles, not
 reference behavior):
@@ -121,7 +124,20 @@ Evidence requirement is enforced by `fact_schema._validate_evidence`: a
 non-empty list; every item needs `text`, `field_path`, and/or `offset`. Do
 not fabricate evidence not traceable to the actual input.
 
-Do not invent fields beyond the table above.
+Do not invent fields inside the frozen Fact envelope beyond the table above.
+
+### Activity-presence metadata
+
+`ExtractionResult.system_metadata` may contain only validated
+`activity_presence` entries for `ThirdPartyProvision`, `EntrustedProcessing`,
+or `NotificationNotice`. Allowed states are `confirmed_true`,
+`confirmed_false`, and `unknown`; each entry requires source type and
+traceable evidence.
+
+Property absence and activity absence are different. For example, F1-05
+`value_state=absent` says that an existing ThirdPartyProvision has no recipient
+value and is a RED/AMBER input. `ThirdPartyProvision=confirmed_false` says that
+the provision activity itself is explicitly absent and makes P1-R03 N/A.
 
 ## 4. PoC1 output scope
 
@@ -177,6 +193,9 @@ Explicit boundaries (`docs/context/poc2/FACTS.md`,
   (F2-03, F2-04, F2-07, F2-08, F2-09) as `absent` with `source_type:
   "derived"` — never fabricate a `NotificationNotice`. See
   `MockPoc2Extractor.extract` for the reference pattern.
+- In addition, the service records evidence-backed
+  `NotificationNotice=confirmed_false` activity-presence metadata. P2-R01
+  remains RED; P2-R02 and P2-R03 become N/A.
 
 ## 6. Replacement points
 
@@ -204,7 +223,8 @@ handling, `OntologyMapper`, `P0RuleEngine`, the frontend API types
 (`PolicyCheckPage.tsx`, `BreachCheckPage.tsx`), **provided** the real
 extractor:
 1. implements the Protocol signature exactly (§2), and
-2. emits only Fact envelopes that pass `validate_facts()` unchanged (§3–5).
+2. emits only Fact envelopes that pass `validate_facts()` unchanged (§3–5),
+   and any presence metadata passes `validate_system_metadata()`.
 
 ## 7. Security / data handling
 
@@ -228,9 +248,11 @@ Before integrating a real extractor:
 
 - [ ] Implements `Poc1Extractor`/`Poc2Extractor` Protocol exactly as in §2
 - [ ] Output passes `app.mapping.fact_schema.validate_facts()` unchanged
+- [ ] Activity-presence metadata passes `validate_system_metadata()`
 - [ ] Emits only the allowed Fact IDs for its PoC (F1-01..F1-12 / F2-01..F2-10)
 - [ ] Every Fact has non-empty, traceable `evidence`
 - [ ] `unknown` vs `absent` distinction is preserved, never collapsed
+- [ ] property absence vs activity absence distinction is preserved
 - [ ] `P0RuleEngine` and `OntologyMapper` remain unchanged
 - [ ] `RuleResultResponse`/`ComplianceResponse` API contract remains unchanged
 - [ ] Full existing test suite (`python -m pytest -q`) still passes

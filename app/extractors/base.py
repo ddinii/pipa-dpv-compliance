@@ -10,7 +10,19 @@ docs/context/backend/EXTRACTOR_INTEGRATION.md.
 
 from __future__ import annotations
 
-from typing import Any, Protocol
+from dataclasses import dataclass, field
+from typing import Any, Protocol, TypeAlias
+
+
+@dataclass
+class ExtractionResult:
+    """Extractor output without mixing applicability metadata into Facts."""
+
+    facts: list[dict[str, Any]]
+    system_metadata: list[dict[str, Any]] = field(default_factory=list)
+
+
+ExtractorOutput: TypeAlias = list[dict[str, Any]] | ExtractionResult
 
 
 class Poc1Extractor(Protocol):
@@ -28,7 +40,7 @@ class Poc1Extractor(Protocol):
         controller_id: str,
         controller_name: str | None,
         policy_text: str,
-    ) -> list[dict[str, Any]]:
+    ) -> ExtractorOutput:
         ...
 
 
@@ -49,5 +61,5 @@ class Poc2Extractor(Protocol):
         controller_name: str | None,
         incident: dict[str, Any],
         notification: dict[str, Any] | None,
-    ) -> list[dict[str, Any]]:
+    ) -> ExtractorOutput:
         ...

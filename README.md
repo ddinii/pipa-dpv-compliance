@@ -129,17 +129,27 @@ LLM_PROVIDER=
 LLM_MODEL=
 ```
 
-The real LLM extractors read `ANTHROPIC_API_KEY` from the **process
-environment**, not from `.env` — nothing in this repository loads `.env`
-automatically. Export it in your shell before running an extraction:
+The compliance API picks its extractor from `PIPA_EXTRACTOR`:
+
+| Value | Behaviour |
+|---|---|
+| `mock` (default) | `MockPoC1Extractor` / `MockPoc2Extractor` — fixed synthetic scenario, no API calls, no cost |
+| `llm` | `LlmPoC1Extractor` / `LlmPoc2Extractor` — calls the Claude API, **billed per request** |
 
 ```powershell
+$env:PIPA_EXTRACTOR = "llm"
 $env:ANTHROPIC_API_KEY = "sk-ant-..."
+uvicorn app.main:app --reload
 ```
 
-`LlmPoC1Extractor.from_environment()` / `LlmPoc2Extractor.from_environment()`
-check that the variable is set and fail before any request is made. Neither
-they nor `evals/run_extraction.py` accept the key as an argument.
+`PIPA_EXTRACTOR_MODEL` overrides the model (defaults to `claude-opus-5`).
+
+The key is read from the **process environment**, not from `.env` — nothing in
+this repository loads `.env` automatically. Under `PIPA_EXTRACTOR=llm` the
+server still starts without a key; the failure surfaces on the first PoC1 or
+PoC2 request, so PoC3 and the other endpoints keep working. Neither the
+extractors nor `evals/run_extraction.py` accept the key as an argument.
+
 
 Frontend — copy `frontend/.env.example` to `frontend/.env` to point the UI
 at a non-default backend URL:

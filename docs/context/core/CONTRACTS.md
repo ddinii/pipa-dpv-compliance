@@ -93,6 +93,25 @@ Do not invent ontology classes, ontology properties, or mapping kinds.
 
 Unknown and absent Facts are validated and retained but are not emitted as confirmed RDF assertions.
 
+## Activity Presence Metadata
+
+Conditional activity presence is not a frozen Fact value. It is carried in
+`MappingResult.system_metadata` as:
+
+- `field`: `activity_presence`
+- `activity_type`: `ThirdPartyProvision`, `EntrustedProcessing`, or `NotificationNotice`
+- `state`: `confirmed_true`, `confirmed_false`, or `unknown`
+- `source_type`: one of the frozen source types
+- `evidence`: non-empty traceable evidence
+
+`value_state=absent` on a frozen Fact means that a property value is absent
+from an activity. It must never be used to mean that the activity itself does
+not exist. Only evidence-backed `activity_presence=confirmed_false` makes the
+five conditional Rules P1-R03, P1-R06, P2-R02, P2-R03, and P3-R11 N/A.
+
+This technical metadata does not add a Fact ID or a core ontology property;
+therefore the Fact/Ontology version remains v1.0.
+
 ## RuleResult
 
 Canonical deterministic RuleResult contains:

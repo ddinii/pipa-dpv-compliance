@@ -180,16 +180,18 @@ def test_same_input_gives_the_same_result(client: TestClient, api_id: str):
 # --- 미충족 사항 (TST-003) ------------------------------------------------
 
 
-def test_na_is_unreachable_through_the_fact_pipeline(client: TestClient):
-    """TST-003은 PoC마다 N/A 대표 케이스를 요구하지만 아직 만들 수 없다.
+def test_na_is_reachable_but_our_fixtures_do_not_exercise_it(client: TestClient):
+    """N/A는 이제 Fact 경로로 나온다. 다만 이 fixture 3종은 그 경로를 타지 않는다.
 
-    Fact Dictionary 3·4·5장에 "이 처리행위 유형이 아예 없다"를 담을 Fact ID가
-    없다. 8장은 미기재를 value_state=absent로 유지하라고 하지만, 처리행위 자체가
-    없으면 귀속시킬 activity_id가 없다. 현재 N/A는 손으로 쓴 RDF
-    (test:...State "confirmed_false")로만 나온다.
+    O_Jeon이 activity presence metadata로 구현했다
+    (app/mapping/presence_metadata.py · docs/N_A_PRESENCE_CHANGESET_20260927.md).
+    Fact가 아니라 system_metadata로 실어 보내므로 Fact Dictionary 3·4·5장의
+    35개와 1장의 "Ontology v1.0에 없는 개념을 P0 Fact로 만들지 않는다"를
+    둘 다 지킨다. tests/test_activity_presence_pipeline.py가 P1-R03/R06,
+    P2-R02/R03, P3-R11의 N/A를 전체 경로로 재현한다.
 
-    기능명세서 14장 3번에 따라 Fact Dictionary 개정 사항으로 등록해야 한다.
-    Fact ID가 생기면 이 테스트를 뒤집고 PoC별 N/A 케이스를 추가한다.
+    여기 fixture 3종은 presence metadata를 싣지 않아 N/A가 나오지 않는다.
+    TST-003을 이 세 endpoint로 만족시키려면 fixture를 늘려야 한다.
     """
     seen = set()
     for path, fixture, _, _ in ENDPOINTS.values():
@@ -197,4 +199,28 @@ def test_na_is_unreachable_through_the_fact_pipeline(client: TestClient):
         seen.update(result["status"] for result in body["results"])
 
     assert {"GREEN", "AMBER", "RED"} <= seen
-    assert "N/A" not in seen, "N/A가 나왔다면 Fact Dictionary가 개정된 것이다"
+    assert "N/A" not in seen
+
+
+def test_the_engine_reaches_na_through_presence_metadata():
+    """N/A 경로가 살아 있는지 직접 확인한다 (COM-006 · COM-007 · TST-003).
+
+    위 테스트가 "우리 fixture는 N/A를 안 낸다"만 말하므로, 시스템 전체에
+    N/A 경로가 있다는 사실을 여기서 따로 고정한다.
+    """
+    from app.mapping.presence_metadata import (
+        ACTIVITY_PRESENCE_STATES,
+        activity_presence_metadata,
+    )
+
+    assert "confirmed_false" in ACTIVITY_PRESENCE_STATES
+    item = activity_presence_metadata(
+        "ThirdPartyProvision",
+        "confirmed_false",
+        source_type="policy_text",
+        evidence=[
+            {"text": "제3자에게 제공하지 않습니다", "start_offset": 0, "end_offset": 18}
+        ],
+    )
+    assert item["field"] == "activity_presence"
+    assert item["state"] == "confirmed_false"

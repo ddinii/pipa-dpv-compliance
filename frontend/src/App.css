@@ -1,35 +1,167 @@
 .dev-shell {
-  padding: 48px 24px;
-  text-align: center;
+  padding: 32px 0 64px;
 }
 
-.dev-shell h1 {
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 34px 38px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(157, 185, 216, 0.7);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(234, 242, 251, 0.95));
+  box-shadow: var(--shadow);
+}
+
+.app-header-copy {
+  min-width: 0;
+}
+
+.app-header .eyebrow {
   margin-bottom: 8px;
 }
 
-.dev-shell p {
+.app-header h1 {
+  max-width: 780px;
+}
+
+.app-description {
+  max-width: 740px;
   color: var(--text);
+  font-size: 1.05rem;
 }
 
-.poc-nav {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.poc-nav button {
-  font: inherit;
-  padding: 8px 14px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
   background: var(--bg);
-  color: var(--text);
+  color: var(--primary-strong);
+  font-weight: 800;
   cursor: pointer;
 }
 
+.theme-toggle:hover {
+  background: var(--primary-soft);
+}
+
+.eyebrow {
+  color: var(--primary-strong);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.poc-nav {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 25px rgba(65, 91, 119, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+:root[data-theme='dark'] .app-header {
+  background: linear-gradient(135deg, rgba(28, 42, 58, 0.98), rgba(36, 57, 82, 0.95));
+}
+
+:root[data-theme='dark'] .poc-nav {
+  background: rgba(23, 35, 50, 0.94);
+}
+
+.poc-nav button {
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.poc-nav button:hover {
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+}
+
 .poc-nav button.active {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
-  color: var(--text-h);
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(86, 130, 184, 0.24);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-title {
+  margin-bottom: 8px;
+  font-size: clamp(1.7rem, 4vw, 2.35rem);
+}
+
+.form-actions-top {
+  margin: 18px 0 12px;
+}
+
+.secondary-button,
+.ghost-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-button {
+  border: 1px solid var(--primary-border);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.ghost-button {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.secondary-button:hover,
+.ghost-button:hover {
+  border-color: var(--primary);
+}
+
+@media (max-width: 760px) {
+  .dev-shell {
+    padding-top: 14px;
+  }
+
+  .app-header {
+    flex-direction: column;
+    padding: 26px 22px;
+    border-radius: 16px;
+  }
+
+  .poc-nav {
+    position: static;
+    grid-template-columns: 1fr;
+  }
 }

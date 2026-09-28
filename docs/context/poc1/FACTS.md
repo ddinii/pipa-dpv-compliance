@@ -28,6 +28,11 @@ Exactly 12 PoC1 Fact types exist:
 
 Do not invent additional F1 Fact IDs.
 
+Explicit absence of the entire `ThirdPartyProvision` or
+`EntrustedProcessing` activity is carried separately as evidence-backed
+`system_metadata.activity_presence=confirmed_false`. It is not F1-05/F1-09
+with `value_state=absent`. See `docs/context/backend/N_A_FACT_DECISION_REQUIRED.md`.
+
 ## Fact Contract
 
 Every produced Fact must follow the common fact-1.0 envelope documented in:

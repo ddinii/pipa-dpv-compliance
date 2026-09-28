@@ -27,6 +27,11 @@ Exactly 10 PoC2 Fact types exist:
 
 Do not invent additional F2 Fact IDs.
 
+When the request explicitly omits the whole notification document, the
+service records `NotificationNotice=confirmed_false` as system metadata.
+Notice-side property Facts may still be `absent`, but that property state is
+not itself the activity-presence signal.
+
 ## Fact Contract
 
 Every produced Fact must follow:

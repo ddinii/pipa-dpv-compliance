@@ -1,5 +1,25 @@
 # Fact ↔ Ontology 매핑표 v1.0
 
+Frozen Fact 35종과 core ontology term은 변경하지 않음. 조건부 활동 자체의 존재
+여부는 아래 별도 system metadata 계약으로 전달함.
+
+## Rule applicability presence metadata
+
+| system metadata | 의미 | 사용 Rule |
+|---|---|---|
+| `ThirdPartyProvision=confirmed_false` | 제3자 제공 활동 자체가 없다고 확인됨 | P1-R03 → N/A |
+| `EntrustedProcessing=confirmed_false` | 처리위탁 활동 자체가 없다고 확인됨 | P1-R06, P3-R11 → N/A |
+| `NotificationNotice=confirmed_false` | 입력 사고에 대한 통지문 자체가 없다고 확인됨 | P2-R02, P2-R03 → N/A |
+
+형식은 `field=activity_presence`, `activity_type`, `state`, `source_type`,
+`evidence`로 고정함. 이 메타데이터는 mapper가 검증해 보존하고 Rule Engine이 평가
+직전에 `https://w3id.org/pipa-compliance/metadata#` 기술 vocabulary로 임시
+투영함. core ontology assertion으로 직렬화하지 않음.
+
+활동이 존재하지만 recipient, processor, 통지 내용 등 속성이 빠진 경우에는 해당
+Frozen Fact의 `value_state=absent`를 사용함. 이 경우 N/A가 아니라 RED/AMBER 평가
+대상임.
+
 ## PoC1
 
 | Fact | RDF/저장 위치 |
@@ -15,7 +35,12 @@
 | F1-09 | `EntrustedProcessing.hasProcessor → EntrustedProcessor.hasName` |
 | F1-10 | `system_metadata.entrusted_task_text` + `pipa:entrustedTaskText` Annotation triple |
 | F1-11 | `DataSubject.hasRight → DataSubjectRight` |
-| F1-12 | `DataSubjectRight.hasExerciseProcedure → RightsExerciseProcedure` |
+| F1-12 | `DataSubjectRight.hasExerciseProcedure → RightsExerciseProcedure` (`value`: string, `subject_id`: F1-11 권리명) |
+
+> **F1-12 v1 확정 계약:** Fact Dictionary v1.0의 Type은 `string`이다.
+> `subject_id`에는 연결 대상인 F1-11 권리명을 사용하며, 매퍼는 F1-11과 F1-12에서
+> 동일한 `_derived_uri("right", 권리명)`을 생성한다. 기존 PoC1 Extractor가 출력하는
+> `{right, procedure}` 객체형은 통합 호환 입력으로 수용한 뒤 동일한 RDF로 정규화한다.
 
 ## PoC2
 
@@ -55,3 +80,9 @@
 | F3-11 | `RetentionEndCondition.triggersDestruction → Destruction.hasDestructionMethod` |
 | F3-12 | `EntrustedProcessing.hasProcessor → EntrustedProcessor.hasName` |
 | F3-13 | `system_metadata.entrusted_task_text` + `pipa:entrustedTaskText` Annotation triple |
+
+## 버전 정책
+
+현재 변경은 신규 Fact ID 또는 core ontology term을 추가하지 않으므로 v1.0을 유지함.
+향후 presence 상태를 Frozen Fact나 공개 RDF property로 승격하면 v1.1로 올리고 Fact
+Dictionary, ontology, SHACL, mapping spec과 engine을 같은 변경으로 배포함.

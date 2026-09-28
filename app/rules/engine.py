@@ -20,7 +20,7 @@ from app.rules.models import (
 
 
 PIPA = Namespace("https://w3id.org/pipa-compliance/ontology#")
-TEST = Namespace("https://example.org/pipa-test/metadata#")
+META = Namespace("https://w3id.org/pipa-compliance/metadata#")
 ROOT_DIR = Path(__file__).resolve().parents[2]
 ONTOLOGY_PATH = ROOT_DIR / "ontology" / "PIPA_Ontology_v1.0.ttl"
 
@@ -139,7 +139,30 @@ class P0RuleEngine:
         Keeping this adapter in the Rule Engine lets unknown/absent state survive
         the RDF boundary without adding any ontology terms.
         """
-        return self.evaluate_graph(mapping_result.graph, poc=poc, facts=mapping_result.facts)
+        graph = Graph()
+        for triple in mapping_result.graph:
+            graph.add(triple)
+
+        # Presence is document-level technical metadata.  PoC2 incident graphs
+        # are intentionally not ProcessingActivity graphs and therefore need
+        # not contain a PersonalInformationController node.  Project the
+        # metadata onto one stable, ephemeral document node instead of making
+        # N/A depend on a domain individual that may not exist.
+        metadata_subject = META.document
+        predicate_by_activity_type = {
+            "ThirdPartyProvision": META.thirdPartyProvisionState,
+            "EntrustedProcessing": META.entrustedProcessingState,
+            "NotificationNotice": META.notificationNoticeState,
+        }
+        for item in mapping_result.system_metadata:
+            if item.get("field") != "activity_presence":
+                continue
+            predicate = predicate_by_activity_type.get(item.get("activity_type"))
+            if predicate is None:
+                continue
+            graph.add((metadata_subject, predicate, Literal(str(item.get("state")))))
+
+        return self.evaluate_graph(graph, poc=poc, facts=mapping_result.facts)
 
     def evaluate_rule(
         self,
@@ -525,10 +548,8 @@ class P0RuleEngine:
         return any(self.ontology_graph.triples((term, RDF.type, None)))
 
     def _explicit_state(self, graph: Graph, predicate: URIRef) -> str | None:
-        for controller in self._instances(graph, PIPA.PersonalInformationController):
-            value = graph.value(controller, predicate)
-            if value is not None:
-                return str(value)
+        for value in graph.objects(None, predicate):
+            return str(value)
         return None
 
     def _conditional_no_targets(
@@ -741,7 +762,7 @@ class P0RuleEngine:
     def _p1_r03(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._instances(graph, PIPA.ThirdPartyProvision)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.thirdPartyProvisionState, "ThirdPartyProvision")
+            return self._conditional_no_targets(graph, META.thirdPartyProvisionState, "ThirdPartyProvision")
         results = []
         required = [PIPA.hasRecipient, PIPA.hasPersonalInformation, PIPA.hasPurpose]
         for activity in activities:
@@ -863,7 +884,7 @@ class P0RuleEngine:
     def _p1_r06(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._instances(graph, PIPA.EntrustedProcessing)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.entrustedProcessingState, "EntrustedProcessing")
+            return self._conditional_no_targets(graph, META.entrustedProcessingState, "EntrustedProcessing")
         results = []
         for activity in activities:
             processors = self._objects(graph, activity, PIPA.hasProcessor)
@@ -1063,7 +1084,7 @@ class P0RuleEngine:
     def _p2_r01(self, graph: Graph) -> list[InstanceRuleResult]:
         incidents = self._instances(graph, PIPA.DataBreachIncident)
         if not incidents:
-            return self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
+            return self._conditional_no_targets(graph, META.dataBreachIncidentState, "DataBreachIncident")
 
         results = []
         for incident in incidents:
@@ -1170,7 +1191,7 @@ class P0RuleEngine:
         for incident in incidents:
             notices = self._objects(graph, incident, PIPA.hasNotificationNotice)
             if not notices:
-                notice_state = self._explicit_state(graph, TEST.notificationNoticeState)
+                notice_state = self._explicit_state(graph, META.notificationNoticeState)
                 if notice_state == "confirmed_false":
                     results.append(
                         InstanceRuleResult(
@@ -1249,14 +1270,14 @@ class P0RuleEngine:
                             recommendation="누락된 개인정보 항목을 통지문에 반영하세요.",
                         )
                     )
-        return results or self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
+        return results or self._conditional_no_targets(graph, META.dataBreachIncidentState, "DataBreachIncident")
 
     def _p2_r03(self, graph: Graph) -> list[InstanceRuleResult]:
         notices = self._instances(graph, PIPA.NotificationNotice)
         if not notices:
-            if self._explicit_state(graph, TEST.dataBreachIncidentState) == "confirmed_false":
-                return self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
-            return self._conditional_no_targets(graph, TEST.notificationNoticeState, "NotificationNotice")
+            if self._explicit_state(graph, META.dataBreachIncidentState) == "confirmed_false":
+                return self._conditional_no_targets(graph, META.dataBreachIncidentState, "DataBreachIncident")
+            return self._conditional_no_targets(graph, META.notificationNoticeState, "NotificationNotice")
 
         results = []
         for notice in notices:
@@ -1337,7 +1358,7 @@ class P0RuleEngine:
     def _p2_r08(self, graph: Graph) -> list[InstanceRuleResult]:
         incidents = self._instances(graph, PIPA.DataBreachIncident)
         if not incidents:
-            return self._conditional_no_targets(graph, TEST.dataBreachIncidentState, "DataBreachIncident")
+            return self._conditional_no_targets(graph, META.dataBreachIncidentState, "DataBreachIncident")
 
         required_roles = {
             "data_subject_guidance",
@@ -1445,7 +1466,7 @@ class P0RuleEngine:
     def _p3_r01(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._collection_activities(graph)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
+            return self._conditional_no_targets(graph, META.collectionAndUseState, "CollectionAndUse")
 
         results = []
         for activity in activities:
@@ -1504,7 +1525,7 @@ class P0RuleEngine:
     ) -> list[InstanceRuleResult]:
         activities = self._collection_activities(graph)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
+            return self._conditional_no_targets(graph, META.collectionAndUseState, "CollectionAndUse")
 
         results = []
         for activity in activities:
@@ -1636,7 +1657,7 @@ class P0RuleEngine:
     def _p3_r04(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._collection_activities(graph)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
+            return self._conditional_no_targets(graph, META.collectionAndUseState, "CollectionAndUse")
 
         results = []
         for activity in activities:
@@ -1766,7 +1787,7 @@ class P0RuleEngine:
     def _p3_r05(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._collection_activities(graph)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
+            return self._conditional_no_targets(graph, META.collectionAndUseState, "CollectionAndUse")
         results = []
         for activity in activities:
             items = self._objects(graph, activity, PIPA.hasPersonalInformation)
@@ -1891,7 +1912,7 @@ class P0RuleEngine:
     def _p3_r06(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._collection_activities(graph)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.collectionAndUseState, "CollectionAndUse")
+            return self._conditional_no_targets(graph, META.collectionAndUseState, "CollectionAndUse")
 
         optional_items: list[tuple[Node, Node]] = []
         unknown_items: list[tuple[Node, Node]] = []
@@ -2026,7 +2047,7 @@ class P0RuleEngine:
         retentions = self._instances(graph, PIPA.Retention)
         end_conditions = self._instances(graph, PIPA.RetentionEndCondition)
         if not retentions and not end_conditions:
-            return self._conditional_no_targets(graph, TEST.retentionState, "Retention/RetentionEndCondition")
+            return self._conditional_no_targets(graph, META.retentionState, "Retention/RetentionEndCondition")
         target_ends: set[Node] = set(end_conditions)
         for retention in retentions:
             target_ends.update(self._objects(graph, retention, PIPA.hasRetentionEndCondition))
@@ -2101,7 +2122,7 @@ class P0RuleEngine:
     def _p3_r11(self, graph: Graph) -> list[InstanceRuleResult]:
         activities = self._instances(graph, PIPA.EntrustedProcessing)
         if not activities:
-            return self._conditional_no_targets(graph, TEST.entrustedProcessingState, "EntrustedProcessing")
+            return self._conditional_no_targets(graph, META.entrustedProcessingState, "EntrustedProcessing")
 
         results = []
         for activity in activities:
