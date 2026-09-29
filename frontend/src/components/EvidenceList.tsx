@@ -4,7 +4,7 @@ interface EvidenceListProps {
   evidence: Evidence[]
 }
 
-// Datetime Facts are stored as KST ISO 8601 (xsd:dateTime); show them as yyyy-mm-dd hh:mm.
+// Datetime Facts are stored as KST ISO 8601 (xsd:dateTime); show them as yyyy-mm-dd hh:mm (KST).
 // Other offsets are left as-is rather than silently converted.
 const KST_DATETIME = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?\+09:00$/
 
@@ -17,7 +17,7 @@ function formatEvidenceValue(value: Evidence['value']): string | null {
   }
   const datetime = KST_DATETIME.exec(value)
   if (datetime) {
-    return `${datetime[1]} ${datetime[2]}`
+    return `${datetime[1]} ${datetime[2]} (KST)`
   }
   return value
 }

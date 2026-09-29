@@ -1,0 +1,592 @@
+{
+  "source_document_id": "HELDOUT-P01-h2-online-academy",
+  "poc": "poc1",
+  "policy_text_file": "policy.txt",
+  "fact_schema_version": "fact-1.0",
+  "heldout": {
+    "name": "h2-online-academy",
+    "description": "서술형 처리방침. 제공 목적 누락, 수탁자명 누락, 국외 이전"
+  },
+  "expected_rule_status": {
+    "P1-R01": "GREEN",
+    "P1-R02": "AMBER",
+    "P1-R03": "RED",
+    "P1-R04": "GREEN",
+    "P1-R06": "RED",
+    "P1-R07": "GREEN"
+  },
+  "facts": [
+    {
+      "fact_id": "F1-01:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "수강 신청을 받고 학습 진도를 관리",
+          "start_offset": 102,
+          "end_offset": 121
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "수강 신청을 받고 학습 진도를 관리",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "수강 신청을 받고 학습 진도를 관리",
+          "start_offset": 102,
+          "end_offset": 121
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-01:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "강의료 결제와 환불을 처리",
+          "start_offset": 157,
+          "end_offset": 171
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "강의료 결제와 환불을 처리",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "강의료 결제와 환불을 처리",
+          "start_offset": 157,
+          "end_offset": 171
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-01:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "신규 강좌 안내 메일을 보내기",
+          "start_offset": 217,
+          "end_offset": 233
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "신규 강좌 안내 메일을 보내기",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "신규 강좌 안내 메일을 보내기",
+          "start_offset": 217,
+          "end_offset": 233
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제2조 (보유 기간)",
+          "start_offset": 254,
+          "end_offset": 265
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "회원 탈퇴 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 탈퇴 시",
+          "start_offset": 284,
+          "end_offset": 291
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": "5년간",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "5년간",
+          "start_offset": 341,
+          "end_offset": 344
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-04:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제2조 (보유 기간)",
+          "start_offset": 254,
+          "end_offset": 265
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "종료조건 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-03:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제2조 (보유 기간)",
+          "start_offset": 254,
+          "end_offset": 265
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "수신 동의를 철회할 때",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "수신 동의를 철회할 때",
+          "start_offset": 373,
+          "end_offset": 385
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-05:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRecipient",
+      "value": "한국직무교육협회",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "한국직무교육협회",
+          "start_offset": 429,
+          "end_offset": 437
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-06:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "수강 이력"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 418,
+          "end_offset": 420
+        },
+        {
+          "text": "수강 이력",
+          "start_offset": 422,
+          "end_offset": 427
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-07:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPurpose",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 이용자의 이름과 수강 이력을 한국직무교육협회에 제공하고 있습니다.",
+          "start_offset": 409,
+          "end_offset": 449
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "제공 목적 기재 없음"
+    },
+    {
+      "fact_id": "F1-03:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 이용자의 이름과 수강 이력을 한국직무교육협회에 제공하고 있습니다.",
+          "start_offset": 409,
+          "end_offset": 449
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 이용자의 이름과 수강 이력을 한국직무교육협회에 제공하고 있습니다.",
+          "start_offset": 409,
+          "end_offset": 449
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "종료조건 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-09:act-entrust-001",
+      "subject_id": "act-entrust-001",
+      "activity_id": "act-entrust-001",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": "hasProcessor",
+      "value": "주식회사 스트림원",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "주식회사 스트림원",
+          "start_offset": 516,
+          "end_offset": 525
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-10:act-entrust-001",
+      "subject_id": "act-entrust-001",
+      "activity_id": "act-entrust-001",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": null,
+      "value": "강의 영상 전송",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "강의 영상 전송",
+          "start_offset": 506,
+          "end_offset": 514
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "system field entrusted_task_text"
+    },
+    {
+      "fact_id": "F1-09:act-entrust-002",
+      "subject_id": "act-entrust-002",
+      "activity_id": "act-entrust-002",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": "hasProcessor",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 강의 영상 전송과 결제 대행 업무를 외부 전문업체에 맡기고 있습니다.",
+          "start_offset": 463,
+          "end_offset": 505
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "결제 대행 수탁자명 기재 없음"
+    },
+    {
+      "fact_id": "F1-10:act-entrust-002",
+      "subject_id": "act-entrust-002",
+      "activity_id": "act-entrust-002",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": null,
+      "value": "결제 대행",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "결제 대행",
+          "start_offset": 477,
+          "end_offset": 482
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "system field entrusted_task_text"
+    },
+    {
+      "fact_id": "F1-03:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이전된 정보는 이용자가 회원 탈퇴 시 함께 삭제합니다.",
+          "start_offset": 611,
+          "end_offset": 641
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasRetention",
+      "value": "회원 탈퇴 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 탈퇴 시",
+          "start_offset": 624,
+          "end_offset": 631
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-08:act-destruction-001",
+      "subject_id": "act-destruction-001",
+      "activity_id": "act-destruction-001",
+      "ontology_class": "Destruction",
+      "ontology_property": "hasDestructionMethod",
+      "value": "복구할 수 없도록 전자적 방법으로 삭제합니다.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "복구할 수 없도록 전자적 방법으로 삭제합니다.",
+          "start_offset": 668,
+          "end_offset": 693
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-11:subj-001",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubject",
+      "ontology_property": "hasRight",
+      "value": [
+        "열람",
+        "정정·삭제",
+        "처리정지",
+        "동의를 철회"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "열람",
+          "start_offset": 729,
+          "end_offset": 731
+        },
+        {
+          "text": "정정·삭제",
+          "start_offset": 735,
+          "end_offset": 740
+        },
+        {
+          "text": "처리정지",
+          "start_offset": 752,
+          "end_offset": 756
+        },
+        {
+          "text": "동의를 철회",
+          "start_offset": 764,
+          "end_offset": 770
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:열람",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "열람",
+        "procedure": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법",
+          "start_offset": 788,
+          "end_offset": 838
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:정정·삭제",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "정정·삭제",
+        "procedure": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법",
+          "start_offset": 788,
+          "end_offset": 838
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:처리정지",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "처리정지",
+        "procedure": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법",
+          "start_offset": 788,
+          "end_offset": 838
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:동의를 철회",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "동의를 철회",
+        "procedure": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "홈페이지 1:1 문의 게시판에 글을 남기거나 개인정보 보호책임자에게 서면으로 제출하는 방법",
+          "start_offset": 788,
+          "end_offset": 838
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ]
+}

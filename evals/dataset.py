@@ -44,6 +44,10 @@ class DatasetSpec:
         return self.directory / "variants"
 
     @property
+    def heldout_directory(self) -> Path:
+        return self.directory / "heldout"
+
+    @property
     def prediction_directory(self) -> Path:
         return self.directory / "predictions"
 
@@ -127,8 +131,8 @@ class EvalCase:
 
     @property
     def description(self) -> str:
-        variant = self.payload.get("variant")
-        return variant["description"] if variant else "기준 문서 (변형 없음)"
+        meta = self.payload.get("variant") or self.payload.get("heldout")
+        return meta["description"] if meta else "기준 문서 (변형 없음)"
 
     @property
     def target_rule(self) -> str | None:
@@ -162,8 +166,35 @@ class EvalCase:
         raise ValueError(f"Extractor 호출 규약이 정의되지 않은 PoC입니다: {self.poc}")
 
 
-def load_cases(poc: str = "poc1") -> list[EvalCase]:
-    """기준 문서를 먼저, 그다음 변형을 이름순으로 돌려준다."""
+SPLITS = ("dev", "heldout", "all")
+
+
+def _cases_in(directory: Path, spec: DatasetSpec, poc: str) -> list[EvalCase]:
+    """하위 디렉터리마다 문서와 gold_facts.json이 모두 있으면 케이스 하나다."""
+    cases = []
+    if not directory.is_dir():
+        return cases
+    for case_dir in sorted(directory.iterdir()):
+        if not case_dir.is_dir():
+            continue
+        documents = {
+            name: case_dir / filename for name, filename in spec.variant_documents.items()
+        }
+        gold = case_dir / spec.gold_name
+        if gold.is_file() and all(path.is_file() for path in documents.values()):
+            cases.append(EvalCase(case_dir.name, documents, gold, poc=poc))
+    return cases
+
+
+def load_cases(poc: str = "poc1", split: str = "dev") -> list[EvalCase]:
+    """평가 케이스를 돌려준다.
+
+    dev      기준 문서 + 변형. 프롬프트를 고칠 때 보는 세트
+    heldout  프롬프트를 고칠 때 보지 않는 세트. 일반화 성능은 여기서만 말한다
+    all      dev 다음 heldout
+    """
+    if split not in SPLITS:
+        raise ValueError(f"split은 {list(SPLITS)} 중 하나여야 합니다. 받은 값: {split!r}")
     try:
         spec = POC_DATASETS[poc]
     except KeyError:
@@ -173,28 +204,19 @@ def load_cases(poc: str = "poc1") -> list[EvalCase]:
             "evals/dataset.py의 POC_DATASETS에 DatasetSpec을 추가하세요."
         ) from None
 
-    base_documents = {
-        name: spec.directory / filename for name, filename in spec.base_documents.items()
-    }
-    base_gold = spec.directory / spec.base_gold
-    missing = [str(p) for p in [*base_documents.values(), base_gold] if not p.is_file()]
-    if missing:
-        raise FileNotFoundError(f"{poc} 평가 세트 파일이 없습니다: {missing}")
-
-    cases = [EvalCase("base", base_documents, base_gold, poc=poc)]
-
-    if spec.variant_directory.is_dir() and spec.variant_documents:
-        for directory in sorted(spec.variant_directory.iterdir()):
-            if not directory.is_dir():
-                continue
-            documents = {
-                name: directory / filename
-                for name, filename in spec.variant_documents.items()
-            }
-            gold = directory / spec.gold_name
-            if gold.is_file() and all(path.is_file() for path in documents.values()):
-                cases.append(EvalCase(directory.name, documents, gold, poc=poc))
-
+    cases: list[EvalCase] = []
+    if split in ("dev", "all"):
+        base_documents = {
+            name: spec.directory / filename for name, filename in spec.base_documents.items()
+        }
+        base_gold = spec.directory / spec.base_gold
+        missing = [str(p) for p in [*base_documents.values(), base_gold] if not p.is_file()]
+        if missing:
+            raise FileNotFoundError(f"{poc} 평가 세트 파일이 없습니다: {missing}")
+        cases.append(EvalCase("base", base_documents, base_gold, poc=poc))
+        cases += _cases_in(spec.variant_directory, spec, poc)
+    if split in ("heldout", "all"):
+        cases += _cases_in(spec.heldout_directory, spec, poc)
     return cases
 
 
