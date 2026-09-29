@@ -17,6 +17,7 @@ from app.extractors.poc2 import (
     NOTICE_ID,
     ExtractedPoc2Fact,
     Poc2InputError,
+    normalize_datetime,
 )
 from app.extractors.poc2_llm_extractor import ENV_API_KEY, LlmPoc2Extractor
 from app.mapping.fact_schema import fact_type, validate_facts
@@ -94,7 +95,8 @@ def incident_response():
 
 def notice_response():
     return fact_list(
-        EF("F2-03", "hasNotificationNotice", "breach-notice",
+        # 실제 모델은 원문의 문서번호를 ID로 냈다 (poc2-sonnet5-base 실행)
+        EF("F2-03", "hasNotificationNotice", {"notice_id": "유출통지-2026-0803"},
            ["개인정보 유출 사실을 알려드립니다"]),
         EF("F2-04", "mentionsPersonalInformation", ["이름", "이메일 주소"],
            ["이름", "이메일 주소"]),
@@ -286,6 +288,67 @@ def test_bad_response_measures_are_rejected(label, measures, reason):
     # 거부되었으므로 F2-10 Fact가 없다
     facts = extract([bad], notification=False)
     assert not any(fact_type(i["fact_id"]) == "F2-10" for i in facts), label
+
+
+def test_notice_id_is_fixed_by_the_system_not_the_model():
+    """F2-03의 notice_id는 매퍼가 통지문 노드 ID로 쓴다.
+
+    모델이 원문 문서번호를 넣으면 사고가 빈 통지문에 연결되고, F2-04/F2-08이
+    붙은 통지문과 갈라져 P2-R02/P2-R03이 RED가 된다.
+    """
+    by_type = {fact_type(i["fact_id"]): i for i in both_passes()}
+    assert by_type["F2-03"]["value"] == {"notice_id": NOTICE_ID}
+
+
+def test_model_notice_id_still_links_the_notice_facts():
+    results = run_breach_check(
+        {
+            "analysis_id": "SC-P02",
+            "controller": {"controller_id": "ctrl-001", "name": "모아커머스"},
+            "incident": {"description": INCIDENT_TEXT},
+            "notification": {"notice_text": NOTICE_TEXT},
+        },
+        extractor=LlmPoc2Extractor(StubMessages([incident_response(), notice_response()])),
+    )
+    status = {r.rule_id: r.status.value for r in results}
+    # 통지문에 F2-08/F2-09가 있으므로 GREEN. 통지문이 갈라지면 RED가 된다.
+    assert status["P2-R03"] == "GREEN", status
+    # 이 통지문은 전화번호를 실제로 빠뜨렸다. RED는 누락 때문이지 연결 끊김 때문이 아니다.
+    assert status["P2-R02"] == "RED", status
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("2026-09-05T14:30:00+09:00", "2026-09-05T14:30:00+09:00"),
+        ("2026-09-05T14:30", "2026-09-05T14:30:00+09:00"),   # 시간대 없음 -> KST
+        ("2026-09-05 14:30", "2026-09-05T14:30:00+09:00"),
+        ("2026-09-06", "2026-09-06T00:00:00+09:00"),         # 날짜만 -> 00:00
+        ("2026-09-05T05:30:00+00:00", "2026-09-05T05:30:00+00:00"),  # 명시된 시간대는 유지
+        ("2026년 9월 5일 14시 30분", None),                  # 추정 변환하지 않는다
+        ("", None),
+        (None, None),
+    ],
+)
+def test_normalize_datetime(raw, expected):
+    assert normalize_datetime(raw) == expected
+
+
+def test_non_iso_datetime_is_rejected_not_passed_through():
+    """한국어 날짜를 그대로 실으면 xsd:dateTime 리터럴이 깨진다. 실제 실행에서 나온 값이다."""
+    korean = fact_list(
+        EF("F2-05", "incidentDate", "2026년 8월 1일 9시", ["2026년 8월 1일 오전 9시경"]),
+    )
+    facts = extract([korean, notice_response()])
+    assert "F2-05" not in {fact_type(i["fact_id"]) for i in facts}
+
+
+def test_naive_datetime_is_stored_as_kst():
+    naive = fact_list(
+        EF("F2-05", "incidentDate", "2026-08-01T09:00", ["2026년 8월 1일 오전 9시경"]),
+    )
+    by_type = {fact_type(i["fact_id"]): i for i in extract([naive, notice_response()])}
+    assert by_type["F2-05"]["value"] == "2026-08-01T09:00:00+09:00"
 
 
 def test_measure_without_text_is_rejected_by_the_output_schema():
