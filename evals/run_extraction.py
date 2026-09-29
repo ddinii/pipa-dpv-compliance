@@ -17,6 +17,8 @@ GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린�
 옵션:
     --poc        평가할 PoC (기본 poc1). evals/dataset.py의 POC_DATASETS 참고
     --model      기본 claude-opus-5
+    --split      dev(기본) | heldout | all. heldout은 프롬프트를 고칠 때 보지 않는
+                 세트다. 그 결과를 보고 프롬프트를 고치면 heldout도 오염된다
     --case       특정 케이스만 실행 (반복 지정 가능). 생략하면 전체
     --no-cache   원문 prompt caching 비활성화 (캐시 효과 측정용)
     --out-dir    예측 Fact 저장 위치 (기본 evals/<poc>/predictions)
@@ -48,7 +50,7 @@ from app.facts.models import FactEnvelope  # noqa: E402
 from app.facts.validator import FactValidationError, validate_facts  # noqa: E402
 from app.rules.engine import P0RuleEngine  # noqa: E402
 from app.extractors.usage import Usage, format_usage  # noqa: E402
-from evals.dataset import POC_DATASETS, EvalCase, load_cases  # noqa: E402
+from evals.dataset import POC_DATASETS, SPLITS, EvalCase, load_cases  # noqa: E402
 from evals.score import (  # noqa: E402
     RuleScore,
     Score,
@@ -159,6 +161,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--poc", default="poc1", choices=sorted(POC_DATASETS))
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--split", default="dev", choices=SPLITS)
     parser.add_argument("--case", action="append", default=None)
     parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--out-dir", type=Path, default=None)
@@ -173,11 +176,12 @@ def main() -> int:
     out_dir = args.out_dir or POC_DATASETS[args.poc].prediction_directory
     # 실행마다 다른 이름을 붙여 서로 덮어쓰지 않게 한다. 모델 비교와 캐시 효과
     # 측정이 이것 없이는 불가능하다.
+    split_tag = "" if args.split == "dev" else f"-{args.split}"
     label = args.label or (
-        f"{args.poc}-{args.model}-{'nocache' if args.no_cache else 'cache'}"
+        f"{args.poc}{split_tag}-{args.model}-{'nocache' if args.no_cache else 'cache'}"
     )
     run_dir = out_dir / label
-    cases = load_cases(args.poc)
+    cases = load_cases(args.poc, split=args.split)
     if args.case:
         wanted = set(args.case)
         cases = [case for case in cases if case.name in wanted]
@@ -185,7 +189,7 @@ def main() -> int:
             print(f"해당 케이스가 없습니다: {sorted(wanted)}")
             return 2
 
-    print(f"[{label}] 평가 세트 {len(cases)}개 · model={args.model} "
+    print(f"[{label}] 평가 세트({args.split}) {len(cases)}개 · model={args.model} "
           f"· caching={'off' if args.no_cache else 'on'}")
 
     # 거부 사유를 러너가 볼 수 있도록 훅을 단다. 원문은 기록하지 않는다.
@@ -234,6 +238,7 @@ def main() -> int:
             {
                 "label": label,
                 "poc": args.poc,
+                "split": args.split,
                 "model": args.model,
                 "caching": not args.no_cache,
                 "started_at": started_at,

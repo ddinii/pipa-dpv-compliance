@@ -401,8 +401,7 @@ Freeze 시나리오에서 실제 사고 발생시점과 통지문 기재 시점�
 ### 평가 하네스에 등록되어 있습니다
 
 ```powershell
-python evals
-un_extraction.py --poc poc2
+python evals\run_extraction.py --poc poc2
 ```
 
 `EvalCase.extract_with()`가 PoC별 Protocol 호출 규약(PoC1은 `policy_text`,
@@ -433,9 +432,10 @@ v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(
 
 ## 남은 일
 
-1. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가) — **실제 실행 전 필수**
-3. 첫 실제 실행과 프롬프트 튜닝
-4. 모델 비교(`--model claude-sonnet-5`)와 캐시 효과 실측(`--no-cache`)
+1. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가). Rule 판정은 바뀌지 않고
+   Fact 단위 F1만 바뀐다 (실측: 둘 다 P1-R02 AMBER). 실행을 막지 않는다
+2. PoC1 absent Fact의 근거 인용 규칙을 프롬프트에 추가 (아래 "첫 실행 결과" 참고)
+3. 전체 스윕(dev + held-out)과 모델 비교, 캐시 효과 실측(`--no-cache`)
 
 ## 실행 전에 알아야 할 것 — 호출량과 비용
 
@@ -463,10 +463,8 @@ PoC1이 비싼 이유는 **처리행위가 12개**라 케이스마다 Pass 2가 
 `--case`를 씁니다.
 
 ```powershell
-python evals
-un_extraction.py --poc poc2                    # 12회 호출
-python evals
-un_extraction.py --case base                   # 14회 호출
+python evals\run_extraction.py --poc poc2                    # 12회 호출
+python evals\run_extraction.py --case base                   # 14회 호출
 ```
 
 ## 실행 결과는 실행마다 따로 남습니다
@@ -476,10 +474,10 @@ un_extraction.py --case base                   # 14회 호출
 모델 비교와 캐시 효과 측정이 가능합니다.**
 
 ```powershell
-python evalsun_extraction.py --model claude-opus-5
-python evalsun_extraction.py --model claude-sonnet-5
-python evalsun_extraction.py --no-cache
-python evals\compare_runs.py evals\poc1\predictionsuns
+python evals\run_extraction.py --model claude-opus-5
+python evals\run_extraction.py --model claude-sonnet-5
+python evals\run_extraction.py --no-cache
+python evals\compare_runs.py evals\poc1\predictions\runs
 ```
 
 `compare_runs.py`는 추출 품질과 호출량을 표로 세우고 **위험 오판율로 순위를**
@@ -518,13 +516,32 @@ $env:ANTHROPIC_API_KEY = "sk-ant-..."
 SDK 내부 오류 대신 안내 문구가 나옵니다. `.env` 파일은 아무것도 자동으로 읽지
 않습니다 — 셸에서 export 해야 합니다.
 
-## 아직 실행하지 않았습니다
+## 첫 실행 결과 (claude-sonnet-5, dev `base` 케이스만)
 
-Extractor는 **실제 API로 한 번도 돌리지 않았습니다.** 자격증명이 없고, 모델 호출은 비용이
-발생하므로 승인 없이 실행하지 않았습니다. 테스트는 `messages.parse`를 스텁으로 갈아끼워
-후처리 로직만 검증합니다 (`tests/test_extractor_and_score.py`).
+| | PoC1 base | PoC2 base |
+|---|---|---|
+| 호출 | 14회 | 2회 |
+| Rule 판정 일치 | 6/6 | 4/4 (수정 전 2/4) |
+| 위험 오판(GREEN) | 0 | 0 |
+| Fact F1 | 0.853 | 1.000 |
+| 환각률 | 0.000 | 0.000 (수정 전 0.200) |
 
-첫 실행 때 확인할 것:
+첫 실행에서 스텁 테스트가 못 잡은 결함 3건이 나왔고 모두 고쳤습니다.
+
+- `value: Any`가 structured outputs 스키마 변환에서 거부됨 →
+  `tests/test_output_schemas.py`가 SDK와 같은 변환을 로컬에서 돌립니다
+- F2-03 `notice_id`를 모델이 원문 문서번호로 채워 통지문 노드가 갈라짐 →
+  P2-R02/R03이 RED. 이제 Extractor가 `breach-notice`로 고정합니다
+- 날짜를 한국어 표기로 냄 → KST ISO 8601로 저장하고(팀 결정), 화면에는
+  `yyyy-mm-dd hh:mm (KST)`로 표시합니다
+
+**PoC2 base는 이 수정에 쓰였으므로 더 이상 공정한 점수가 아닙니다.** 일반화는
+아래 held-out 세트로만 말합니다.
+
+PoC1에서 남은 것: F1-03 absent 7건이 근거 인용이 비어 거부됐습니다. 기재가 없는
+항목에서 무엇을 인용할지 프롬프트가 알려주지 않기 때문입니다.
+
+실행 때 계속 확인할 것:
 
 - **실제 `usage`로 위 추정을 교정** — 특히 출력 토큰. adaptive thinking 사용량을 모른다
 - `--no-cache`와 비교해 `usage.cache_read_input_tokens`가 실제로 올라가는지
@@ -535,6 +552,40 @@ Extractor는 **실제 API로 한 번도 돌리지 않았습니다.** 자격증�
 
 비용을 줄이려면 `--case base`로 한 케이스만 먼저 돌려 프롬프트를 다듬고,
 전체 스윕은 그 다음에 하는 편이 낫습니다.
+
+## Held-out 세트 — 프롬프트를 고칠 때 보지 않습니다
+
+dev 세트(기준 문서 + 변형)는 PoC마다 **시나리오가 하나**이고, 프롬프트를 고칠 때
+이미 봤습니다. 그 점수는 "이 문서를 잘 읽는가"까지만 말합니다. 처음 보는 문서에서의
+성능은 held-out으로 잽니다.
+
+```powershell
+python evals\run_extraction.py --poc poc1 --split heldout --model claude-sonnet-5
+python evals\run_extraction.py --poc poc2 --split heldout --model claude-sonnet-5
+```
+
+| PoC | 케이스 | 무엇이 다른가 | 기대 판정 |
+|---|---|---|---|
+| PoC1 | `h1-fitness-app` | 목록형. **숫자 보유기간**(dev에 F1-03 confirmed가 없음), 항목이 겹치는 제3자 제공 2건(TST-002 함정) | R02 AMBER, 나머지 GREEN |
+| PoC1 | `h2-online-academy` | **서술형**(조문 안 문장). 제공 목적 누락, 수탁자명 누락, 국외 이전 | R02 AMBER, R03 RED, R06 RED |
+| PoC2 | `h1-shop-hacking` | 날짜 표기 `2026. 8. 14. 오전 3시 20분경`, `2026-08-14 10:05`. 통지문이 배송지 주소 누락 | R02 RED |
+| PoC2 | `h2-clinic-misdirected` | `오후 2시 15분` 표기. 통지문에 경위 없음, 대응조치 4역할 중 2개 | R03 RED, R08 AMBER |
+
+규칙:
+
+- **held-out 결과를 보고 프롬프트를 고치지 않습니다.** 고치면 그 순간 held-out도
+  오염되고, 새 held-out을 만들어야 합니다
+- 기대 판정은 Rule 조건을 읽고 손으로 적었습니다. `tests/test_heldout.py`가 정답지로
+  엔진을 돌려 그 판정이 재현되는지 확인합니다
+- 모든 문서는 가상이며 문서 끝에 그렇게 적혀 있습니다 (CLAUDE.md §7)
+- 기재가 없는(absent) Fact의 근거는 **찾아본 구간**(해당 조 제목이나 문장)입니다.
+  검증기가 absent Fact에도 근거를 요구하기 때문입니다
+- 정답지는 `evals/<poc>/build_heldout.py`가 만듭니다. offset은 손으로 쓰지 않습니다
+
+**N/A 케이스는 없습니다.** 평가 러너는 Fact만으로 Rule을 돌리고 activity presence
+metadata를 넘기지 않으므로, 러너 경로로는 N/A가 나올 수 없습니다. 서비스
+(`run_breach_check`)는 통지문이 없을 때 metadata를 붙이지만 러너는 그렇지 않습니다.
+러너를 서비스 경로와 맞추는 것이 먼저입니다.
 
 ## PoC1 Controlled Variants (TST-003)
 

@@ -1,0 +1,594 @@
+{
+  "source_document_id": "HELDOUT-P01-h1-fitness-app",
+  "poc": "poc1",
+  "policy_text_file": "policy.txt",
+  "fact_schema_version": "fact-1.0",
+  "heldout": {
+    "name": "h1-fitness-app",
+    "description": "목록형 처리방침. 숫자 보유기간과 항목이 겹치는 제3자 제공 2건"
+  },
+  "expected_rule_status": {
+    "P1-R01": "GREEN",
+    "P1-R02": "AMBER",
+    "P1-R03": "GREEN",
+    "P1-R04": "GREEN",
+    "P1-R06": "GREEN",
+    "P1-R07": "GREEN"
+  },
+  "facts": [
+    {
+      "fact_id": "F1-01:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 관리",
+          "start_offset": 123,
+          "end_offset": 128
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "본인 확인, 계정 생성 및 도용 방지",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "본인 확인, 계정 생성 및 도용 방지",
+          "start_offset": 136,
+          "end_offset": 156
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-01:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "운동 기록 서비스",
+          "start_offset": 186,
+          "end_offset": 195
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "운동 기록 저장·분석 및 맞춤형 운동 추천",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "운동 기록 저장·분석 및 맞춤형 운동 추천",
+          "start_offset": 203,
+          "end_offset": 226
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-01:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "경품 이벤트",
+          "start_offset": 258,
+          "end_offset": 264
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "이벤트 응모 확인 및 경품 발송",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이벤트 응모 확인 및 경품 발송",
+          "start_offset": 272,
+          "end_offset": 289
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "2. 개인정보의 보유 기간",
+          "start_offset": 319,
+          "end_offset": 333
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "회원 탈퇴 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 탈퇴 시",
+          "start_offset": 345,
+          "end_offset": 352
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": "수집일로부터 2년",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "수집일로부터 2년",
+          "start_offset": 369,
+          "end_offset": 378
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-04:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "2. 개인정보의 보유 기간",
+          "start_offset": 319,
+          "end_offset": 333
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "종료조건 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-03:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "2. 개인정보의 보유 기간",
+          "start_offset": 319,
+          "end_offset": 333
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "2. 개인정보의 보유 기간",
+          "start_offset": 319,
+          "end_offset": 333
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "종료조건 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-05:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRecipient",
+      "value": "주식회사 짐파트너스",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "주식회사 짐파트너스",
+          "start_offset": 475,
+          "end_offset": 485
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-06:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "휴대전화번호"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 528,
+          "end_offset": 530
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 532,
+          "end_offset": 538
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-07:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPurpose",
+      "value": "제휴 헬스장 이용권 발급 및 출입 확인",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제휴 헬스장 이용권 발급 및 출입 확인",
+          "start_offset": 496,
+          "end_offset": 517
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": " - 보유 기간: 이용권 만료 시까지",
+          "start_offset": 539,
+          "end_offset": 559
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRetention",
+      "value": "이용권 만료 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이용권 만료 시",
+          "start_offset": 549,
+          "end_offset": 557
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-05:act-provision-002",
+      "subject_id": "act-provision-002",
+      "activity_id": "act-provision-002",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRecipient",
+      "value": "한빛손해보험 주식회사",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "한빛손해보험 주식회사",
+          "start_offset": 588,
+          "end_offset": 599
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-06:act-provision-002",
+      "subject_id": "act-provision-002",
+      "activity_id": "act-provision-002",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "휴대전화번호",
+        "걸음 수"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 636,
+          "end_offset": 638
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 640,
+          "end_offset": 646
+        },
+        {
+          "text": "걸음 수",
+          "start_offset": 648,
+          "end_offset": 652
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-07:act-provision-002",
+      "subject_id": "act-provision-002",
+      "activity_id": "act-provision-002",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPurpose",
+      "value": "운동량 연계 보험 상품 안내",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "운동량 연계 보험 상품 안내",
+          "start_offset": 610,
+          "end_offset": 625
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-provision-002",
+      "subject_id": "act-provision-002",
+      "activity_id": "act-provision-002",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": "제공일로부터 1년",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제공일로부터 1년",
+          "start_offset": 663,
+          "end_offset": 672
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-04:act-provision-002",
+      "subject_id": "act-provision-002",
+      "activity_id": "act-provision-002",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": " - 보유 기간: 제공일로부터 1년",
+          "start_offset": 653,
+          "end_offset": 672
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "종료조건 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-09:act-entrust-001",
+      "subject_id": "act-entrust-001",
+      "activity_id": "act-entrust-001",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": "hasProcessor",
+      "value": "주식회사 알림톡스",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "주식회사 알림톡스",
+          "start_offset": 743,
+          "end_offset": 752
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-10:act-entrust-001",
+      "subject_id": "act-entrust-001",
+      "activity_id": "act-entrust-001",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": null,
+      "value": "인증번호 및 이벤트 당첨 알림 발송",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "인증번호 및 이벤트 당첨 알림 발송",
+          "start_offset": 761,
+          "end_offset": 780
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "system field entrusted_task_text"
+    },
+    {
+      "fact_id": "F1-08:act-destruction-001",
+      "subject_id": "act-destruction-001",
+      "activity_id": "act-destruction-001",
+      "ontology_class": "Destruction",
+      "ontology_property": "hasDestructionMethod",
+      "value": "전자적 파일은 복원할 수 없는 기술적 방법으로 영구 삭제하고, 출력물은 분쇄합니다.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "전자적 파일은 복원할 수 없는 기술적 방법으로 영구 삭제하고, 출력물은 분쇄합니다.",
+          "start_offset": 824,
+          "end_offset": 870
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-11:subj-001",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubject",
+      "ontology_property": "hasRight",
+      "value": [
+        "개인정보 열람",
+        "정정·삭제",
+        "처리정지"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "개인정보 열람",
+          "start_offset": 907,
+          "end_offset": 914
+        },
+        {
+          "text": "정정·삭제",
+          "start_offset": 916,
+          "end_offset": 921
+        },
+        {
+          "text": "처리정지",
+          "start_offset": 923,
+          "end_offset": 927
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:개인정보 열람",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "개인정보 열람",
+        "procedure": "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일",
+          "start_offset": 948,
+          "end_offset": 976
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:정정·삭제",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "정정·삭제",
+        "procedure": "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일",
+          "start_offset": 948,
+          "end_offset": 976
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:처리정지",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "처리정지",
+        "procedure": "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일",
+          "start_offset": 948,
+          "end_offset": 976
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ]
+}
