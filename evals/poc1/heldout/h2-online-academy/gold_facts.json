@@ -12,7 +12,7 @@
     "P1-R02": "AMBER",
     "P1-R03": "RED",
     "P1-R04": "GREEN",
-    "P1-R06": "RED",
+    "P1-R06": "AMBER",
     "P1-R07": "GREEN"
   },
   "facts": [
@@ -380,7 +380,7 @@
       "ontology_class": "EntrustedProcessing",
       "ontology_property": "hasProcessor",
       "value": null,
-      "value_state": "absent",
+      "value_state": "unknown",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -390,7 +390,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "결제 대행 수탁자명 기재 없음"
+      "_note": "수탁자를 '외부 전문업체'로만 언급. 이름을 특정할 수 없다"
     },
     {
       "fact_id": "F1-10:act-entrust-002",

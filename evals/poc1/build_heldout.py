@@ -7,7 +7,7 @@ held-out은 **프롬프트를 고칠 때 보지 않는** 문서다. SC-P01과 �
 SC-P01과 일부러 다르게 만든다.
     h1-fitness-app     목록형. 숫자 보유기간(F1-03 confirmed), 항목이 겹치는
                        제3자 제공 2건 (TST-002 혼합 함정)
-    h2-online-academy  서술형(조문 안 문장). 제공 목적 누락, 수탁자명 누락
+    h2-online-academy  서술형(조문 안 문장). 제공 목적 누락, 이름 없는 수탁자
 
 offset은 손으로 적지 않는다. 근거 문자열을 문서에서 찾고, 정확히 한 번 나오지 않으면
 실패한다. 같은 문자열이 여러 번 나오면 유일한 줄(anchor) 안에서 찾는다.
@@ -214,14 +214,21 @@ def build_h2(document: str) -> dict:
              [ev(provision)], value_state="absent", note="제공 목적 기재 없음"),
         *retention("act-provision-001", "ThirdPartyProvision", ev, searched=provision),
 
-        # 위탁 2건 중 결제 대행은 수탁자명이 없다 -> P1-R06 RED
+        # 위탁 2건 중 결제 대행은 수탁자를 "외부 전문업체"로만 언급하고 이름이 없다.
+        # 언급했지만 비어 있으므로 unknown -> P1-R06 AMBER (dev v4 '추후 선정 예정'과 같은 갈래,
+        # 아예 언급이 없는 dev v5는 absent -> RED).
+        #
+        # 정정 기록: 처음에는 absent(RED)로 붙였다. 첫 held-out 실행에서 Sonnet 5와
+        # Opus 5가 모두 unknown으로 읽었고, dev v4/v5의 구분과 PASS2 8번 규칙에 비추어
+        # 정답지가 틀렸다고 판단해 사용자 승인 후 고쳤다 (결과를 본 뒤의 정정이다).
         fact("F1-09", "act-entrust-001", "EntrustedProcessing", "hasProcessor",
              [ev("주식회사 스트림원")], value="주식회사 스트림원"),
         fact("F1-10", "act-entrust-001", "EntrustedProcessing", None,
              [ev("강의 영상 전송", within=streaming)], value="강의 영상 전송",
              note="system field entrusted_task_text"),
         fact("F1-09", "act-entrust-002", "EntrustedProcessing", "hasProcessor",
-             [ev(entrust)], value_state="absent", note="결제 대행 수탁자명 기재 없음"),
+             [ev(entrust)], value_state="unknown",
+             note="수탁자를 '외부 전문업체'로만 언급. 이름을 특정할 수 없다"),
         fact("F1-10", "act-entrust-002", "EntrustedProcessing", None,
              [ev("결제 대행")], value="결제 대행", note="system field entrusted_task_text"),
 
@@ -256,7 +263,7 @@ def build_h2(document: str) -> dict:
             "P1-R02": "AMBER",  # 제3자 제공에 보유 정보가 없다
             "P1-R03": "RED",    # 제공 목적 누락
             "P1-R04": "GREEN",
-            "P1-R06": "RED",    # 결제 대행 수탁자명 누락
+            "P1-R06": "AMBER",  # 결제 대행 수탁자명을 특정할 수 없다 (정정: 처음엔 RED)
             "P1-R07": "GREEN",
         },
         "facts": facts,
