@@ -434,8 +434,9 @@ v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(
 
 1. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가). Rule 판정은 바뀌지 않고
    Fact 단위 F1만 바뀐다 (실측: 둘 다 P1-R02 AMBER). 실행을 막지 않는다
-2. PoC1 absent Fact의 근거 인용 규칙을 프롬프트에 추가 (아래 "첫 실행 결과" 참고)
-3. 전체 스윕(dev + held-out)과 모델 비교, 캐시 효과 실측(`--no-cache`)
+2. N/A 경로: "제공하지 않습니다"처럼 명시적 부재를 Extractor가 presence metadata로
+   내고, 러너가 그것을 Rule Engine에 넘기게 한다 (지금은 러너 경로로 N/A 불가)
+3. 캐시 효과 실측(`--no-cache`)
 
 ## 실행 전에 알아야 할 것 — 호출량과 비용
 
@@ -538,8 +539,9 @@ SDK 내부 오류 대신 안내 문구가 나옵니다. `.env` 파일은 아무�
 **PoC2 base는 이 수정에 쓰였으므로 더 이상 공정한 점수가 아닙니다.** 일반화는
 아래 held-out 세트로만 말합니다.
 
-PoC1에서 남은 것: F1-03 absent 7건이 근거 인용이 비어 거부됐습니다. 기재가 없는
-항목에서 무엇을 인용할지 프롬프트가 알려주지 않기 때문입니다.
+PoC1에서는 F1-03 absent 7건이 근거 인용이 비어 거부됐습니다. 기재가 없는 항목에서
+무엇을 인용할지 프롬프트가 알려주지 않았기 때문이며, 커밋 `9ad60af`에서 고쳤습니다
+(거부 6 -> 0).
 
 실행 때 계속 확인할 것:
 
@@ -567,7 +569,7 @@ python evals\run_extraction.py --poc poc2 --split heldout --model claude-sonnet-
 | PoC | 케이스 | 무엇이 다른가 | 기대 판정 |
 |---|---|---|---|
 | PoC1 | `h1-fitness-app` | 목록형. **숫자 보유기간**(dev에 F1-03 confirmed가 없음), 항목이 겹치는 제3자 제공 2건(TST-002 함정) | R02 AMBER, 나머지 GREEN |
-| PoC1 | `h2-online-academy` | **서술형**(조문 안 문장). 제공 목적 누락, 수탁자명 누락, 국외 이전 | R02 AMBER, R03 RED, R06 RED |
+| PoC1 | `h2-online-academy` | **서술형**(조문 안 문장). 제공 목적 누락, 이름 없는 수탁자("외부 전문업체"), 국외 이전 | R02 AMBER, R03 RED, R06 AMBER |
 | PoC2 | `h1-shop-hacking` | 날짜 표기 `2026. 8. 14. 오전 3시 20분경`, `2026-08-14 10:05`. 통지문이 배송지 주소 누락 | R02 RED |
 | PoC2 | `h2-clinic-misdirected` | `오후 2시 15분` 표기. 통지문에 경위 없음, 대응조치 4역할 중 2개 | R03 RED, R08 AMBER |
 
@@ -581,6 +583,37 @@ python evals\run_extraction.py --poc poc2 --split heldout --model claude-sonnet-
 - 기재가 없는(absent) Fact의 근거는 **찾아본 구간**(해당 조 제목이나 문장)입니다.
   검증기가 absent Fact에도 근거를 요구하기 때문입니다
 - 정답지는 `evals/<poc>/build_heldout.py`가 만듭니다. offset은 손으로 쓰지 않습니다
+
+### 정정 기록 (결과를 본 뒤의 정정)
+
+`h2-online-academy`의 결제 대행 수탁자 F1-09를 처음에 `absent`(P1-R06 RED)로 붙였다가
+`unknown`(AMBER)으로 고쳤습니다. 첫 held-out 실행에서 Sonnet 5와 Opus 5가 **모두**
+unknown으로 읽었고, 다음 두 기준에 비추면 정답지가 틀렸습니다.
+
+- dev v4 "수탁자: 추후 선정 예정"(언급했지만 비어 있음) = unknown, dev v5(언급 자체가
+  없음) = absent. "외부 전문업체에 맡기고 있습니다"는 v4 쪽입니다
+- PASS2 8번 규칙의 같은 구분
+
+결과를 보고 정답을 고친 것이므로 이 한 건은 held-out의 독립성을 약하게 합니다. 모델
+출력은 그대로이고 정답지만 바뀌었습니다. 이런 정정이 반복되면 새 held-out을 만듭니다.
+
+### 현재 결과 (claude-sonnet-5, A~C 수정 후)
+
+| | Rule 일치 | 위험 오판(GREEN) | Fact F1 | 환각률 |
+|---|---|---|---|---|
+| PoC1 dev (7건) | 42/42 | 0 | 0.869 | 0.000 |
+| PoC1 held-out (2건) | 12/12 | 0 | 0.991 | 0.018 |
+| PoC2 dev (6건) | 24/24 | 0 | 1.000 | 0.000 |
+| PoC2 held-out (2건) | 8/8 | 0 | 1.000 | 0.000 |
+
+PoC1 held-out 수치는 정정된 정답지로 저장된 예측을 다시 채점한 값입니다 (API 재호출 없음).
+PoC1 dev의 F1이 held-out보다 낮은 것은 Issue 4(F1-03/F1-04 absent·unknown 경계) 때문입니다.
+PoC1 held-out 환각 1건은 서술형 문서에서 권리 이름을 원문과 다르게 적은 것(`동의를 철회` ->
+`동의 철회`)이고 판정에는 영향이 없습니다. held-out에서 나온 것이라 프롬프트에 반영하지 않았습니다.
+
+A~C 이전의 첫 전체 스윕은 PoC1 dev 위험 오판이 Sonnet 5 3건, Opus 5 1건이었습니다.
+원인과 수정은 커밋 `41da388`에 있습니다. 수정 후 Sonnet 5가 수정 전 Opus 5보다 나으므로
+Sonnet 5를 기본 모델로 둡니다(`.env.example`). 수정 후 Opus 5는 다시 돌리지 않았습니다.
 
 **N/A 케이스는 없습니다.** 평가 러너는 Fact만으로 Rule을 돌리고 activity presence
 metadata를 넘기지 않으므로, 러너 경로로는 N/A가 나올 수 없습니다. 서비스
