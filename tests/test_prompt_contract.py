@@ -124,6 +124,26 @@ def test_declared_value_types_match_the_gold_set(gold: dict):
     assert seen, "정답지에서 confirmed Fact를 하나도 읽지 못했다"
 
 
+@pytest.mark.parametrize("name", ["PASS2_SYSTEM", "INCIDENT_SYSTEM", "NOTICE_SYSTEM"])
+def test_prompt_asks_for_evidence_on_unknown_and_absent(name: str):
+    """Extractor는 인용이 빈 Fact를 상태와 무관하게 버린다 (검증기도 근거를 요구한다).
+
+    첫 실제 실행에서 F1-03 absent 7건이 이 이유로 버려졌다. 프롬프트가 absent일 때
+    무엇을 인용할지 알려주지 않았기 때문이다.
+    """
+    from app.extractors import prompts, prompts_poc2
+
+    text = getattr(prompts, name, None) or getattr(prompts_poc2, name)
+    assert "unknown과 absent도 evidence_text가 비어 있으면 버려집니다" in text
+
+
+def test_every_gold_fact_has_evidence_even_without_a_value(gold: dict):
+    """프롬프트가 요구하는 것과 정답지가 같아야 한다."""
+    for item in gold["facts"]:
+        if item["value_state"] != "confirmed":
+            assert item["evidence"], item["fact_id"]
+
+
 def test_rights_procedure_is_requested_per_right(gold: dict):
     """F1-12는 권리 수만큼 나와야 한다 (엔진이 모든 권리에 절차를 요구한다)."""
     rights = [i for i in gold["facts"] if i["fact_id"].startswith("F1-11")]
