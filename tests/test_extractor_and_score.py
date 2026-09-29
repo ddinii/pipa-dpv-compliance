@@ -15,6 +15,7 @@ from app.extractors.poc1 import (
     ExtractedFact,
     IdentifiedActivity,
     PoC1Extractor,
+    heading_is_grounded,
     locate_quotes,
 )
 from app.facts.models import FactEnvelope
@@ -184,6 +185,58 @@ def test_extractor_drops_an_activity_whose_heading_is_invented(policy: str):
     assert "heading" in result.rejected[0].reason
     # Pass 2를 아예 호출하지 않아야 한다 (Pass 1 + 권리 = 2회)
     assert len(stub.calls) == 2
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "수탁자: 빠른택배 주식회사, 위탁업무: 상품 배송",  # 두 줄을 쉼표로 이음 (실측 v4)
+        "빠른택배 주식회사 - 상품 배송",                   # 두 줄을 하이픈으로 이음 (실측 v2)
+        "수탁자:  빠른택배   주식회사",                     # 공백 차이
+    ],
+)
+def test_heading_joined_from_real_lines_is_grounded(policy: str, heading: str):
+    assert heading_is_grounded(policy, heading)
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "9. 마케팅 정보 수신",                              # 전부 지어냄
+        "수탁자: 빠른택배 주식회사, 위탁업무: 드론 배송",  # 한 조각이 원문에 없다
+    ],
+)
+def test_heading_with_an_invented_part_is_not_grounded(policy: str, heading: str):
+    assert not heading_is_grounded(policy, heading)
+
+
+def test_joined_heading_keeps_the_activity(policy: str):
+    """heading 하나 때문에 처리행위가 빠지면 판정이 GREEN 쪽으로만 움직인다.
+
+    실측: v4에서 '추후 선정 예정' 수탁자의 heading이 두 줄을 이어 붙인 형태라 그
+    처리행위가 통째로 빠졌고, P1-R06이 AMBER가 아니라 GREEN이 되었다.
+    """
+    extractor, stub = make_extractor([
+        activity_list(IdentifiedActivity(
+            activity_id="act-entrust-001",
+            ontology_class="EntrustedProcessing",
+            heading="수탁자: 빠른택배 주식회사, 위탁업무: 상품 배송",
+        )),
+        fact_list(ExtractedFact(
+            fact_id="F1-09",
+            activity_id="act-entrust-001",
+            ontology_property="hasProcessor",
+            value="빠른택배 주식회사",
+            value_state="confirmed",
+            evidence_text=["빠른택배 주식회사"],
+        )),
+        fact_list(),
+    ])
+    result = extractor.extract(policy)
+
+    assert result.rejected == []
+    assert [f["fact_id"] for f in result.facts] == ["F1-09:act-entrust-001"]
+    assert len(stub.calls) == 3  # Pass 1 + Pass 2 + 권리
 
 
 def test_unknown_facts_carry_no_value(policy: str):
