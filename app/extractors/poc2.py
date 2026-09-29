@@ -11,6 +11,7 @@ offset은 LLM에게 시키지 않는다. 인용만 받아 코드가 해당 문�
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -37,6 +38,29 @@ from app.facts.models import FACT_SCHEMA_VERSION
 # v1은 요청 하나가 사고 하나를 뜻한다 (EXTRACTOR_DECISIONS #4).
 INCIDENT_ID = "breach-incident"
 NOTICE_ID = "breach-notice"
+
+# 날짜·시간 Fact. 매퍼가 xsd:dateTime으로 싣으므로 ISO 8601이어야 한다.
+DATETIME_FACT_IDS = {"F2-05", "F2-06", "F2-07", "F2-08"}
+# 원문에 시간대가 없으면 한국 표준시로 본다 (팀 결정).
+KST = timezone(timedelta(hours=9))
+
+
+def normalize_datetime(value: Any) -> str | None:
+    """ISO 8601 날짜·시간을 초 단위 KST 표기로 맞춘다. 해석할 수 없으면 None.
+
+    값을 추정하지 않는다. 날짜만 있으면 00:00으로, 시간대가 없으면 KST로 볼 뿐이며,
+    ISO로 읽히지 않는 문자열("2026년 9월 5일")은 변환하지 않고 None을 돌려준다.
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip())
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=KST)
+    return parsed.isoformat(timespec="seconds")
+
 
 # incident / notification dict에서 본문을 찾을 키. 앞에서부터 처음 채워진 것을 쓴다.
 INCIDENT_TEXT_KEYS = ("record", "description", "text", "incident_text", "summary")
@@ -238,6 +262,18 @@ class PoC2Extractor:
             return
 
         value = raw.model_dump()["value"] if raw.value_state == "confirmed" else None
+        if raw.fact_id == "F2-03" and raw.value_state == "confirmed":
+            # notice_id는 매퍼가 통지문 노드 ID로 쓴다. 원문 문구를 쓰면 F2-04/F2-08이
+            # 붙은 NOTICE_ID 노드와 갈라져 P2-R02/P2-R03이 빈 통지문을 보게 된다.
+            # activity_id처럼 시스템이 정하는 식별자이므로 모델 값을 쓰지 않는다.
+            value = {"notice_id": NOTICE_ID}
+        if raw.fact_id in DATETIME_FACT_IDS and raw.value_state == "confirmed":
+            normalized = normalize_datetime(value)
+            if normalized is None:
+                # 그대로 실으면 xsd:dateTime으로 해석되지 않는 리터럴이 그래프에 들어간다
+                reject(f"ISO 8601 날짜·시간이 아닙니다: {value!r}")
+                return
+            value = normalized
         if raw.fact_id == "F2-10" and raw.value_state == "confirmed":
             problem = self._measure_problem(value)
             if problem is not None:

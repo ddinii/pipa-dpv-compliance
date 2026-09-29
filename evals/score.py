@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable, Union
 
@@ -25,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from app.extractors.poc2 import DATETIME_FACT_IDS  # noqa: E402
 from app.facts.models import FactEnvelope  # noqa: E402
 
 
@@ -157,7 +159,12 @@ def score_facts(
                 result.evidence_offset_correct += 1
 
         # NFR-07 환각: 원문에 없는 값을 실었다
-        if fact.value is not None and not value_supported_by(source, fact.value):
+        supported = (
+            datetime_supported_by(source, fact.value)
+            if fact.fact_type in DATETIME_FACT_IDS
+            else value_supported_by(source, fact.value)
+        )
+        if fact.value is not None and not supported:
             result.hallucinated.append(fact.fact_id)
 
         # TST-002 혼합: 값은 gold에 있는데 다른 처리행위의 것이다
@@ -272,6 +279,34 @@ def value_supported_by(document: str, value: Any) -> bool:
     if isinstance(value, list):
         return all(value_supported_by(document, item) for item in value)
     return True
+
+
+def datetime_supported_by(document: str, value: Any) -> bool:
+    """ISO 날짜·시간 값의 연·월·일·시·분이 원문 표기로 등장하는지 확인한다.
+
+    날짜 Fact는 원문 "2026년 9월 5일 14시 30분"을 "2026-09-05T14:30:00+09:00"으로
+    바꿔 싣는다. 글자 그대로 대조하면 형식만 바꾼 값이 환각으로 잡힌다.
+    """
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    text = " ".join(document.split())
+    y, mo, d = parsed.year, parsed.month, parsed.day
+    dates = {f"{y}년 {mo}월 {d}일", f"{y}년 {mo:02d}월 {d:02d}일",
+             f"{y}-{mo:02d}-{d:02d}", f"{y}.{mo:02d}.{d:02d}", f"{y}. {mo}. {d}."}
+    if not any(form in text for form in dates):
+        return False
+    h, mi = parsed.hour, parsed.minute
+    if h == 0 and mi == 0:
+        return True  # 날짜만 적힌 원문을 00:00으로 쓴 경우
+    minute = f" {mi}분" if mi else ""
+    times = {f"{h}시{minute}", f"{h:02d}:{mi:02d}"}
+    if h > 12:
+        times.add(f"오후 {h - 12}시{minute}")
+    return any(form in text for form in times)
 
 
 def load_facts(path: Path) -> tuple[list[FactEnvelope], dict]:

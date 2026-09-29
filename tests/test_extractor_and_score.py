@@ -19,7 +19,7 @@ from app.extractors.poc1 import (
 )
 from app.facts.models import FactEnvelope
 from app.mapping import OntologyMapper
-from evals.score import score_facts, value_supported_by
+from evals.score import datetime_supported_by, score_facts, value_supported_by
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLD_PATH = ROOT / "evals" / "poc1" / "sc_p01_gold_facts.json"
@@ -313,6 +313,22 @@ def test_value_state_is_part_of_the_match_key(gold_raw, gold, policy: str):
     score = score_facts(gold, [FactEnvelope.model_validate(i) for i in predicted], policy)
     assert score.matched == len(gold) - 1
     assert score.spurious
+
+
+@pytest.mark.parametrize(
+    "value, supported",
+    [
+        ("2026-09-05T14:30:00+09:00", True),   # 원문: 2026년 9월 5일 14시 30분
+        ("2026-09-06T00:00:00+09:00", True),   # 원문: 2026년 9월 6일 (날짜만)
+        ("2026-09-05T15:30:00+09:00", False),  # 시각이 다르다
+        ("2026-09-04T14:30:00+09:00", False),  # 날짜가 다르다
+        ("2026년 9월 5일 14시 30분", False),    # ISO가 아니다
+    ],
+)
+def test_datetime_supported_by_matches_korean_notation(value: str, supported: bool):
+    """형식만 ISO로 바꾼 날짜는 환각이 아니다. 값이 달라지면 환각이다."""
+    notice = "통지 발송일: 2026년 9월 6일\n유출이 발생한 시점은 2026년 9월 5일 14시 30분입니다."
+    assert datetime_supported_by(notice, value) is supported
 
 
 def test_value_supported_by_ignores_whitespace(policy: str):
