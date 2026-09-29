@@ -137,6 +137,50 @@ def test_prompt_asks_for_evidence_on_unknown_and_absent(name: str):
     assert "unknown과 absent도 evidence_text가 비어 있으면 버려집니다" in text
 
 
+def test_pass1_asks_for_a_single_line_heading():
+    """두 줄을 이어 붙인 heading 때문에 처리행위가 빠진 적이 있다 (실측 v2, v4)."""
+    from app.extractors.prompts import PASS1_SYSTEM
+
+    assert "한 줄 안의 문구만 쓰십시오" in PASS1_SYSTEM
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "구체적인 내용이 없는 상투적 문구는 confirmed가 아닙니다",  # 실측 v2 위험 오판
+        "처리행위의 제목이나 항목명을 값으로 옮기지 마십시오",      # 실측 v1 위험 오판
+    ],
+)
+def test_pass2_guards_against_the_observed_false_greens(phrase: str):
+    from app.extractors.prompts import PASS2_SYSTEM
+
+    assert phrase in PASS2_SYSTEM
+
+
+@pytest.mark.parametrize(
+    "variant, state",
+    [
+        ("v2-vague-destruction", "unknown"),    # "적절한 방법으로" — 언급했지만 비어 있다
+        ("v3-missing-destruction", "absent"),   # "지체 없이 파기" — 방법을 아예 말하지 않는다
+    ],
+)
+def test_vague_value_rule_matches_the_gold_set(variant: str, state: str):
+    """프롬프트 8번 규칙의 두 갈래를 정답지도 같은 방식으로 나눈다.
+
+    8번 규칙 첫 버전은 둘을 구분하지 않아 v3가 RED -> AMBER로 움직였다 (실측).
+    """
+    import json
+
+    from app.extractors.prompts import PASS2_SYSTEM
+
+    assert "그 항목을 언급했지만 내용이 비어 있을 때만" in PASS2_SYSTEM
+    gold = json.loads(
+        (ROOT / f"evals/poc1/variants/{variant}/gold_facts.json").read_text(encoding="utf-8")
+    )
+    destruction = [f for f in gold["facts"] if f["fact_id"].startswith("F1-08")]
+    assert [f["value_state"] for f in destruction] == [state]
+
+
 def test_every_gold_fact_has_evidence_even_without_a_value(gold: dict):
     """프롬프트가 요구하는 것과 정답지가 같아야 한다."""
     for item in gold["facts"]:

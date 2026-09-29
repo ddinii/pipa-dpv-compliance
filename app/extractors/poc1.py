@@ -9,6 +9,7 @@ Ontology Mapping(COM-004)은 app.facts가 맡는다.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -184,8 +185,8 @@ class PoC1Extractor:
         result.activities = pass1.activities
 
         for activity in result.activities:
-            # Pass 1의 heading도 원문 인용이어야 한다. 아니면 그 처리행위를 신뢰할 수 없다.
-            if activity.heading not in document:
+            # Pass 1의 heading도 원문에 근거해야 한다. 아니면 그 처리행위를 신뢰할 수 없다.
+            if not heading_is_grounded(document, activity.heading):
                 result.rejected.append(RejectedFact(
                     fact_id="F1-01",
                     activity_id=activity.activity_id,
@@ -300,6 +301,32 @@ class PoC1Extractor:
             # 보유 Fact는 상위 클래스로 단언한다 (3장 PersonalInformationProcessing)
             return activity.activity_id, "PersonalInformationProcessing"
         return activity.activity_id, activity.ontology_class
+
+
+# Pass 1이 여러 줄을 한 heading으로 이어 붙일 때 쓰는 구분자
+_HEADING_SEPARATORS = re.compile(r"\s*(?:\n|, | - | / | \| )\s*")
+
+
+def _collapse_whitespace(text: str) -> str:
+    return " ".join(text.split())
+
+
+def heading_is_grounded(document: str, heading: str) -> bool:
+    """Pass 1 heading이 원문에 근거하는지 본다.
+
+    heading은 Pass 2에 주는 위치 단서일 뿐 Fact의 근거가 아니다. Pass 2의 Fact는 각자
+    원문 그대로 인용해야 살아남는다. 그래서 공백 차이와, 서로 다른 줄을 구분자로 이어
+    붙인 경우("수탁자: A, 위탁업무: B")는 허용한다. 조각마다 원문에 있어야 한다.
+
+    이것을 엄격하게 두면 안 되는 이유: heading 하나가 어긋나면 처리행위 전체가 빠지고,
+    문제 있는 처리행위가 빠지면 판정은 GREEN 쪽으로만 움직인다 (실측: v4에서
+    '추후 선정 예정' 수탁자가 빠져 P1-R06이 AMBER -> GREEN).
+    """
+    if heading in document:
+        return True
+    collapsed = _collapse_whitespace(document)
+    parts = [part for part in _HEADING_SEPARATORS.split(heading.strip()) if part.strip()]
+    return bool(parts) and all(_collapse_whitespace(part) in collapsed for part in parts)
 
 
 def locate_quotes(
