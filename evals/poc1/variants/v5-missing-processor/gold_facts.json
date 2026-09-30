@@ -553,6 +553,25 @@
       "schema_version": "fact-1.0"
     },
     {
+      "fact_id": "F1-09:act-entrust-001",
+      "subject_id": "act-entrust-001",
+      "activity_id": "act-entrust-001",
+      "ontology_class": "EntrustedProcessing",
+      "ontology_property": "hasProcessor",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "위탁업무: 상품 배송",
+          "start_offset": 1128,
+          "end_offset": 1139
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "변형 v5-missing-processor: 수탁자 한 곳의 수탁자명 기재를 삭제한다. 위탁업무만 남는다."
+    },
+    {
       "fact_id": "F1-10:act-entrust-001",
       "subject_id": "act-entrust-001",
       "activity_id": "act-entrust-001",

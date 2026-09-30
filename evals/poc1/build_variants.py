@@ -62,7 +62,10 @@ VARIANTS: list[Variant] = [
         target_rule="P1-R01",
         expected_status="RED",
         edits=[("   처리 목적: 서비스 개선 및 이용 통계 분석\n", "")],
-        drop={"F1-02:act-collection-004"},
+        # Fact Dictionary 8장: 기재가 없으면 Fact를 빼지 않고 absent로 유지한다 (v3와 같은
+        # 규약). 근거는 목적이 적혀 있어야 할 항목의 제목이다. 예전에는 Fact를 빼서,
+        # absent를 정확히 낸 모델이 채점에서 "없는 것을 만듦"으로 잡혔다.
+        restate={"F1-02:act-collection-004": ("absent", "4. 서비스 개선")},
     ),
     Variant(
         name="v2-vague-destruction",
@@ -111,7 +114,8 @@ VARIANTS: list[Variant] = [
         target_rule="P1-R06",
         expected_status="RED",
         edits=[("수탁자: 빠른택배 주식회사\n위탁업무: 상품 배송", "위탁업무: 상품 배송")],
-        drop={"F1-09:act-entrust-001"},
+        # v1과 같은 규약: 빼지 않고 absent. 근거는 수탁자명이 있어야 할 그 위탁 항목이다.
+        restate={"F1-09:act-entrust-001": ("absent", "위탁업무: 상품 배송")},
     ),
     Variant(
         name="v6-no-third-party-provision",
