@@ -2,6 +2,8 @@
 
 LLM Fact Extractor의 정답지와 채점기입니다. Rule Engine이 아니라 **Extractor**를 평가합니다.
 
+> **최종 결과는 [RESULTS.md](RESULTS.md)에 있습니다.** 이 문서는 세트 구성, 규약, 작업 기록입니다.
+
 ```text
 evals/
 ├─ dataset.py                  # PoC별 평가 세트 탐색 (POC_DATASETS)
