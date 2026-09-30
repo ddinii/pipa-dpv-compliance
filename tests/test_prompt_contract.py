@@ -202,6 +202,23 @@ def test_unspecified_statutory_period_is_unknown_not_resolved():
     assert covered and set(covered.values()) == {"unknown"}
 
 
+def test_event_bounded_span_is_an_end_condition_not_an_unknown_period(gold: dict):
+    """팀 결정 (Issue 4 후속): '서비스 이용기간 동안'은 사건으로 끝이 정해진다 -> F1-04.
+
+    '기간'이라는 단어로 가르면 같은 뜻의 "서비스 이용 종료 시까지"와 결과가 갈린다.
+    정답지(국외 이전: "서비스 이용기간 또는 처리 목적 달성 시까지")도 F1-03 absent다.
+    """
+    from app.extractors.prompts import PASS2_SYSTEM
+
+    assert "끝이 어떻게 정해지는지로 가르십시오" in PASS2_SYSTEM
+    assert "서비스 이용기간 동안" in PASS2_SYSTEM
+    crossborder = {
+        f["fact_id"].split(":")[0]: f["value_state"]
+        for f in gold["facts"] if f["activity_id"] == "act-crossborder-001"
+    }
+    assert crossborder == {"F1-03": "absent", "F1-04": "confirmed"}
+
+
 def test_every_gold_fact_has_evidence_even_without_a_value(gold: dict):
     """프롬프트가 요구하는 것과 정답지가 같아야 한다."""
     for item in gold["facts"]:
