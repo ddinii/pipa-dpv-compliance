@@ -47,6 +47,9 @@ class Variant:
     restate: dict[str, tuple[str, str]] = field(default_factory=dict)
     # 추가할 Fact (envelope 전체). 근거 인용은 변형 문서 기준으로 해석된다.
     add: list[dict] = field(default_factory=list)
+    # 정답 activity presence metadata: (activity_type, 부재를 명시한 원문 인용).
+    # Fact가 아니다. 처리행위 유형이 "없다고 명시됨"(confirmed_false)을 뜻한다.
+    presence: list[tuple[str, str]] = field(default_factory=list)
 
 
 CONTROLLER_ABSENCE_EVIDENCE = "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."
@@ -112,12 +115,14 @@ VARIANTS: list[Variant] = [
     ),
     Variant(
         name="v6-no-third-party-provision",
-        # Fact Dictionary 3장에는 "처리행위 유형이 없다"를 담을 Fact ID가 없다.
-        # (F1-00 같은 것은 존재하지 않는다.) 그래서 제3자 제공 Fact가 사라질 뿐이고,
-        # 그 상태를 Rule Engine이 어떻게 보는지를 그대로 기대값으로 둔다.
-        description="제3자 제공을 하지 않는다고 명시한다. 관련 Fact가 전부 사라진다.",
+        # Fact Dictionary 3장에는 "처리행위 유형이 없다"를 담을 Fact ID가 없다
+        # (F1-00 같은 것은 존재하지 않는다). 부재는 Fact가 아니라 activity presence
+        # metadata로 싣는다 (app/mapping/presence_metadata.py). 명시적 부재는
+        # COM-006에 따라 N/A다. 예전 기대값 AMBER는 N/A를 낼 경로가 없던 때의 값이다.
+        description="제3자 제공을 하지 않는다고 명시한다. 제공 Fact는 사라지고 부재가 명시된다.",
         target_rule="P1-R03",
-        expected_status="AMBER",
+        expected_status="N/A",
+        presence=[("ThirdPartyProvision", CONTROLLER_ABSENCE_EVIDENCE)],
         edits=[(
             "회사는 이용자의 개인정보를 제1조에서 명시한 범위 내에서만 처리하며, 다음의 경우에 한하여 개인정보를 제3자에게 제공합니다.\n"
             "\n"
@@ -214,22 +219,33 @@ def build() -> list[tuple[Variant, Path]]:
         directory = OUT_DIR / variant.name
         directory.mkdir(exist_ok=True)
         (directory / "policy.txt").write_text(document, encoding="utf-8")
+        payload = {
+            "source_document_id": f"SC-P01-{variant.name}",
+            "poc": "poc1",
+            "policy_text_file": "policy.txt",
+            "fact_schema_version": "fact-1.0",
+            "variant": {
+                "name": variant.name,
+                "description": variant.description,
+                "target_rule": variant.target_rule,
+                "expected_status": variant.expected_status,
+            },
+            "expected_rule_status": expected,
+            "facts": facts,
+        }
+        if variant.presence:
+            payload["system_metadata"] = [
+                {
+                    "field": "activity_presence",
+                    "activity_type": activity_type,
+                    "state": "confirmed_false",
+                    "source_type": "policy_text",
+                    "evidence": [locate(document, quote)],
+                }
+                for activity_type, quote in variant.presence
+            ]
         (directory / "gold_facts.json").write_text(
-            json.dumps({
-                "source_document_id": f"SC-P01-{variant.name}",
-                "poc": "poc1",
-                "policy_text_file": "policy.txt",
-                "fact_schema_version": "fact-1.0",
-                "variant": {
-                    "name": variant.name,
-                    "description": variant.description,
-                    "target_rule": variant.target_rule,
-                    "expected_status": variant.expected_status,
-                },
-                "expected_rule_status": expected,
-                "facts": facts,
-            }, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         built.append((variant, directory))
 

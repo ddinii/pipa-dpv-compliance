@@ -207,6 +207,9 @@ class RuleScore:
     mismatches: list[tuple[str, str, str, str]] = field(default_factory=list)
     # gold가 GREEN이 아닌데 GREEN으로 예측한 경우. 가장 위험한 방향이다.
     false_greens: list[tuple[str, str, str]] = field(default_factory=list)
+    # gold가 RED/AMBER인데 N/A로 예측한 경우. 잘못된 부재 선언(confirmed_false)이
+    # Rule을 판정 대상에서 빼 버려 결함이 보이지 않게 된다. GREEN만큼 위험하다.
+    false_nas: list[tuple[str, str, str]] = field(default_factory=list)
 
     @property
     def agreement(self) -> float:
@@ -215,6 +218,10 @@ class RuleScore:
     @property
     def false_green_rate(self) -> float:
         return len(self.false_greens) / self.total if self.total else 0.0
+
+    @property
+    def false_na_rate(self) -> float:
+        return len(self.false_nas) / self.total if self.total else 0.0
 
     def add(self, case: str, gold: dict[str, str], predicted: dict[str, str]) -> None:
         for rule_id in sorted(gold):
@@ -227,6 +234,8 @@ class RuleScore:
             self.mismatches.append((case, rule_id, expected, actual))
             if actual == "GREEN" and expected != "GREEN":
                 self.false_greens.append((case, rule_id, expected))
+            if actual == "N/A" and expected in {"RED", "AMBER"}:
+                self.false_nas.append((case, rule_id, expected))
 
     def as_dict(self) -> dict:
         return {
@@ -234,8 +243,10 @@ class RuleScore:
             "agree": self.agree,
             "agreement": round(self.agreement, 4),
             "false_green_rate": round(self.false_green_rate, 4),
+            "false_na_rate": round(self.false_na_rate, 4),
             "mismatches": [list(item) for item in self.mismatches],
             "false_greens": [list(item) for item in self.false_greens],
+            "false_nas": [list(item) for item in self.false_nas],
         }
 
 
@@ -255,11 +266,16 @@ def format_rule_report(score: RuleScore) -> str:
         f"  status 일치율       {score.agreement:.3f}",
         f"  위험 오판(GREEN)    {score.false_green_rate:.3f}  "
         f"({len(score.false_greens)}건)",
+        f"  위험 오판(N/A)      {score.false_na_rate:.3f}  "
+        f"({len(score.false_nas)}건)",
     ]
     if score.mismatches:
         lines += ["", "  불일치:"]
         for case, rule_id, expected, actual in score.mismatches[:20]:
-            mark = "  <-- 위험" if actual == "GREEN" and expected != "GREEN" else ""
+            risky = (actual == "GREEN" and expected != "GREEN") or (
+                actual == "N/A" and expected in {"RED", "AMBER"}
+            )
+            mark = "  <-- 위험" if risky else ""
             lines.append(f"    {case:28s} {rule_id}  gold={expected:6s} 예측={actual}{mark}")
     return "\n".join(lines)
 

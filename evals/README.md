@@ -201,9 +201,9 @@ Fact Dictionary에는 이 규칙이 없습니다.
 4. **처리행위 유형의 부재를 표현할 Fact ID가 없습니다.** 3·4·5장은 35개 Fact를
    정의하는데, 그중 "이 유형의 처리행위를 하지 않는다"를 담을 자리가 없습니다.
    8장은 미기재를 `value_state=absent`로 유지하라고 하지만, 처리행위 자체가 없으면
-   귀속시킬 `activity_id`가 없습니다. 그 결과 **N/A는 Fact 경로로 도달할 수 없고**
-   손으로 쓴 RDF(`test:thirdPartyProvisionState "confirmed_false"`)로만 나옵니다.
-   v1.0의 한계이므로 개정 사항으로 올립니다.
+   귀속시킬 `activity_id`가 없습니다. **해결됨**: 부재는 Fact가 아니라 activity
+   presence metadata(`app/mapping/presence_metadata.py`)로 싣습니다. 35개 Fact는
+   그대로입니다. 아래 "N/A 경로" 참고.
 
 5. **타입이 `instance`인 Fact(F3-01/F3-03/F3-06)는 Envelope에 담을 자리가 애매합니다.**
    리터럴 값이 아니라 연결 대상 개체를 가리키기 때문입니다. 정본은 값 객체
@@ -434,8 +434,9 @@ v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(
 
 1. Day 0 5번 확정 (F1-03이 `absent`인가 `unknown`인가). Rule 판정은 바뀌지 않고
    Fact 단위 F1만 바뀐다 (실측: 둘 다 P1-R02 AMBER). 실행을 막지 않는다
-2. N/A 경로: "제공하지 않습니다"처럼 명시적 부재를 Extractor가 presence metadata로
-   내고, 러너가 그것을 Rule Engine에 넘기게 한다 (지금은 러너 경로로 N/A 불가)
+2. 근거 인용의 줄바꿈 허용: 원문에서 줄이 바뀐 문장을 모델이 한 줄로 이어 인용하면
+   거부된다 (PoC2 v1에서 F2-01 거부 -> P2-R08 AMBER). 공백만 다른 인용을 원문 위치로
+   되찾는 방식이면 NFR-07을 유지할 수 있다
 3. 캐시 효과 실측(`--no-cache`)
 
 ## 실행 전에 알아야 할 것 — 호출량과 비용
@@ -615,10 +616,39 @@ A~C 이전의 첫 전체 스윕은 PoC1 dev 위험 오판이 Sonnet 5 3건, Opus
 원인과 수정은 커밋 `41da388`에 있습니다. 수정 후 Sonnet 5가 수정 전 Opus 5보다 나으므로
 Sonnet 5를 기본 모델로 둡니다(`.env.example`). 수정 후 Opus 5는 다시 돌리지 않았습니다.
 
-**N/A 케이스는 없습니다.** 평가 러너는 Fact만으로 Rule을 돌리고 activity presence
-metadata를 넘기지 않으므로, 러너 경로로는 N/A가 나올 수 없습니다. 서비스
-(`run_breach_check`)는 통지문이 없을 때 metadata를 붙이지만 러너는 그렇지 않습니다.
-러너를 서비스 경로와 맞추는 것이 먼저입니다.
+## N/A 경로 — 명시적 부재는 Fact가 아니라 presence metadata입니다
+
+COM-006은 "처리행위가 없다고 확인됨"을 N/A로 봅니다. Fact Dictionary 35개에는 그것을
+담을 Fact가 없으므로 activity presence metadata(`confirmed_false`)로 싣습니다.
+
+| PoC | 무엇이 부재를 말하는가 | metadata |
+|---|---|---|
+| PoC1 | Pass 1이 "제3자에게 제공하지 않습니다" 같은 **원문 문장**을 `declared_absent`로 보고 | `ThirdPartyProvision` / `EntrustedProcessing` = confirmed_false, 근거는 그 문장 |
+| PoC2 | 요청에 **통지문이 없음** (`with_notice_presence`, 서비스와 러너가 같은 함수) | `NotificationNotice` = confirmed_false, 근거는 `field_path: notification` |
+
+잘못된 `confirmed_false`는 Rule을 판정 대상에서 빼서 결함을 가립니다. 그래서 확신이
+없으면 내지 않습니다.
+
+- 부재 선언의 인용이 원문에 없으면 버립니다 (NFR-07)
+- 같은 유형의 처리행위를 Pass 1이 함께 식별했으면 모순이므로 버립니다. 그 처리행위는
+  평소대로 평가됩니다
+- "기재가 없음"은 부재 선언이 아닙니다. 원문이 "하지 않는다"고 말할 때만입니다
+
+채점기는 이 위험을 **위험 오판(N/A)**으로 따로 셉니다. gold가 RED/AMBER인데 N/A로
+예측하면 위험 오판이고, 러너는 GREEN 오판과 마찬가지로 종료 코드 1을 냅니다.
+
+실측 (claude-sonnet-5):
+
+| | Rule 일치 | GREEN 오판 | N/A 오판 |
+|---|---|---|---|
+| PoC1 dev (v6가 N/A) | 42/42 | 0 | 0 |
+| PoC1 held-out (부재 선언 없음) | 12/12 | 0 | 0 |
+| PoC2 dev (v6-no-notice가 N/A) | 27/28 | 0 | 0 |
+
+부재 선언은 PoC1 dev 7건 중 v6에서만 나왔습니다. PoC2 불일치 1건(v1 P2-R08
+GREEN -> AMBER)은 N/A와 무관합니다. 원문이 줄바꿈된 문장을 모델이 한 줄로 이어
+인용해 F2-01이 거부된 것으로, 직전 실행에서는 나오지 않은 실행 간 편차입니다.
+근거 인용의 줄바꿈 허용은 후속 과제입니다.
 
 ## PoC1 Controlled Variants (TST-003)
 
@@ -636,20 +666,20 @@ python -m pytest -q tests\test_variants_poc1.py
 | v3-missing-destruction | 파기 방법 기재 삭제 (F1-08 `absent`) | P1-R04 **RED** |
 | v4-unknown-processor | "수탁자: 추후 선정 예정" | P1-R06 **AMBER** |
 | v5-missing-processor | 수탁자명 기재 삭제 | P1-R06 **RED** |
-| v6-no-third-party-provision | "제3자에게 제공하지 않습니다" 명시 | P1-R03 **AMBER** |
+| v6-no-third-party-provision | "제3자에게 제공하지 않습니다" 명시 | P1-R03 **N/A** |
 
 문서를 편집하면 글자 위치가 전부 밀리므로, 빌더가 **변형 문서에서 근거를 다시 찾아** offset을
 새로 계산합니다. 근거를 찾지 못했는데 변형 정의가 처리하지 않았다면 빌더가 실패합니다.
 
 각 변형은 겨냥한 Rule **하나만** 움직여야 하며, 이것도 테스트로 강제합니다.
 
-### N/A는 이 변형 세트로 만들 수 없습니다
+### v6는 N/A입니다
 
-v6는 "제3자에게 제공하지 않습니다"를 명시하지만 결과는 N/A가 아니라 **AMBER**입니다.
-Fact Dictionary에 처리행위 유형의 부재를 담을 Fact ID가 없어서, 제3자 제공 Fact가
-그냥 사라질 뿐이기 때문입니다 (위 결손 4번).
+v6의 정답지는 제공 Fact를 빼고 `ThirdPartyProvision=confirmed_false` presence
+metadata를 싣습니다. 예전 기대값 AMBER는 N/A를 낼 경로가 없던 때의 값입니다.
+PoC2에는 통지문이 없는 `v6-no-notice`가 같은 역할을 합니다 (P2-R02/R03 N/A).
 
-대신 **absent와 unknown의 구분**은 v2와 v3이 보여줍니다. 같은 P1-R04를 v2(파기방법
+**absent와 unknown의 구분**은 v2와 v3이 보여줍니다. 같은 P1-R04를 v2(파기방법
 `unknown`)는 AMBER로, v3(파기방법 `absent`)는 RED로 움직입니다. Fact를 아예 빼면
 "입력 계약 불완전"으로 AMBER가 되므로, 기재가 없을 때는 Fact를 빼지 말고
 `value_state="absent"`로 유지해야 합니다 (8장).

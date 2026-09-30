@@ -50,7 +50,8 @@ def test_variant_evidence_resolves_in_its_own_document(name: str):
 def test_variant_reproduces_its_expected_statuses(name: str, engine: P0RuleEngine):
     gold, document = load(name)
     facts = validate_facts(gold["facts"], document=document)
-    results = engine.evaluate_mapping_result(facts_to_mapping(facts), poc="poc1")
+    mapping = facts_to_mapping(facts, system_metadata=gold.get("system_metadata"))
+    results = engine.evaluate_mapping_result(mapping, poc="poc1")
     actual = {result.rule_id: result.status.value for result in results}
     assert actual == gold["expected_rule_status"]
 
@@ -71,20 +72,28 @@ def test_variant_only_moves_its_target_rule(name: str):
             assert status == base_status[rule_id], f"{name}이 {rule_id}까지 바꿨습니다"
 
 
-def test_three_statuses_are_represented_in_poc1():
-    """TST-003: GREEN/AMBER/RED 대표 케이스가 변형 세트에 모두 있어야 한다.
+def test_all_four_statuses_are_represented_in_poc1():
+    """TST-003: GREEN/AMBER/RED/N/A 대표 케이스가 세트에 모두 있어야 한다.
 
-    N/A는 빠져 있다. Rule Engine은 activity presence metadata로 N/A를 내지만
-    (app/mapping/presence_metadata.py), 이 변형 세트의 정답지는 그 메타데이터를
-    싣지 않는다. Extractor가 "하지 않는다고 명시됨"을 감지해 presence metadata로
-    내보내도록 붙이면 그때 N/A 케이스를 추가할 수 있다.
+    N/A는 v6이 낸다. 원문이 "제3자에게 제공하지 않습니다"라고 명시하면 정답지가
+    ThirdPartyProvision=confirmed_false presence metadata를 싣는다 (Fact가 아니다).
     """
     seen = {"GREEN", "AMBER"}  # 기준 SC-P01이 제공한다
     for name in VARIANT_NAMES:
         gold, _ = load(name)
         seen.update(gold["expected_rule_status"].values())
-    assert {"GREEN", "AMBER", "RED"} <= seen
-    assert "N/A" not in seen
+    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+
+
+def test_na_comes_from_presence_metadata_not_from_a_fact():
+    """35개 Fact에 부재 전용 Fact를 더하지 않는다. N/A의 근거는 metadata다."""
+    gold, document = load("v6-no-third-party-provision")
+    [presence] = gold["system_metadata"]
+    assert presence["activity_type"] == "ThirdPartyProvision"
+    assert presence["state"] == "confirmed_false"
+    piece = presence["evidence"][0]
+    assert document[piece["start_offset"]:piece["end_offset"]] == piece["text"]
+    assert not any("provision" in (f["activity_id"] or "") for f in gold["facts"])
 
 
 def test_absent_and_unknown_move_the_same_rule_differently(engine: P0RuleEngine):

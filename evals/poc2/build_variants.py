@@ -18,11 +18,19 @@ PoC1 빌더와 다른 점은 문서가 둘이라는 것이다. 사고 기록과 
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+# 통지문이 없을 때 Extractor가 내는 Fact 모양. 정답지가 이것과 어긋나면 안 되므로
+# 다시 적지 않고 가져온다.
+from app.extractors.poc2 import NOTICE_ABSENCE_SHAPE, INCIDENT_ID  # noqa: E402
 BASE_INCIDENT = HERE / "sc_p02_incident.txt"
 BASE_NOTICE = HERE / "sc_p02_notice.txt"
 BASE_GOLD = HERE / "sc_p02_gold_facts.json"
@@ -52,14 +60,20 @@ class Variant:
     revalue: dict[str, tuple[Any, list[str]]] = field(default_factory=dict)
     # 겨냥한 Rule 외에 함께 움직이는 Rule (7장 Coverage가 Fact를 공유하는 경우)
     also_moves: dict[str, str] = field(default_factory=dict)
+    # 통지문 자체가 없다. 통지문 Fact는 absent(derived)가 되고, 통지문 부재가
+    # activity presence metadata(NotificationNotice=confirmed_false)로 명시된다.
+    no_notice: bool = False
 
     @property
     def changed_facts(self) -> set[str]:
         """이 변형이 건드린 Fact 유형. 7장 Coverage 대조에 쓴다."""
-        return {
+        changed = {
             fact_id.split(":", 1)[0]
             for fact_id in (*self.restate, *self.revalue)
         }
+        if self.no_notice:
+            changed |= set(NOTICE_ABSENCE_SHAPE)
+        return changed
 
 
 VARIANTS: list[Variant] = [
@@ -135,7 +149,45 @@ VARIANTS: list[Variant] = [
         ),
         restate={"F2-10:breach-incident": ("absent", "3. 사고 후 조치")},
     ),
+    Variant(
+        name="v6-no-notice",
+        description="통지문을 제공하지 않는다. 통지문 부재가 명시되어 통지문 Rule은 N/A가 된다.",
+        target_rule="P2-R02",
+        expected_status="N/A",
+        # 통지문이 없으면 P2-R03도 판정 대상이 없다(N/A). P2-R01은 "사고는 있으나
+        # 통지문이 없음"을 RED로 드러낸다. 통지 의무 판정이 아니다 (engine 문구 참고).
+        also_moves={"P2-R01": "RED", "P2-R03": "N/A"},
+        no_notice=True,
+    ),
 ]
+
+# 서비스(with_notice_presence)가 통지문 없는 요청에 붙이는 것과 같은 metadata
+NO_NOTICE_PRESENCE = {
+    "field": "activity_presence",
+    "activity_type": "NotificationNotice",
+    "state": "confirmed_false",
+    "source_type": "derived",
+    "evidence": [{"field_path": "notification"}],
+}
+
+
+def notice_absence_facts() -> list[dict]:
+    """통지문이 없을 때의 통지문 Fact. PoC2Extractor가 내는 것과 같은 모양이다."""
+    return [
+        {
+            "fact_id": f"{fact_id}:{subject_id}",
+            "subject_id": subject_id,
+            "activity_id": INCIDENT_ID,
+            "ontology_class": ontology_class,
+            "ontology_property": prop,
+            "value": None,
+            "value_state": "absent",
+            "source_type": "derived",
+            "evidence": [{"field_path": "notification"}],
+            "schema_version": "fact-1.0",
+        }
+        for fact_id, (subject_id, ontology_class, prop) in NOTICE_ABSENCE_SHAPE.items()
+    ]
 
 
 def apply_edits(document: str, edits: tuple[tuple[str, str], ...]) -> str:
@@ -215,7 +267,14 @@ def build() -> list[tuple[Variant, Path]]:
             "incident": apply_edits(base_incident, variant.incident_edits),
             "notice": apply_edits(base_notice, variant.notice_edits),
         }
-        facts = rebuild_facts(base_gold["facts"], documents, variant)
+        if variant.no_notice:
+            incident_facts = [
+                f for f in base_gold["facts"]
+                if f["fact_id"].split(":", 1)[0] not in NOTICE_ABSENCE_SHAPE
+            ]
+            facts = rebuild_facts(incident_facts, documents, variant) + notice_absence_facts()
+        else:
+            facts = rebuild_facts(base_gold["facts"], documents, variant)
 
         expected = dict(base_status)
         expected[variant.target_rule] = variant.expected_status
@@ -224,26 +283,29 @@ def build() -> list[tuple[Variant, Path]]:
         directory = OUT_DIR / variant.name
         directory.mkdir(exist_ok=True)
         (directory / INCIDENT_NAME).write_text(documents["incident"], encoding="utf-8")
-        (directory / NOTICE_NAME).write_text(documents["notice"], encoding="utf-8")
+        payload = {
+            "source_document_id": f"SC-P02-{variant.name}",
+            "poc": "poc2",
+            "incident_text_file": INCIDENT_NAME,
+            "notice_text_file": None if variant.no_notice else NOTICE_NAME,
+            "fact_schema_version": "fact-1.0",
+            "variant": {
+                "name": variant.name,
+                "description": variant.description,
+                "target_rule": variant.target_rule,
+                "expected_status": variant.expected_status,
+                "also_moves": variant.also_moves,
+                "changed_facts": sorted(variant.changed_facts),
+            },
+            "expected_rule_status": expected,
+            "facts": facts,
+        }
+        if variant.no_notice:
+            payload["system_metadata"] = [NO_NOTICE_PRESENCE]
+        else:
+            (directory / NOTICE_NAME).write_text(documents["notice"], encoding="utf-8")
         (directory / "gold_facts.json").write_text(
-            json.dumps({
-                "source_document_id": f"SC-P02-{variant.name}",
-                "poc": "poc2",
-                "incident_text_file": INCIDENT_NAME,
-                "notice_text_file": NOTICE_NAME,
-                "fact_schema_version": "fact-1.0",
-                "variant": {
-                    "name": variant.name,
-                    "description": variant.description,
-                    "target_rule": variant.target_rule,
-                    "expected_status": variant.expected_status,
-                    "also_moves": variant.also_moves,
-                    "changed_facts": sorted(variant.changed_facts),
-                },
-                "expected_rule_status": expected,
-                "facts": facts,
-            }, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         built.append((variant, directory))
 

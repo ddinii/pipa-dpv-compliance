@@ -49,6 +49,10 @@ from app.mapping.fact_schema import FactValidationError as FactMappingError  # n
 from app.facts.models import FactEnvelope  # noqa: E402
 from app.facts.validator import FactValidationError, validate_facts  # noqa: E402
 from app.rules.engine import P0RuleEngine  # noqa: E402
+from app.services.compliance import (  # noqa: E402
+    _split_extractor_output,
+    with_notice_presence,
+)
 from app.extractors.usage import Usage, format_usage  # noqa: E402
 from evals.dataset import POC_DATASETS, SPLITS, EvalCase, load_cases  # noqa: E402
 from evals.score import (  # noqa: E402
@@ -76,9 +80,16 @@ def run_case(
     print(f"\n[{case.name}] {case.description}")
 
     diagnostics.clear()
-    raw_facts = case.extract_with(
-        extractor, analysis_id=case.name, controller_id=CONTROLLER_ID
+    raw_facts, presence = _split_extractor_output(
+        case.extract_with(extractor, analysis_id=case.name, controller_id=CONTROLLER_ID)
     )
+    if case.poc == "poc2":
+        # 서비스(run_breach_check)와 같은 경로. 통지문이 없으면 명시적 부재다.
+        presence = with_notice_presence(
+            presence, notification_provided="notice" in case.documents
+        )
+    for item in presence:
+        print(f"  presence {item['activity_type']}={item['state']}")
     rejected = diagnostics[0].rejected if diagnostics else []
     usage = diagnostics[0].usage if diagnostics else Usage()
     print(f"  Fact {len(raw_facts)}개 추출 · {len(rejected)}개 거부")
@@ -96,6 +107,7 @@ def run_case(
                 "poc": case.poc,
                 "fact_schema_version": "fact-1.0",
                 "facts": result.facts,
+                "system_metadata": presence,
             },
             ensure_ascii=False,
             indent=2,
@@ -114,7 +126,7 @@ def run_case(
         return {"case": case, "facts": None, "statuses": {}, "rejected": len(result.rejected), "usage": usage}
 
     try:
-        mapping = facts_to_mapping(facts)
+        mapping = facts_to_mapping(facts, system_metadata=presence)
     except FactMappingError as exc:
         print(f"  매핑 실패: {exc}")
         return {"case": case, "facts": facts, "statuses": {}, "rejected": len(result.rejected), "usage": usage}
@@ -255,8 +267,8 @@ def main() -> int:
     )
     print(f"\n리포트 -> {report}")
 
-    # 위험 오판이 하나라도 있으면 실패로 끝낸다. CI에 걸 수 있다.
-    return 1 if rule_score.false_greens else 0
+    # 위험 오판(GREEN 또는 결함을 가리는 N/A)이 하나라도 있으면 실패로 끝낸다. CI에 걸 수 있다.
+    return 1 if rule_score.false_greens or rule_score.false_nas else 0
 
 
 def _accumulate(total: Score, part: Score) -> None:
