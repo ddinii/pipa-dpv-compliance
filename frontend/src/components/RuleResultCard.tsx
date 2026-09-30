@@ -2,6 +2,7 @@ import type { RuleResult } from '../types/api'
 import './ComplianceResults.css'
 import { EvidenceList } from './EvidenceList'
 import { InstanceRuleResultList } from './InstanceRuleResultList'
+import { PipeSeparatedValue } from './PipeSeparatedValue'
 
 interface RuleResultCardProps {
   result: RuleResult
@@ -78,7 +79,9 @@ function FactGroup({ title, items, tone }: FactGroupProps) {
       {items.length > 0 ? (
         <ul>
           {items.map((item, index) => (
-            <li key={`${tone}-${index}`}>{item}</li>
+            <li key={`${tone}-${index}`}>
+              <PipeSeparatedValue value={item} />
+            </li>
           ))}
         </ul>
       ) : (

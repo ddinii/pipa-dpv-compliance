@@ -29,7 +29,7 @@ from app.extractors.usage import Usage
 from app.facts.models import FACT_SCHEMA_VERSION
 from app.mapping.presence_metadata import activity_presence_metadata
 
-DEFAULT_MODEL = "claude-opus-5"
+DEFAULT_MODEL = "claude-sonnet-5"
 MAX_TOKENS = 16000
 
 # --- LLM 응답 스키마 (structured outputs) --------------------------------

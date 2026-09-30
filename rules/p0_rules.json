@@ -59,7 +59,7 @@
       "poc": "PoC1",
       "title": "제3자 제공 기재",
       "rule_version": "1.0",
-      "applicability": "ThirdPartyProvision? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
+      "applicability": "ThirdPartyProvision 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제3호",
         "개인정보 보호법 제17조"
@@ -80,7 +80,7 @@
         "F1-07"
       ],
       "notes": [
-        "N/A? system_metadata.activity_presence? ThirdPartyProvision=confirmed_false?? ????, F1-05/F1-06/F1-07? value_state=absent? ?? ??? ??? ????? ???."
+        "N/A는 system_metadata.activity_presence의 ThirdPartyProvision=confirmed_false로 판정하며, F1-05/F1-06/F1-07의 value_state=absent를 활동 자체의 부재로 해석하지 않음."
       ]
     },
     {
@@ -111,7 +111,7 @@
       "poc": "PoC1",
       "title": "처리위탁 기재",
       "rule_version": "1.0",
-      "applicability": "EntrustedProcessing? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
+      "applicability": "EntrustedProcessing 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제5호",
         "개인정보 보호법 제26조"
@@ -132,7 +132,7 @@
         "F1-10"
       ],
       "notes": [
-        "N/A? system_metadata.activity_presence? EntrustedProcessing=confirmed_false?? ????, F1-09/F1-10? value_state=absent? ?? ??? ??? ????? ???."
+        "N/A는 system_metadata.activity_presence의 EntrustedProcessing=confirmed_false로 판정하며, F1-09/F1-10의 value_state=absent를 활동 자체의 부재로 해석하지 않음."
       ]
     },
     {
@@ -193,7 +193,7 @@
         "v1 required facts are F2-01 DataBreachIncident, F2-02 affectsPersonalInformation, and F2-03 hasNotificationNotice.",
         "P2-R01 does not determine whether an incident is legally subject to notification; it reviews the provided incident facts and NotificationNotice presence.",
         "Notification/reporting thresholds and ReportingObligation are outside v1 scope. triggersNotificationObligation is not used.",
-        "NotificationNotice? ????? ???? P2-R01? DataBreachIncident? ?? ??? ?? ?? Rule??? N/A? ??? RED? ????."
+        "NotificationNotice가 명시적으로 부재해도 P2-R01은 DataBreachIncident가 존재하면 적용되는 Rule이므로 N/A가 아니라 RED로 판정함."
       ]
     },
     {
@@ -201,7 +201,7 @@
       "poc": "PoC2",
       "title": "통지 개인정보 항목 완전성",
       "rule_version": "1.0",
-      "applicability": "NotificationNotice? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
+      "applicability": "NotificationNotice 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
       "legal_basis": [
         "개인정보 보호법 제34조제1항제1호"
       ],
@@ -220,7 +220,7 @@
         "F2-04"
       ],
       "notes": [
-        "NotificationNotice=confirmed_false? ?? P2-R02? N/A??, ??? F2-04? absent? ???? N/A? ???? ???."
+        "NotificationNotice=confirmed_false이면 P2-R02는 N/A이며, 단순히 F2-04가 absent라는 이유만으로 N/A로 판정하지 않음."
       ]
     },
     {
@@ -228,7 +228,7 @@
       "poc": "PoC2",
       "title": "통지 시점·경위 기재",
       "rule_version": "1.0",
-      "applicability": "NotificationNotice? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
+      "applicability": "NotificationNotice 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
       "legal_basis": [
         "개인정보 보호법 제34조제1항제2호"
       ],
@@ -246,7 +246,7 @@
       ],
       "notes": [
         "F2-08 notice_incident_time is the time stated in the NotificationNotice and must remain distinct from the actual DataBreachIncident.incidentDate (F2-05).",
-        "NotificationNotice=confirmed_false? ?? P2-R03? N/A??, F2-08/F2-09? ? ??? ??? ??? ??? ????."
+        "NotificationNotice=confirmed_false이면 P2-R03은 N/A이며, F2-08/F2-09의 속성 부재와 통지문 활동 자체의 부재를 구분함."
       ]
     },
     {
@@ -456,7 +456,7 @@
       "poc": "PoC3",
       "title": "처리위탁 설계",
       "rule_version": "1.0",
-      "applicability": "EntrustedProcessing? ????? ???? ??; confirmed_false?? N/A; ?? ?? ????? AMBER",
+      "applicability": "EntrustedProcessing 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
       "legal_basis": [
         "개인정보 보호법 제26조"
       ],
@@ -473,7 +473,7 @@
         "F3-13"
       ],
       "notes": [
-        "N/A? system_metadata.activity_presence? EntrustedProcessing=confirmed_false?? ????, F3-12/F3-13? value_state=absent? ?? ?? ??? ??? ??? ???."
+        "N/A는 system_metadata.activity_presence의 EntrustedProcessing=confirmed_false로 판정하며, F3-12/F3-13의 value_state=absent를 활동 자체의 부재로 해석하지 않음."
       ]
     }
   ]

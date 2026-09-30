@@ -1,4 +1,5 @@
 import type { Evidence } from '../types/api'
+import { PipeSeparatedValue } from './PipeSeparatedValue'
 
 interface EvidenceListProps {
   evidence: Evidence[]
@@ -42,12 +43,16 @@ export function EvidenceList({ evidence }: EvidenceListProps) {
               <div className="evidence-row">
                 <span className="evidence-type">{item.evidence_type}</span>
                 {item.predicate && <span className="evidence-predicate">{item.predicate}</span>}
-                {formattedValue !== null && <span className="evidence-value">{formattedValue}</span>}
+                {formattedValue !== null && (
+                  <span className="evidence-value">
+                    <PipeSeparatedValue value={formattedValue} />
+                  </span>
+                )}
               </div>
               {item.subject && (
-                <p className="evidence-subject" title={item.subject}>
-                  {item.subject}
-                </p>
+                <div className="evidence-subject" title={item.subject}>
+                  <PipeSeparatedValue value={item.subject} />
+                </div>
               )}
               {item.source_text && <p className="evidence-source-text">{item.source_text}</p>}
               {item.note && <p className="evidence-note">{item.note}</p>}
