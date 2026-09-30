@@ -120,10 +120,11 @@ def run_policy_check(
     """Evaluate PoC1 policy text against the frozen PoC1 P0 rules.
 
     Canonical pipeline: extractor.extract() -> OntologyMapper.map() ->
-    P0RuleEngine.evaluate_mapping_result(..., poc="PoC1"). ``extractor``
-    defaults to the deterministic ``MockPoC1Extractor`` integration test
-    double; a future real LLM extractor can be injected here without any
-    other change to this function, the endpoint, or the response contract.
+    P0RuleEngine.evaluate_mapping_result(..., poc="PoC1"). When ``extractor``
+    is omitted, the module default chosen by the ``PIPA_EXTRACTOR``
+    environment variable is used (``mock`` -> ``MockPoC1Extractor``,
+    ``llm`` -> ``LlmPoC1Extractor``; see app/extractors/selection.py).
+    Passing an extractor explicitly overrides that default.
     """
     if not isinstance(request, dict):
         raise ComplianceInputError("PoC1 요청은 JSON 객체여야 함")
@@ -176,10 +177,11 @@ def run_breach_check(
     """Evaluate a PoC2 breach-notification request against the frozen PoC2 P0 rules.
 
     Canonical pipeline: extractor.extract() -> OntologyMapper.map() ->
-    P0RuleEngine.evaluate_mapping_result(..., poc="PoC2"). ``extractor``
-    defaults to the deterministic ``MockPoc2Extractor`` integration test
-    double; a future real LLM extractor can be injected here without any
-    other change to this function, the endpoint, or the response contract.
+    P0RuleEngine.evaluate_mapping_result(..., poc="PoC2"). When ``extractor``
+    is omitted, the module default chosen by the ``PIPA_EXTRACTOR``
+    environment variable is used (``mock`` -> ``MockPoc2Extractor``,
+    ``llm`` -> ``LlmPoc2Extractor``; see app/extractors/selection.py).
+    Passing an extractor explicitly overrides that default.
 
     For v1, one request represents exactly one incident and zero or one
     notification (docs/context/backend/EXTRACTOR_DECISIONS.md #4).

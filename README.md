@@ -1,102 +1,87 @@
 # PIPA-DPV Compliance Prototype
 
-A machine-readable PIPA (Personal Information Protection Act) compliance
-prototype. Input facts are structured into a frozen Fact contract, mapped
-onto a frozen ontology, and evaluated by a deterministic rule engine to
-produce a `GREEN` / `AMBER` / `RED` / `N/A` `RuleResult` per rule.
+개인정보 보호법(PIPA) 준수 검토를 **기계가 읽을 수 있는 형태**로 구현한 프로토타입입니다.
+입력은 고정된(Frozen) Fact 계약으로 구조화되고, 고정된 온톨로지에 매핑된 뒤,
+**결정론적(deterministic) Rule Engine**이 규칙별 `GREEN` / `AMBER` / `RED` / `N/A`
+`RuleResult`를 산출합니다.
 
-> **`GREEN` is not a legal compliance certification. `RED` is not
-> confirmation of a legal violation.** Results indicate whether the
-> machine-readable Facts required by a rule were confirmed, missing, or
-> uncertain in the given input — not a final legal judgment. LLMs (where
-> used) only extract Facts; they never assign rule status or make legal
-> determinations.
+> **`GREEN`은 법적 준수 인증이 아니며, `RED`는 확정적인 법 위반 판정이 아닙니다.**
+> 결과는 규칙이 요구하는 Fact가 입력에서 확인되었는지, 누락되었는지, 불확실한지를
+> 나타낼 뿐 최종 법적 판단이 아닙니다. 최종 법적 판단에는 사람의 검토가 필요합니다.
+> LLM은 Fact 추출만 수행하며 Rule status 부여나 법적 판단은 하지 않습니다.
 
-## The three PoCs
+## 세 개의 PoC
 
-The project implements three **equal** proof-of-concept scenarios. None of
-them is "Main" or "Sub."
+세 PoC는 **동등한** 응용 시나리오이며 Main/Sub 구분이 없습니다.
 
-| PoC | Scenario | Input |
-|---|---|---|
-| **PoC1** | 개인정보 처리방침 준수점검 | Privacy policy text |
-| **PoC2** | 개인정보 침해사고 통지 요건 검토 지원 | Incident + notification/response information |
-| **PoC3** | Privacy-by-Design 개발지원 | Structured Privacy-by-Design form |
+| PoC | 시나리오 | 입력 | Fact 생성 방식 |
+|---|---|---|---|
+| **PoC1** | 개인정보 처리방침 준수점검 | 처리방침 텍스트 | LLM Fact 추출 |
+| **PoC2** | 개인정보 침해사고 통지 요건 검토 지원 | 사고 기록 + 통지/대응 정보 | LLM Fact 추출 |
+| **PoC3** | Privacy-by-Design 개발지원 | 구조화 form | `build_poc3_facts()` (LLM 미사용) |
 
-## Architecture
-
+```text
+PoC1: 처리방침 텍스트          → LLM Fact 추출        → Frozen Facts → OntologyMapper → P0RuleEngine → RuleResult
+PoC2: 사고 기록 / 통지문       → LLM Fact 추출        → Frozen Facts → OntologyMapper → P0RuleEngine → RuleResult
+PoC3: 구조화 form              → build_poc3_facts()   → Frozen Facts → OntologyMapper → P0RuleEngine → RuleResult
 ```
+
+- **PoC2**는 사고 기록과 통지문을 **별도 호출로 각각 추출**하며, 서로 다른 사실을 혼합하지 않습니다.
+- **PoC3**는 설계상 LLM을 사용하지 않습니다. 구조화 form에서 Fact를 직접 만드는 것이 현재 설계이며 미완성 상태가 아닙니다.
+- **PoC2 v1**은 `ReportingObligation`을 자동 판정하지 않습니다. 시행령의 1,000명 / 72시간 등
+  신고·통지 threshold 자동 판정은 현재 P0 범위 밖입니다.
+
+## 아키텍처
+
+```text
 Input
-  → Fact (fact-1.0 envelope)
+  → Fact                        (fact-1.0 envelope)
   → Fact Schema Validation      (app/mapping/fact_schema.py)
   → RDF / Ontology Mapping      (app/mapping/ontology_mapper.py — OntologyMapper)
-  → P0 Rule Engine              (app/rules/engine.py — P0RuleEngine, deterministic)
+  → P0 Rule Engine              (app/rules/engine.py — P0RuleEngine, 결정론적)
   → RuleResult                  (app/rules/models.py)
   → REST API                    (FastAPI, app/api/compliance.py)
-  → UI                          (shared RuleResult UI, frontend/src/components)
+  → UI                          (React, frontend/src)
 ```
 
-- The REST API is implemented with **FastAPI** (`app/main.py`), extending a
-  single existing application — there is no second backend.
-- The **Fact contract** (`fact-1.0` envelope), the ontology mapping
-  (`FACT_SPECS` in `app/mapping/mapping_registry.py`), and the P0 rule set
-  are frozen and reused as-is; API and UI work depends on this stable
-  contract rather than on any specific LLM implementation.
-- `value_state` on every Fact is one of **`confirmed` / `unknown` /
-  `absent`**, and these are never collapsed into one another. Missing or
-  unextracted information is **not** automatically `N/A`.
-- All three PoCs render results through the same frontend `RuleResult`
-  components (see `frontend/src/pages`), and all three go through the same
-  `OntologyMapper` → `P0RuleEngine` pipeline.
-- LLMs, where used, only extract Facts. They never assign
-  `GREEN`/`AMBER`/`RED`/`N/A` and never make a legal-compliance
-  determination; that is the sole responsibility of the deterministic
-  `P0RuleEngine`.
+- REST API는 **FastAPI**(`app/main.py`) 단일 애플리케이션입니다. 별도의 두 번째 백엔드는 없습니다.
+- **Fact 계약**, 온톨로지 매핑(`app/mapping/mapping_registry.py`의 `FACT_SPECS`), P0 규칙 집합은
+  고정(Frozen)되어 있으며, API와 UI는 특정 LLM 구현이 아니라 이 안정된 계약에 의존합니다.
+- 모든 Fact의 `value_state`는 **`confirmed` / `unknown` / `absent`** 중 하나이며 서로 의미를
+  변환하지 않습니다(예: `unknown` → `absent` 금지). 누락되었거나 추출되지 않은 정보는 자동으로 `N/A`가 아닙니다.
+- `GREEN` / `AMBER` / `RED` / `N/A` 판정은 오직 결정론적 `P0RuleEngine`만 수행합니다.
+- 활동(`activity_id`) 단위의 process-centered 그룹핑과 Evidence / provenance를 보존합니다.
 
-## Extractor / builder state
-
-| PoC | Fact producer | Status |
-|---|---|---|
-| PoC1 | `MockPoC1Extractor` (`app/extractors/poc1_mock_extractor.py`) | Implements the `Poc1Extractor` protocol; returns a fixed scenario. Prepared for replacement with a real LLM-backed `Poc1Extractor`. |
-| PoC2 | `MockPoc2Extractor` (`app/extractors/poc2_mock_extractor.py`) | Implements the `Poc2Extractor` protocol; returns a fixed scenario. Prepared for replacement with a real LLM-backed `Poc2Extractor`. |
-| PoC3 | `build_poc3_facts()` (`app/builders/poc3_fact_builder.py`) | Structured form → Facts, no LLM extraction step in this design. |
-
-PoC3's pipeline is:
-
-```
-structured form → build_poc3_facts() → Frozen Facts → OntologyMapper → P0RuleEngine
-```
-
-This is the current design, not an incomplete state — PoC3 does not require
-an LLM extractor.
-
-The mock extractors ignore their input content and always return a fixed
-Fact scenario; they exist to validate the extractor → mapper → engine →
-API → UI pipeline end-to-end before a real extractor is wired in. See
-[`docs/context/backend/LLM_EXTRACTOR_HANDOFF.md`](docs/context/backend/LLM_EXTRACTOR_HANDOFF.md)
-for the exact replacement contract.
-
-## Frozen scope
+## Frozen 범위
 
 | PoC | Facts | P0 Rules |
 |---|---|---|
-| PoC1 | 12 (F1-01–F1-12) | 6 (P1-R01, P1-R02, P1-R03, P1-R04, P1-R06, P1-R07) |
-| PoC2 | 10 (F2-01–F2-10) | 4 (P2-R01, P2-R02, P2-R03, P2-R08) |
-| PoC3 | 13 (F3-01–F3-13) | 8 (P3-R01, P3-R02, P3-R03, P3-R04, P3-R05, P3-R06, P3-R08, P3-R11) |
-| **Total** | **35 Facts** | **18 P0 Rules** |
+| PoC1 | 12 (F1-01 ~ F1-12) | 6 (P1-R01, P1-R02, P1-R03, P1-R04, P1-R06, P1-R07) |
+| PoC2 | 10 (F2-01 ~ F2-10) | 4 (P2-R01, P2-R02, P2-R03, P2-R08) |
+| PoC3 | 13 (F3-01 ~ F3-13) | 8 (P3-R01, P3-R02, P3-R03, P3-R04, P3-R05, P3-R06, P3-R08, P3-R11) |
+| **합계** | **35 Facts** | **18 P0 Rules** |
 
-Every Fact carries a `value_state` of `confirmed`, `unknown`, or `absent`.
-These three states are semantically distinct and must never be converted
-into one another (e.g. `unknown` → `absent` is not allowed). See
-[`docs/context/core/CONTRACTS.md`](docs/context/core/CONTRACTS.md) for the
-full Fact envelope and RuleResult contract, and
-[`docs/P0_RULE_MATRIX.md`](docs/P0_RULE_MATRIX.md) for a rule-by-rule
-summary. This README does not duplicate the full Fact Dictionary or Rule
-Specification.
+Fact Dictionary와 Rule 명세 전문은 이 README에 복제하지 않습니다.
+[`docs/context/core/CONTRACTS.md`](docs/context/core/CONTRACTS.md)(Fact envelope, RuleResult 계약)와
+[`docs/P0_RULE_MATRIX.md`](docs/P0_RULE_MATRIX.md)(규칙별 요약)를 참고하세요.
 
-## Setup
+## Extractor 구성
 
-Requires **Python 3.10**.
+PoC1/PoC2에는 실제 Claude LLM extractor가 구현되어 있으며, 환경변수 `PIPA_EXTRACTOR`로 선택합니다.
+
+| `PIPA_EXTRACTOR` | PoC1 | PoC2 | 특징 |
+|---|---|---|---|
+| `mock` (기본) | `MockPoC1Extractor` | `MockPoc2Extractor` | 고정 synthetic scenario, API 호출·비용 없음 |
+| `llm` | `LlmPoC1Extractor` | `LlmPoc2Extractor` | 실제 Claude API 호출, **요청당 과금** |
+
+- Mock extractor는 입력 내용을 무시하고 항상 고정된 Fact 시나리오를 반환합니다.
+  API·UI 파이프라인을 비용 없이 확인하는 용도입니다.
+- 기본 LLM model은 `claude-sonnet-5`이며, `PIPA_EXTRACTOR_MODEL`로 바꿀 수 있습니다.
+- LLM은 인용(quote)만 반환하고 offset은 코드가 원문에서 찾습니다. 찾지 못한 인용의 Fact는 버립니다.
+
+## 설치
+
+Python 3.10이 필요합니다.
 
 ```bash
 python3.10 -m venv .venv
@@ -105,179 +90,142 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Frontend dependencies:
+프론트엔드 의존성:
 
 ```bash
 cd frontend
 npm install
 ```
 
-### Environment variables
+## 환경변수
 
-Backend — copy [`.env.example`](.env.example) to `.env` if you need to
-override these (none are secret; the FastAPI app itself does not currently
-read them at startup — `APP_HOST`/`APP_PORT` are placeholders for future
-process configuration, not consumed by `app/main.py` today):
+[`.env.example`](.env.example)을 기준으로 합니다. **저장소는 `.env`를 자동으로 load하지 않으므로**
+shell 등 process environment에 직접 설정해야 합니다.
 
-```
-APP_ENV=development
-APP_HOST=127.0.0.1
-APP_PORT=8000
-FRONTEND_ORIGIN=http://localhost:5173
-ANTHROPIC_API_KEY=
-LLM_PROVIDER=
-LLM_MODEL=
-```
-
-The compliance API picks its extractor from `PIPA_EXTRACTOR`:
-
-| Value | Behaviour |
+| 변수 | 설명 |
 |---|---|
-| `mock` (default) | `MockPoC1Extractor` / `MockPoc2Extractor` — fixed synthetic scenario, no API calls, no cost |
-| `llm` | `LlmPoC1Extractor` / `LlmPoc2Extractor` — calls the Claude API, **billed per request** |
+| `PIPA_EXTRACTOR` | `mock`(기본) 또는 `llm`. PoC1/PoC2 extractor 선택 |
+| `ANTHROPIC_API_KEY` | `PIPA_EXTRACTOR=llm`일 때만 필요. Anthropic SDK가 직접 읽음 |
+| `PIPA_EXTRACTOR_MODEL` | LLM model override. 미설정 시 `claude-sonnet-5` |
 
-```powershell
-$env:PIPA_EXTRACTOR = "llm"
-$env:ANTHROPIC_API_KEY = "sk-ant-..."
+`.env.example`에는 `APP_ENV`, `APP_HOST`, `APP_PORT`, `FRONTEND_ORIGIN`도 있으나 현재 `app/main.py`가
+시작 시 읽지 않는 placeholder입니다.
+
+LLM 모드 실행 예시 (macOS/Linux):
+
+```bash
+export PIPA_EXTRACTOR=llm
+export ANTHROPIC_API_KEY=<your-api-key>     # 실제 키는 코드/문서/커밋에 넣지 말 것
 uvicorn app.main:app --reload
 ```
 
-`PIPA_EXTRACTOR_MODEL` overrides the model (defaults to `claude-opus-5`).
+`llm` 모드에서 키가 없어도 서버는 시작되며, 실패는 첫 PoC1/PoC2 요청 시점에 나타납니다.
+따라서 PoC3와 다른 endpoint는 계속 동작합니다.
 
-The key is read from the **process environment**, not from `.env` — nothing in
-this repository loads `.env` automatically. Under `PIPA_EXTRACTOR=llm` the
-server still starts without a key; the failure surfaces on the first PoC1 or
-PoC2 request, so PoC3 and the other endpoints keep working. Neither the
-extractors nor `evals/run_extraction.py` accept the key as an argument.
+프론트엔드는 `frontend/.env.example`을 `frontend/.env`로 복사해 백엔드 주소를 바꿀 수 있습니다.
 
-
-Frontend — copy `frontend/.env.example` to `frontend/.env` to point the UI
-at a non-default backend URL:
-
-```
+```text
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-Never commit `.env` files or put real secrets in `.env.example`; provide
-real credentials only via environment variables at runtime.
+`.env` 파일은 커밋하지 말고, 실제 secret은 런타임 환경변수로만 제공하세요.
 
-## Running the backend
+## 실행
 
-From the repository root, with the virtualenv activated:
+백엔드 (저장소 루트, 가상환경 활성화 후):
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-- API base URL: `http://127.0.0.1:8000`
-- Interactive docs (Swagger UI): `http://127.0.0.1:8000/docs`
+- API: `http://127.0.0.1:8000`
+- Swagger UI: `http://127.0.0.1:8000/docs`
 
-## Running the frontend
+프론트엔드:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-- Dev server: `http://localhost:5173` (Vite default; the backend's CORS
-  configuration in `app/main.py` explicitly allows this origin)
-- The frontend calls the backend at `VITE_API_BASE_URL`, defaulting to
-  `http://127.0.0.1:8000` if unset (`frontend/src/api/client.ts`).
+- 개발 서버: `http://localhost:5173` (백엔드 CORS가 이 origin을 허용)
+- `VITE_API_BASE_URL`이 없으면 `http://127.0.0.1:8000`을 사용합니다 (`frontend/src/api/client.ts`).
+- 세 PoC 화면은 동일한 `RuleResult` 컴포넌트로 결과를 렌더링합니다 (`frontend/src/pages`).
 
-## API endpoints
+## API
 
-Current three-PoC compliance pipeline (`app/api/compliance.py`, prefix
-`/api/v1/compliance`):
+현재 3-PoC compliance pipeline (`app/api/compliance.py`, prefix `/api/v1/compliance`):
 
 | Method | Path | PoC |
 |---|---|---|
 | `POST` | `/api/v1/compliance/policy-check` | PoC1 |
 | `POST` | `/api/v1/compliance/breach-check` | PoC2 |
 | `POST` | `/api/v1/compliance/design-check` | PoC3 |
+| `GET` | `/health` | 헬스 체크 |
 
-Each returns `{ "poc": "PoC1"|"PoC2"|"PoC3", "rule_results": [...] }`, where
-each `rule_results` entry mirrors `RuleResult.to_dict()`
-(`app/rules/models.py`).
+세 compliance endpoint는 같은 응답 envelope를 사용합니다.
 
-Health check:
+```text
+{
+  "analysis_id": ...,
+  "poc": "PoC1" | "PoC2" | "PoC3",
+  "ontology_version": ...,
+  "rule_version": ...,
+  "fact_schema_version": ...,
+  "results": [ ...RuleResult... ]
+}
+```
 
-| Method | Path |
-|---|---|
-| `GET` | `/health` |
+`results`의 각 항목은 `RuleResult.to_dict()`(`app/rules/models.py`)를 따릅니다.
 
-**Legacy endpoint** (`app/api/validate.py`, prefix `/api/v1`):
+**Legacy endpoint** (`app/api/validate.py`, prefix `/api/v1`): `POST /api/v1/validate`는
+`ProcessingFact` → SHACL 검증의 이전 prototype(`app/services/validator.py`,
+`rules/article17_consent.ttl`)입니다. 호환을 위해 남겨 두었지만 현재 3-PoC
+Fact / OntologyMapper / P0RuleEngine pipeline과는 **별개**이며 compliance endpoint와 동등하지 않습니다.
 
-| Method | Path |
-|---|---|
-| `POST` | `/api/v1/validate` |
+## 테스트
 
-This is an older `ProcessingFact` → SHACL validation prototype
-(`app/services/validator.py`, `rules/article17_consent.ttl`). It is kept
-available but is **not** part of the current three-PoC
-Fact/OntologyMapper/P0RuleEngine pipeline described above — do not treat it
-as equivalent to the compliance endpoints.
-
-## Testing
-
-Backend (repository-standard command):
+백엔드 (표준 명령):
 
 ```bash
 python -m pytest -q
 ```
 
-As of this writing this reports `134 passed` — a **current snapshot**, not
-a permanent expected count. The number will change as the real PoC1/PoC2
-LLM extractors and further scope are integrated; re-run the command to get
-the current result rather than relying on this figure.
-
-Frontend, from `frontend/`:
+프론트엔드 (`frontend/`에서):
 
 ```bash
 npm run build   # tsc -b && vite build
 npm run lint    # oxlint
 ```
 
-## Safety / interpretation
+## Extractor 평가 세트 (`evals/`)
 
-- `GREEN` is not a legal compliance certification.
-- `RED` is not confirmation of a legal violation.
-- PoC2 v1 does not automatically determine `ReportingObligation`.
-- Enforcement Decree notification/reporting thresholds are out of scope for
-  the current P0 rules.
-- Final legal judgment requires separate human review.
+PoC1/PoC2 LLM Fact Extractor의 gold Fact set, controlled variants, 채점기는 `evals/`에 있습니다.
+구성과 실행 방법은 [`evals/README.md`](evals/README.md), 결과는 [`evals/RESULTS.md`](evals/RESULTS.md)를 참고하세요.
 
-## LLM extractor integration
-
-PoC1 and PoC2 currently run on mock extractors. To integrate a real
-LLM-backed `Poc1Extractor` / `Poc2Extractor`, follow the exact protocol,
-Fact output contract, and replacement points documented in
-[`docs/context/backend/LLM_EXTRACTOR_HANDOFF.md`](docs/context/backend/LLM_EXTRACTOR_HANDOFF.md).
-
-## Further reading
-
-- [`docs/context/INDEX.md`](docs/context/INDEX.md) — task-scoped context
-  index; read only the files relevant to the task at hand.
-- [`docs/context/core/PROJECT.md`](docs/context/core/PROJECT.md),
-  [`PIPELINE.md`](docs/context/core/PIPELINE.md),
-  [`CONTRACTS.md`](docs/context/core/CONTRACTS.md) — project scope, the
-  canonical pipeline, and the frozen Fact/RuleResult contracts.
-- [`docs/context/backend/EXISTING_CODE.md`](docs/context/backend/EXISTING_CODE.md) —
-  existing reusable backend modules and the integration principle for new
-  routes.
-- [`docs/P0_RULE_MATRIX.md`](docs/P0_RULE_MATRIX.md) — rule-by-rule summary
-  of all 18 P0 rules.
-
-## Fact Extractor and evaluation set
-
-The LLM Fact Extractor for PoC1, the gold Fact sets, the controlled variants and
-the scorer live under `evals/`. See [`evals/README.md`](evals/README.md) for how
-to rebuild the gold sets, run the variant checks, and score an extraction run.
-
-```powershell
-python evals\poc1\build_gold_facts.py
-python evals\poc1\build_variants.py
-python -m pytest -q tests\test_gold_facts_poc1.py tests\test_variants_poc1.py
+```bash
+python evals/poc1/build_gold_facts.py
+python evals/poc1/build_variants.py
+python -m pytest -q tests/test_gold_facts_poc1.py tests/test_variants_poc1.py
 ```
 
-Running `evals\run_extraction.py` calls the Claude API and costs money; it is not
-part of the test suite.
+`evals/run_extraction.py`는 **실제 Claude API를 호출하므로 비용이 발생**하며 일반 test suite에 포함되지 않습니다.
+
+## 해석상 주의
+
+- `GREEN`은 법적 준수 인증이 아닙니다.
+- `RED`는 확정적인 법 위반 판정이 아닙니다.
+- PoC2 v1은 `ReportingObligation`을 자동 판정하지 않습니다.
+- 시행령의 신고·통지 threshold(예: 1,000명, 72시간)는 현재 P0 Rule 범위 밖입니다.
+- 최종 법적 판단은 사람의 검토가 필요합니다.
+
+## 참고 문서
+
+- [`docs/context/INDEX.md`](docs/context/INDEX.md) — 작업별 context 색인
+- [`docs/context/core/PROJECT.md`](docs/context/core/PROJECT.md),
+  [`PIPELINE.md`](docs/context/core/PIPELINE.md),
+  [`CONTRACTS.md`](docs/context/core/CONTRACTS.md) — 프로젝트 범위, pipeline, Frozen 계약
+- [`docs/context/backend/EXISTING_CODE.md`](docs/context/backend/EXISTING_CODE.md) — 재사용 대상 백엔드 모듈
+- [`docs/P0_RULE_MATRIX.md`](docs/P0_RULE_MATRIX.md) — 18개 P0 Rule 요약
+- [`docs/context/backend/LLM_EXTRACTOR_HANDOFF.md`](docs/context/backend/LLM_EXTRACTOR_HANDOFF.md),
+  [`EXTRACTOR_DECISIONS.md`](docs/context/backend/EXTRACTOR_DECISIONS.md) — extractor 연동 과정과 결정 기록(이력 문서)
