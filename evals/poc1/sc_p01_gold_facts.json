@@ -209,7 +209,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "이 처리행위는 종료조건으로만 기재되고 숫자 기간이 없음"
     },
     {
       "fact_id": "F1-03:act-collection-002",
@@ -218,7 +218,7 @@
       "ontology_class": "PersonalInformationProcessing",
       "ontology_property": "hasRetention",
       "value": null,
-      "value_state": "absent",
+      "value_state": "unknown",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -228,7 +228,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "'관계 법령에서 정한 기간' — 기간을 말하지만 근거 법령과 값을 특정하지 않음"
     },
     {
       "fact_id": "F1-03:act-collection-003",
@@ -237,7 +237,7 @@
       "ontology_class": "PersonalInformationProcessing",
       "ontology_property": "hasRetention",
       "value": null,
-      "value_state": "absent",
+      "value_state": "unknown",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -247,7 +247,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "'관계 법령에서 정한 기간' — 기간을 말하지만 근거 법령과 값을 특정하지 않음"
     },
     {
       "fact_id": "F1-03:act-collection-004",
@@ -256,7 +256,7 @@
       "ontology_class": "PersonalInformationProcessing",
       "ontology_property": "hasRetention",
       "value": null,
-      "value_state": "absent",
+      "value_state": "unknown",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -266,7 +266,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "'관계 법령에서 정한 기간' — 기간을 말하지만 근거 법령과 값을 특정하지 않음"
     },
     {
       "fact_id": "F1-03:act-collection-005",
@@ -285,7 +285,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "이 처리행위는 종료조건으로만 기재되고 숫자 기간이 없음"
     },
     {
       "fact_id": "F1-03:act-provision-001",
@@ -304,7 +304,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "이 처리행위는 종료조건으로만 기재되고 숫자 기간이 없음"
     },
     {
       "fact_id": "F1-03:act-crossborder-001",
@@ -323,7 +323,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함"
+      "_note": "이 처리행위는 종료조건으로만 기재되고 숫자 기간이 없음"
     },
     {
       "fact_id": "F1-04:act-collection-001",
@@ -404,7 +404,7 @@
       "ontology_class": "CollectionAndUse",
       "ontology_property": "hasRetention",
       "value": null,
-      "value_state": "unknown",
+      "value_state": "absent",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -414,7 +414,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "제2조에 일반 보유 문장은 있으나 이 처리행위와의 연결이 특정되지 않음 -> P1-R02 AMBER 근거"
+      "_note": "'그 밖의 처리 목적' 문장에 종료 사건이 없음. 기간은 F1-03 unknown"
     },
     {
       "fact_id": "F1-04:act-collection-003",
@@ -423,7 +423,7 @@
       "ontology_class": "CollectionAndUse",
       "ontology_property": "hasRetention",
       "value": null,
-      "value_state": "unknown",
+      "value_state": "absent",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -433,7 +433,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "제2조에 일반 보유 문장은 있으나 이 처리행위와의 연결이 특정되지 않음 -> P1-R02 AMBER 근거"
+      "_note": "'그 밖의 처리 목적' 문장에 종료 사건이 없음. 기간은 F1-03 unknown"
     },
     {
       "fact_id": "F1-04:act-collection-004",
@@ -442,7 +442,7 @@
       "ontology_class": "CollectionAndUse",
       "ontology_property": "hasRetention",
       "value": null,
-      "value_state": "unknown",
+      "value_state": "absent",
       "source_type": "policy_text",
       "evidence": [
         {
@@ -452,7 +452,7 @@
         }
       ],
       "schema_version": "fact-1.0",
-      "_note": "제2조에 일반 보유 문장은 있으나 이 처리행위와의 연결이 특정되지 않음 -> P1-R02 AMBER 근거"
+      "_note": "'그 밖의 처리 목적' 문장에 종료 사건이 없음. 기간은 F1-03 unknown"
     },
     {
       "fact_id": "F1-05:act-provision-001",

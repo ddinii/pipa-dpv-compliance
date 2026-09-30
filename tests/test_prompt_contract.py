@@ -181,6 +181,27 @@ def test_vague_value_rule_matches_the_gold_set(variant: str, state: str):
     assert [f["value_state"] for f in destruction] == [state]
 
 
+def test_unspecified_statutory_period_is_unknown_not_resolved():
+    """Issue 4 팀 결정: 법령을 연동해 채우지 않고 알 수 없음으로 둔다.
+
+    프롬프트와 정답지가 같은 기준이어야 Fact 단위 채점이 의미를 가진다.
+    """
+    from app.extractors.prompts import PASS2_SYSTEM
+
+    assert "근거 법령도 숫자도 특정하지 않은 기간" in PASS2_SYSTEM
+    assert "어떤 법령일지 추정하거나 법정" in PASS2_SYSTEM
+    gold = json.loads(GOLD_PATH.read_text(encoding="utf-8"))
+    general = "그 밖의 처리 목적에 대해서는 관계 법령에서 정한 기간 동안 보관합니다."
+    covered = {
+        item["activity_id"]: item["value_state"]
+        for item in gold["facts"]
+        if item["fact_id"].startswith("F1-03")
+        and item["value_state"] != "absent"
+        and item["evidence"][0]["text"] == general
+    }
+    assert covered and set(covered.values()) == {"unknown"}
+
+
 def test_every_gold_fact_has_evidence_even_without_a_value(gold: dict):
     """프롬프트가 요구하는 것과 정답지가 같아야 한다."""
     for item in gold["facts"]:
