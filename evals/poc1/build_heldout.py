@@ -270,7 +270,122 @@ def build_h2(document: str) -> dict:
     }
 
 
-BUILDERS = {"h1-fitness-app": build_h1, "h2-online-academy": build_h2}
+def declared_absence(ev, activity_type: str, quote: str) -> dict:
+    """원문이 그 유형의 처리행위를 하지 않는다고 명시함 (activity presence metadata)."""
+    return {
+        "field": "activity_presence",
+        "activity_type": activity_type,
+        "state": "confirmed_false",
+        "source_type": SOURCE_TYPE,
+        "evidence": [ev(quote)],
+    }
+
+
+# --- h3: 제공도 위탁도 하지 않는다고 명시 -> N/A ---------------------------
+
+
+def build_h3(document: str) -> dict:
+    ev = locator(document)
+    retention_sentence = "회원 관리 정보와 메모 동기화 정보는 회원 탈퇴 시까지 보유합니다."
+    facts = [
+        *collection("act-collection-001", ev, heading="회원 관리",
+                    heading_anchor="회원 관리: 로그인", purpose="로그인 및 계정 식별"),
+        *collection("act-collection-002", ev, heading="메모 동기화",
+                    heading_anchor="메모 동기화: 기기", purpose="기기 간 메모 동기화"),
+        *retention("act-collection-001", "CollectionAndUse", ev, end="회원 탈퇴 시",
+                   anchor=retention_sentence, searched="2. 보유 기간"),
+        *retention("act-collection-002", "CollectionAndUse", ev, end="회원 탈퇴 시",
+                   anchor=retention_sentence, searched="2. 보유 기간"),
+        fact("F1-08", "act-destruction-001", "Destruction", "hasDestructionMethod",
+             [ev("복구할 수 없는 방법으로 즉시 삭제합니다.")],
+             value="복구할 수 없는 방법으로 즉시 삭제합니다."),
+        *rights(ev, ["개인정보 열람", "정정·삭제", "처리정지"],
+                "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청"),
+    ]
+    return {
+        "heldout": {
+            "name": "h3-no-sharing",
+            "description": "제3자 제공과 처리 위탁을 하지 않는다고 명시 (N/A 두 건)",
+        },
+        "expected_rule_status": {
+            "P1-R01": "GREEN",
+            "P1-R02": "GREEN",
+            "P1-R03": "N/A",   # "제3자에게 제공하지 않습니다"
+            "P1-R04": "GREEN",
+            "P1-R06": "N/A",   # "외부에 위탁하지 않습니다"
+            "P1-R07": "GREEN",
+        },
+        # 부재는 Fact가 아니라 presence metadata다 (35개 Fact에 더하지 않는다)
+        "system_metadata": [
+            declared_absence(ev, "ThirdPartyProvision",
+                             "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."),
+            declared_absence(ev, "EntrustedProcessing",
+                             "회사는 개인정보 처리업무를 외부에 위탁하지 않습니다."),
+        ],
+        "facts": facts,
+    }
+
+
+# --- h4: "원칙적으로 제공하지 않으나 다음의 경우 제공" + 위탁 언급 없음 -----
+#
+# 잘못된 N/A를 잡는 함정이다. 부정문으로 시작하지만 실제 제공이 뒤따르므로 부재
+# 선언이 아니다. 그 제공에는 목적이 빠져 있어 P1-R03은 RED다. 여기서 N/A가 나오면
+# 그 결함이 판정에서 사라지고, 채점기가 위험 오판(N/A)으로 센다.
+# 위탁은 아예 언급이 없다. "기재 없음"은 부재 선언이 아니므로 AMBER다.
+
+
+def build_h4(document: str) -> dict:
+    ev = locator(document)
+    provision_retention = " - 보유 기간: 협력 대리점의 배송 업무 종료 시까지"
+    items_line = " - 제공 항목: 받는 분 이름, 연락처, 주소"
+    rights_sentence = "이용자는 개인정보 열람, 정정, 삭제를 요구할 수 있으며"
+    facts = [
+        *collection("act-collection-001", ev, heading="택배 예약 접수",
+                    purpose="집하 및 배송"),
+        *retention("act-collection-001", "CollectionAndUse", ev, end="배송 완료 시",
+                   searched="제2조 (보유 기간)"),
+        fact("F1-05", "act-provision-001", "ThirdPartyProvision", "hasRecipient",
+             [ev("지역 배송 협력 대리점")], value="지역 배송 협력 대리점"),
+        fact("F1-06", "act-provision-001", "ThirdPartyProvision", "hasPersonalInformation",
+             [ev(item, within=items_line) for item in ("받는 분 이름", "연락처", "주소")],
+             value=["받는 분 이름", "연락처", "주소"]),
+        # 제공 목적이 없다. 이 결함이 있어야 잘못된 N/A가 "결함을 가린 위험 오판"으로
+        # 잡힌다. 제공이 완전했다면 잘못된 N/A는 단순 불일치에 그친다.
+        fact("F1-07", "act-provision-001", "ThirdPartyProvision", "hasPurpose",
+             [ev("다만, 다음의 경우에는 제공합니다.")], value_state="absent",
+             note="제공 목적 기재 없음"),
+        *retention("act-provision-001", "ThirdPartyProvision", ev,
+                   end="협력 대리점의 배송 업무 종료 시", anchor=provision_retention,
+                   searched=provision_retention),
+        fact("F1-08", "act-destruction-001", "Destruction", "hasDestructionMethod",
+             [ev("전자적 파일의 경우 복구할 수 없도록 삭제하고, 운송장 출력물은 분쇄합니다.")],
+             value="전자적 파일의 경우 복구할 수 없도록 삭제하고, 운송장 출력물은 분쇄합니다."),
+        *rights(ev, ["개인정보 열람", "정정", "삭제"], "고객센터 게시판 또는 이메일",
+                anchor=rights_sentence),
+    ]
+    return {
+        "heldout": {
+            "name": "h4-partial-negation",
+            "description": "'원칙적으로 제공하지 않으나 다음의 경우 제공' 함정, 위탁 언급 없음",
+        },
+        "expected_rule_status": {
+            "P1-R01": "GREEN",
+            "P1-R02": "GREEN",
+            "P1-R03": "RED",    # 부분 부정은 부재가 아니다. 목적 누락 -> RED. N/A면 위험 오판
+            "P1-R04": "GREEN",
+            "P1-R06": "AMBER",  # 위탁 언급 없음. 부재 선언도 아니다
+            "P1-R07": "GREEN",
+        },
+        "facts": facts,
+    }
+
+
+BUILDERS = {
+    "h1-fitness-app": build_h1,
+    "h2-online-academy": build_h2,
+    "h3-no-sharing": build_h3,
+    "h4-partial-negation": build_h4,
+}
 
 
 def main() -> int:

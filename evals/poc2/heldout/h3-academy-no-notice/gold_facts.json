@@ -1,0 +1,224 @@
+{
+  "source_document_id": "HELDOUT-P02-h3-academy-no-notice",
+  "poc": "poc2",
+  "incident_text_file": "incident.txt",
+  "notice_text_file": null,
+  "fact_schema_version": "fact-1.0",
+  "heldout": {
+    "name": "h3-academy-no-notice",
+    "description": "통지문 없는 오발송 사고. 통지문 Rule N/A, 대응조치 일부만"
+  },
+  "expected_rule_status": {
+    "P2-R01": "RED",
+    "P2-R02": "N/A",
+    "P2-R03": "N/A",
+    "P2-R08": "AMBER"
+  },
+  "system_metadata": [
+    {
+      "field": "activity_presence",
+      "activity_type": "NotificationNotice",
+      "state": "confirmed_false",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "F2-01:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "다른 수강생의 이름과 휴대전화번호가 포함된 안내문이 잘못 발송되었습니다",
+          "start_offset": 63,
+          "end_offset": 102
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-02:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "affectsPersonalInformation",
+      "value": [
+        "이름",
+        "휴대전화번호"
+      ],
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 175,
+          "end_offset": 177
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 179,
+          "end_offset": 185
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-05:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "incidentDate",
+      "value": "2026-06-11T10:20:00+09:00",
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "사고 발생 일시: 2026년 6월 11일 오전 10시 20분",
+          "start_offset": 104,
+          "end_offset": 137
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-06:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "detectionDate",
+      "value": "2026-06-11T13:00:00+09:00",
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "사고 인지 일시: 2026년 6월 11일 오후 1시",
+          "start_offset": 138,
+          "end_offset": 166
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-10:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "hasResponseMeasure",
+      "value": [
+        {
+          "measure_role": "controller_response",
+          "text": "잘못 받은 수신자에게 문자 삭제를 요청"
+        },
+        {
+          "measure_role": "post_incident_mitigation",
+          "text": "발송 시스템의 수신자 선택 절차 개선"
+        }
+      ],
+      "value_state": "confirmed",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "text": "잘못 받은 수신자에게 문자 삭제를 요청하였습니다",
+          "start_offset": 192,
+          "end_offset": 218
+        },
+        {
+          "text": "재발 방지를 위해 발송 시스템의 수신자 선택 절차를 개선하였습니다",
+          "start_offset": 222,
+          "end_offset": 258
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-03:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "hasNotificationNotice",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-04:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "mentionsPersonalInformation",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-07:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "notificationDate",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-08:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-09:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasIncidentCircumstances",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ]
+}

@@ -1,0 +1,307 @@
+{
+  "source_document_id": "HELDOUT-P01-h3-no-sharing",
+  "poc": "poc1",
+  "policy_text_file": "policy.txt",
+  "fact_schema_version": "fact-1.0",
+  "heldout": {
+    "name": "h3-no-sharing",
+    "description": "제3자 제공과 처리 위탁을 하지 않는다고 명시 (N/A 두 건)"
+  },
+  "expected_rule_status": {
+    "P1-R01": "GREEN",
+    "P1-R02": "GREEN",
+    "P1-R03": "N/A",
+    "P1-R04": "GREEN",
+    "P1-R06": "N/A",
+    "P1-R07": "GREEN"
+  },
+  "system_metadata": [
+    {
+      "field": "activity_presence",
+      "activity_type": "ThirdPartyProvision",
+      "state": "confirmed_false",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다.",
+          "start_offset": 239,
+          "end_offset": 270
+        }
+      ]
+    },
+    {
+      "field": "activity_presence",
+      "activity_type": "EntrustedProcessing",
+      "state": "confirmed_false",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 개인정보 처리업무를 외부에 위탁하지 않습니다.",
+          "start_offset": 281,
+          "end_offset": 310
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "F1-01:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 관리",
+          "start_offset": 88,
+          "end_offset": 93
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "로그인 및 계정 식별",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "로그인 및 계정 식별",
+          "start_offset": 95,
+          "end_offset": 106
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-01:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "메모 동기화",
+          "start_offset": 133,
+          "end_offset": 139
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "기기 간 메모 동기화",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "기기 간 메모 동기화",
+          "start_offset": 141,
+          "end_offset": 152
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "2. 보유 기간",
+          "start_offset": 181,
+          "end_offset": 189
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "회원 탈퇴 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 탈퇴 시",
+          "start_offset": 211,
+          "end_offset": 218
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "2. 보유 기간",
+          "start_offset": 181,
+          "end_offset": 189
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "회원 탈퇴 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 탈퇴 시",
+          "start_offset": 211,
+          "end_offset": 218
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-08:act-destruction-001",
+      "subject_id": "act-destruction-001",
+      "activity_id": "act-destruction-001",
+      "ontology_class": "Destruction",
+      "ontology_property": "hasDestructionMethod",
+      "value": "복구할 수 없는 방법으로 즉시 삭제합니다.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "복구할 수 없는 방법으로 즉시 삭제합니다.",
+          "start_offset": 332,
+          "end_offset": 355
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-11:subj-001",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubject",
+      "ontology_property": "hasRight",
+      "value": [
+        "개인정보 열람",
+        "정정·삭제",
+        "처리정지"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "개인정보 열람",
+          "start_offset": 373,
+          "end_offset": 380
+        },
+        {
+          "text": "정정·삭제",
+          "start_offset": 382,
+          "end_offset": 387
+        },
+        {
+          "text": "처리정지",
+          "start_offset": 389,
+          "end_offset": 393
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:개인정보 열람",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "개인정보 열람",
+        "procedure": "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청",
+          "start_offset": 406,
+          "end_offset": 441
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:정정·삭제",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "정정·삭제",
+        "procedure": "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청",
+          "start_offset": 406,
+          "end_offset": 441
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:처리정지",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "처리정지",
+        "procedure": "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청",
+          "start_offset": 406,
+          "end_offset": 441
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ]
+}

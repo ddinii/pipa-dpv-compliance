@@ -20,9 +20,13 @@ SC-P02와 일부러 다르게 만든다. 특히 날짜 표기를 여러 방식�
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 HELDOUT_DIR = HERE / "heldout"
 SCHEMA_VERSION = "fact-1.0"
 
@@ -203,19 +207,75 @@ def build_h2(incident: str, notice: str) -> dict:
     }
 
 
-BUILDERS = {"h1-shop-hacking": build_h1, "h2-clinic-misdirected": build_h2}
+# --- h3: 통지문 없음 -> 통지문 Rule N/A --------------------------------------
+
+
+def build_h3(incident: str, notice: str | None) -> dict:
+    """통지문이 제공되지 않은 사고. 서비스와 러너가 NotificationNotice 부재를 붙인다."""
+    from app.extractors.poc2 import NOTICE_ABSENCE_SHAPE
+
+    inc = locator(incident)
+    facts = incident_facts(
+        inc,
+        occurrence="다른 수강생의 이름과 휴대전화번호가 포함된 안내문이 잘못 발송되었습니다",
+        items=["이름", "휴대전화번호"],
+        items_anchor="유출 항목: 이름, 휴대전화번호",
+        incident_time=("사고 발생 일시: 2026년 6월 11일 오전 10시 20분", "2026-06-11T10:20:00+09:00"),
+        detection_time=("사고 인지 일시: 2026년 6월 11일 오후 1시", "2026-06-11T13:00:00+09:00"),
+        # 정보주체 안내와 피해구제 절차는 적혀 있지 않다 -> P2-R08 AMBER
+        measures=[
+            ("controller_response", "잘못 받은 수신자에게 문자 삭제를 요청하였습니다",
+             "잘못 받은 수신자에게 문자 삭제를 요청"),
+            ("post_incident_mitigation", "재발 방지를 위해 발송 시스템의 수신자 선택 절차를 개선하였습니다",
+             "발송 시스템의 수신자 선택 절차 개선"),
+        ],
+    )
+    # 통지문이 없을 때 Extractor가 내는 모양과 같아야 한다 (다시 적지 않고 가져온다)
+    facts += [
+        fact(fact_id, subject_id, ontology_class, "derived", [{"field_path": "notification"}],
+             ontology_property=prop, value_state="absent")
+        for fact_id, (subject_id, ontology_class, prop) in NOTICE_ABSENCE_SHAPE.items()
+    ]
+    return {
+        "heldout": {
+            "name": "h3-academy-no-notice",
+            "description": "통지문 없는 오발송 사고. 통지문 Rule N/A, 대응조치 일부만",
+        },
+        "expected_rule_status": {
+            "P2-R01": "RED",    # 사고는 있으나 통지문이 없다 (통지 의무 판정이 아니다)
+            "P2-R02": "N/A",
+            "P2-R03": "N/A",
+            "P2-R08": "AMBER",  # 4역할 중 2개
+        },
+        "system_metadata": [{
+            "field": "activity_presence",
+            "activity_type": "NotificationNotice",
+            "state": "confirmed_false",
+            "source_type": "derived",
+            "evidence": [{"field_path": "notification"}],
+        }],
+        "facts": facts,
+    }
+
+
+BUILDERS = {
+    "h1-shop-hacking": build_h1,
+    "h2-clinic-misdirected": build_h2,
+    "h3-academy-no-notice": build_h3,
+}
 
 
 def main() -> int:
     for name, builder in BUILDERS.items():
         directory = HELDOUT_DIR / name
         incident = (directory / "incident.txt").read_text(encoding="utf-8")
-        notice = (directory / "notice.txt").read_text(encoding="utf-8")
+        notice_path = directory / "notice.txt"
+        notice = notice_path.read_text(encoding="utf-8") if notice_path.is_file() else None
         payload = {
             "source_document_id": f"HELDOUT-P02-{name}",
             "poc": "poc2",
             "incident_text_file": "incident.txt",
-            "notice_text_file": "notice.txt",
+            "notice_text_file": "notice.txt" if notice is not None else None,
             "fact_schema_version": SCHEMA_VERSION,
             **builder(incident, notice),
         }

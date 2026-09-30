@@ -22,8 +22,8 @@ from evals.score import datetime_supported_by, value_supported_by
 
 ROOT = Path(__file__).resolve().parents[1]
 HELDOUT = {
-    "poc1": ["h1-fitness-app", "h2-online-academy"],
-    "poc2": ["h1-shop-hacking", "h2-clinic-misdirected"],
+    "poc1": ["h1-fitness-app", "h2-online-academy", "h3-no-sharing", "h4-partial-negation"],
+    "poc2": ["h1-shop-hacking", "h2-clinic-misdirected", "h3-academy-no-notice"],
 }
 CASES = [(poc, name) for poc, names in HELDOUT.items() for name in names]
 
@@ -75,7 +75,10 @@ def test_heldout_is_a_different_document_from_dev(poc: str, name: str):
     case = heldout(poc)[name]
     base = load_cases(poc)[0]
     for key, text in case.documents.items():
-        assert text.splitlines()[0] != base.documents[key].splitlines()[0]
+        # 제목이나 면책 문구 같은 상투적인 줄은 겹쳐도 된다. 본문 대부분이 겹치면 안 된다.
+        lines = {line.strip() for line in text.splitlines() if line.strip()}
+        base_lines = {line.strip() for line in base.documents[key].splitlines() if line.strip()}
+        assert len(lines & base_lines) <= 0.2 * len(lines), f"{name}/{key}: dev 문서와 너무 겹친다"
         assert "PoC 평가용 가상" in text, f"{name}/{key}: 합성 문서 표시가 없다"
 
 
@@ -91,9 +94,11 @@ def test_gold_passes_the_canonical_validator(poc: str, name: str):
 @pytest.mark.parametrize("poc, name", CASES)
 def test_evidence_resolves_in_its_own_document(poc: str, name: str):
     case = heldout(poc)[name]
-    for item in case.gold_facts:
+    for item in [*case.gold_facts, *case.gold_system_metadata]:
         document = case.document_for(item["source_type"])
         for piece in item["evidence"]:
+            if "field_path" in piece:
+                continue  # 통지문이 없을 때의 근거는 입력 필드다
             start, end = piece["start_offset"], piece["end_offset"]
             assert document[start:end] == piece["text"], f"{name}/{item['fact_id']}"
 
@@ -120,15 +125,42 @@ def test_gold_reproduces_the_hand_written_statuses(
     engine: P0RuleEngine, poc: str, name: str
 ):
     case = heldout(poc)[name]
-    mapping = facts_to_mapping(contract_facts(case), analysis_id=name, controller_id="ctrl-001")
+    mapping = facts_to_mapping(
+        contract_facts(case), analysis_id=name, controller_id="ctrl-001",
+        system_metadata=case.gold_system_metadata,
+    )
     statuses = {r.rule_id: r.status.value for r in engine.evaluate_mapping_result(mapping, poc=poc)}
     assert statuses == case.expected_rule_status
 
 
 @pytest.mark.parametrize("poc", HELDOUT)
-def test_heldout_covers_green_amber_and_red(poc: str):
+def test_heldout_covers_all_four_statuses(poc: str):
     seen = {s for case in heldout(poc).values() for s in case.expected_rule_status.values()}
-    assert {"GREEN", "AMBER", "RED"} <= seen
+    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+
+
+def test_partial_negation_is_not_an_absence():
+    """잘못된 N/A를 잡는 함정. "원칙적으로 제공하지 않으나 다음의 경우 제공"은 부재가 아니다.
+
+    정답지는 제공 처리행위를 갖고 부재 선언은 없다. 그 제공은 목적이 빠져 RED다.
+    모델이 부재를 선언하면 P1-R03이 N/A가 되고, gold가 RED이므로 채점기가
+    위험 오판(N/A)으로 센다. 제공이 완전했다면 단순 불일치에 그쳐 위험이 보이지 않는다.
+    """
+    case = heldout("poc1")["h4-partial-negation"]
+    assert case.gold_system_metadata == []
+    assert any(f["activity_id"] == "act-provision-001" for f in case.gold_facts)
+    assert case.expected_rule_status["P1-R03"] == "RED"
+    assert "원칙적으로 이용자의 개인정보를 제3자에게 제공하지 않습니다" in case.documents["policy"]
+    # 위탁은 언급이 없다. 부재 선언도 아니고 처리행위도 아니다 -> AMBER
+    assert not any("entrust" in (f["activity_id"] or "") for f in case.gold_facts)
+    assert case.expected_rule_status["P1-R06"] == "AMBER"
+
+
+def test_explicit_absences_are_metadata_with_verbatim_quotes():
+    case = heldout("poc1")["h3-no-sharing"]
+    types = {item["activity_type"] for item in case.gold_system_metadata}
+    assert types == {"ThirdPartyProvision", "EntrustedProcessing"}
+    assert {case.expected_rule_status[r] for r in ("P1-R03", "P1-R06")} == {"N/A"}
 
 
 def test_poc1_heldout_exercises_numeric_retention_periods():

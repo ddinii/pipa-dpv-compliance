@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -108,8 +108,16 @@ class NoticeRef(BaseModel):
 Poc2Value = str | list[str] | list[ResponseMeasure] | NoticeRef | None
 
 
+# PoC1과 같은 이유로 enum으로 묶는다 ("F2-10-1" 같은 변형을 막는다). 어느 pass에서
+# 낼 수 있는지는 enum이 아니라 _collect의 허용 목록이 따로 본다.
+Poc2FactId = Literal[
+    "F2-01", "F2-02", "F2-03", "F2-04", "F2-05",
+    "F2-06", "F2-07", "F2-08", "F2-09", "F2-10",
+]
+
+
 class ExtractedPoc2Fact(BaseModel):
-    fact_id: str = Field(description="F2-02 등 Fact Dictionary ID")
+    fact_id: Poc2FactId = Field(description="Fact Dictionary ID. 번호를 덧붙이지 않는다")
     ontology_property: str | None
     value: Poc2Value
     value_state: str = Field(description="confirmed | unknown | absent")
