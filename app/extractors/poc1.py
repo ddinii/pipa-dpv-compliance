@@ -10,7 +10,10 @@ Ontology Mapping(COM-004)은 app.facts가 맡는다.
 from __future__ import annotations
 
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
@@ -133,12 +136,17 @@ class PoC1Extractor:
         *,
         model: str = DEFAULT_MODEL,
         cache_document: bool = True,
+        max_concurrency: int = 1,
     ) -> None:
         self.messages = messages
         self.model = model
         self.cache_document = cache_document
+        # Pass 2(처리행위별)와 권리 pass를 동시에 보낼 수. 1이면 순서대로 부른다.
+        # 기본값이 1인 이유: 호출 순서대로 응답을 돌려주는 테스트 스텁이 그대로 동작한다.
+        self.max_concurrency = max(1, max_concurrency)
         # 호출 하나하나의 usage를 여기에 쌓고 extract()가 결과에 실어 보낸다.
         self.usage = Usage()
+        self._usage_lock = threading.Lock()
 
     # -- LLM 호출 --------------------------------------------------------
 
@@ -168,7 +176,8 @@ class PoC1Extractor:
             messages=[{"role": "user", "content": user}],
             output_format=output_format,
         )
-        self.usage.record(response)
+        with self._usage_lock:  # 동시 호출에서 합계가 어긋나지 않게
+            self.usage.record(response)
         if getattr(response, "stop_reason", None) == "refusal":
             raise RuntimeError(f"모델이 요청을 거부했습니다: {response.stop_details}")
         return response.parsed_output
@@ -210,6 +219,7 @@ class PoC1Extractor:
         pass1 = self.identify_activities(document)
         result.activities = pass1.activities
 
+        grounded: list[IdentifiedActivity] = []
         for activity in result.activities:
             # Pass 1의 heading도 원문에 근거해야 한다. 아니면 그 처리행위를 신뢰할 수 없다.
             if not heading_is_grounded(document, activity.heading):
@@ -220,16 +230,43 @@ class PoC1Extractor:
                     quote=activity.heading,
                 ))
                 continue
+            grounded.append(activity)
 
-            for raw in self.extract_activity_facts(document, activity):
+        *per_activity, rights = self._run_after_pass1(document, grounded)
+        # 응답이 도착한 순서가 아니라 처리행위 순서대로 모은다. fact_id 채번이 결정적이다.
+        for activity, raw_facts in zip(grounded, per_activity):
+            for raw in raw_facts:
                 self._collect(result, raw, document, expected_activity=activity)
 
-        for raw in self.extract_rights_facts(document):
+        for raw in rights:
             self._collect(result, raw, document, expected_activity=None)
 
         result.system_metadata = self._declared_absences(result, pass1, document)
         result.usage = self.usage
         return result
+
+    def _run_after_pass1(
+        self, document: str, activities: list[IdentifiedActivity]
+    ) -> list[list[ExtractedFact]]:
+        """처리행위별 Pass 2와 권리 pass를 부른다. 결과는 [처리행위..., 권리] 순서다.
+
+        이 호출들은 서로 독립이라 동시에 보낼 수 있다. 순서대로 부르면 PoC1 문서
+        하나에 약 14회 호출이 줄지어 90초 가까이 걸렸다 (실측 88초).
+
+        첫 Pass 2는 혼자 먼저 보낸다. Pass 2들은 원문 캐시를 공유하는데, 캐시는 첫
+        응답이 만들어진 뒤에야 읽힌다. 전부 동시에 보내면 모든 호출이 캐시 쓰기
+        (입력 단가의 1.25배)가 되어 캐시 읽기(0.1배)를 잃는다.
+        """
+        jobs = [partial(self.extract_activity_facts, document, a) for a in activities]
+        jobs.append(partial(self.extract_rights_facts, document))
+        if self.max_concurrency == 1:
+            return [job() for job in jobs]
+
+        warmed: list[list[ExtractedFact]] = []
+        if activities and self.cache_document:
+            warmed.append(jobs.pop(0)())
+        with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
+            return warmed + list(pool.map(lambda job: job(), jobs))
 
     @staticmethod
     def _declared_absences(

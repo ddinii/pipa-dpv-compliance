@@ -18,6 +18,10 @@ from app.extractors.poc1 import DEFAULT_MODEL, ExtractionResult, MessagesClient,
 
 ENV_API_KEY = "ANTHROPIC_API_KEY"
 
+# 실제 API로 부를 때 Pass 2와 권리 pass를 동시에 보낼 수. 429(rate limit)는 SDK가
+# 재시도한다. 줄이려면 from_environment(max_concurrency=...)로 넘긴다.
+DEFAULT_CONCURRENCY = 6
+
 
 class LlmPoC1Extractor:
     """처리방침 원문에서 F1-01~F1-12 Fact를 추출한다.
@@ -38,9 +42,11 @@ class LlmPoC1Extractor:
         model: str = DEFAULT_MODEL,
         cache_document: bool = True,
         on_result: Callable[[ExtractionResult], None] | None = None,
+        max_concurrency: int = 1,
     ) -> None:
         self._extractor = PoC1Extractor(
-            messages, model=model, cache_document=cache_document
+            messages, model=model, cache_document=cache_document,
+            max_concurrency=max_concurrency,
         )
         self._on_result = on_result
 
@@ -51,6 +57,7 @@ class LlmPoC1Extractor:
         model: str = DEFAULT_MODEL,
         cache_document: bool = True,
         on_result: Callable[[ExtractionResult], None] | None = None,
+        max_concurrency: int = DEFAULT_CONCURRENCY,
     ) -> "LlmPoC1Extractor":
         """환경변수의 자격증명으로 Anthropic 클라이언트를 만든다.
 
@@ -68,6 +75,7 @@ class LlmPoC1Extractor:
             model=model,
             cache_document=cache_document,
             on_result=on_result,
+            max_concurrency=max_concurrency,
         )
 
     def extract(

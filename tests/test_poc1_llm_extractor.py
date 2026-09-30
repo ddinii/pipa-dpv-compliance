@@ -163,6 +163,96 @@ def test_returns_facts_and_presence_metadata_separately(gold: dict, policy: str)
     assert facts == output.facts and presence == []
 
 
+# --- 동시 호출 (응답 시간) ------------------------------------------------
+
+
+class RoutedStub:
+    """동시 호출용 스텁. 호출 순서가 아니라 요청 내용으로 응답을 고른다."""
+
+    def __init__(self, gold: dict):
+        import threading
+
+        responses = gold_shaped_responses(gold)
+        self.pass1, self.rights = responses[0], responses[-1]
+        self.by_activity = {
+            a.activity_id: r for a, r in zip(self.pass1.activities, responses[1:-1])
+        }
+        self.lock = threading.Lock()
+        self.in_flight = 0
+        self.peak = 0
+        self.events: list[str] = []
+
+    def _route(self, kwargs) -> tuple[str, object]:
+        import re
+
+        user = kwargs["messages"][0]["content"]
+        if kwargs["output_format"] is ActivityList:
+            return "pass1", self.pass1
+        if "권리와 행사절차" in user:
+            return "rights", self.rights
+        activity_id = re.search(r"activity_id\s*:\s*(\S+)", user).group(1)
+        return activity_id, self.by_activity[activity_id]
+
+    def parse(self, **kwargs):
+        import time
+
+        name, payload = self._route(kwargs)
+        with self.lock:
+            self.in_flight += 1
+            self.peak = max(self.peak, self.in_flight)
+            self.events.append(f"start {name}")
+        time.sleep(0.03)
+        with self.lock:
+            self.in_flight -= 1
+            self.events.append(f"end {name}")
+        return type("Response", (), {"parsed_output": payload, "stop_reason": "end_turn"})()
+
+
+def _run(stub, policy: str, concurrency: int):
+    return LlmPoC1Extractor(stub, max_concurrency=concurrency).extract(
+        analysis_id="SC-P01", controller_id="ctrl-001", controller_name=None,
+        policy_text=policy,
+    )
+
+
+def test_concurrent_extraction_matches_sequential_exactly(gold: dict, policy: str):
+    """응답 도착 순서와 무관하게 처리행위 순서로 모은다. fact_id 채번까지 같아야 한다."""
+    sequential = _run(RoutedStub(gold), policy, 1)
+    concurrent = _run(RoutedStub(gold), policy, 6)
+    assert concurrent.facts == sequential.facts
+    assert concurrent.system_metadata == sequential.system_metadata
+
+
+def test_pass2_calls_actually_overlap(gold: dict, policy: str):
+    """순서대로 부르면 PoC1 문서 하나가 88초 걸렸다 (실측)."""
+    stub = RoutedStub(gold)
+    _run(stub, policy, 6)
+    assert stub.peak > 1
+
+
+def test_first_pass2_warms_the_cache_alone(gold: dict, policy: str):
+    """Pass 2는 원문 캐시를 공유한다. 첫 호출이 끝난 뒤에 나머지를 보내야 캐시를 읽는다."""
+    stub = RoutedStub(gold)
+    _run(stub, policy, 6)
+    first = stub.pass1.activities[0].activity_id
+    assert stub.events[:4] == ["start pass1", "end pass1", f"start {first}", f"end {first}"]
+
+
+def test_default_is_sequential_so_order_based_stubs_still_work(gold: dict, policy: str):
+    stub = RoutedStub(gold)
+    _run(stub, policy, 1)
+    assert stub.peak == 1
+
+
+def test_production_path_is_concurrent(monkeypatch):
+    from app.extractors import poc1_llm_extractor as module
+
+    assert module.DEFAULT_CONCURRENCY > 1
+    monkeypatch.setenv(ENV_API_KEY, "sk-ant-test-not-a-real-key")
+    extractor = module.LlmPoC1Extractor.from_environment()
+    assert extractor._extractor.max_concurrency == module.DEFAULT_CONCURRENCY
+
+
 # --- 명시적 부재 -> activity presence metadata -> N/A ---------------------
 
 NO_PROVISION = "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."

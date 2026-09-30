@@ -145,6 +145,25 @@
       "schema_version": "fact-1.0"
     },
     {
+      "fact_id": "F1-02:act-collection-004",
+      "subject_id": "act-collection-004",
+      "activity_id": "act-collection-004",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "4. 서비스 개선",
+          "start_offset": 483,
+          "end_offset": 492
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "변형 v1-missing-purpose: 서비스 개선 처리행위의 처리 목적 문장을 삭제한다."
+    },
+    {
       "fact_id": "F1-01:act-collection-005",
       "subject_id": "act-collection-005",
       "activity_id": "act-collection-005",
