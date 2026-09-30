@@ -1,0 +1,312 @@
+{
+  "source_document_id": "HELDOUT-P01-h4-partial-negation",
+  "poc": "poc1",
+  "policy_text_file": "policy.txt",
+  "fact_schema_version": "fact-1.0",
+  "heldout": {
+    "name": "h4-partial-negation",
+    "description": "'원칙적으로 제공하지 않으나 다음의 경우 제공' 함정, 위탁 언급 없음"
+  },
+  "expected_rule_status": {
+    "P1-R01": "GREEN",
+    "P1-R02": "GREEN",
+    "P1-R03": "RED",
+    "P1-R04": "GREEN",
+    "P1-R06": "AMBER",
+    "P1-R07": "GREEN"
+  },
+  "facts": [
+    {
+      "fact_id": "F1-01:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "택배 예약 접수",
+          "start_offset": 89,
+          "end_offset": 97
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "집하 및 배송",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "집하 및 배송",
+          "start_offset": 99,
+          "end_offset": 106
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제2조 (보유 기간)",
+          "start_offset": 146,
+          "end_offset": 157
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "배송 완료 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "배송 완료 시",
+          "start_offset": 168,
+          "end_offset": 175
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-05:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRecipient",
+      "value": "지역 배송 협력 대리점",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "지역 배송 협력 대리점",
+          "start_offset": 268,
+          "end_offset": 280
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-06:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "받는 분 이름",
+        "연락처",
+        "주소"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "받는 분 이름",
+          "start_offset": 291,
+          "end_offset": 298
+        },
+        {
+          "text": "연락처",
+          "start_offset": 300,
+          "end_offset": 303
+        },
+        {
+          "text": "주소",
+          "start_offset": 305,
+          "end_offset": 307
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-07:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasPurpose",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "다만, 다음의 경우에는 제공합니다.",
+          "start_offset": 237,
+          "end_offset": 256
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "제공 목적 기재 없음"
+    },
+    {
+      "fact_id": "F1-03:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": " - 보유 기간: 협력 대리점의 배송 업무 종료 시까지",
+          "start_offset": 308,
+          "end_offset": 338
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-provision-001",
+      "subject_id": "act-provision-001",
+      "activity_id": "act-provision-001",
+      "ontology_class": "ThirdPartyProvision",
+      "ontology_property": "hasRetention",
+      "value": "협력 대리점의 배송 업무 종료 시",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "협력 대리점의 배송 업무 종료 시",
+          "start_offset": 318,
+          "end_offset": 336
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-08:act-destruction-001",
+      "subject_id": "act-destruction-001",
+      "activity_id": "act-destruction-001",
+      "ontology_class": "Destruction",
+      "ontology_property": "hasDestructionMethod",
+      "value": "전자적 파일의 경우 복구할 수 없도록 삭제하고, 운송장 출력물은 분쇄합니다.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "전자적 파일의 경우 복구할 수 없도록 삭제하고, 운송장 출력물은 분쇄합니다.",
+          "start_offset": 363,
+          "end_offset": 405
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-11:subj-001",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubject",
+      "ontology_property": "hasRight",
+      "value": [
+        "개인정보 열람",
+        "정정",
+        "삭제"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "개인정보 열람",
+          "start_offset": 426,
+          "end_offset": 433
+        },
+        {
+          "text": "정정",
+          "start_offset": 435,
+          "end_offset": 437
+        },
+        {
+          "text": "삭제",
+          "start_offset": 439,
+          "end_offset": 441
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:개인정보 열람",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "개인정보 열람",
+        "procedure": "고객센터 게시판 또는 이메일"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 게시판 또는 이메일",
+          "start_offset": 454,
+          "end_offset": 469
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:정정",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "정정",
+        "procedure": "고객센터 게시판 또는 이메일"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 게시판 또는 이메일",
+          "start_offset": 454,
+          "end_offset": 469
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:삭제",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "삭제",
+        "procedure": "고객센터 게시판 또는 이메일"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 게시판 또는 이메일",
+          "start_offset": 454,
+          "end_offset": 469
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ]
+}

@@ -44,6 +44,31 @@ def test_output_format_survives_the_sdk_schema_transform(output_format):
     transform_schema(schema)
 
 
+@pytest.mark.parametrize(
+    ("model", "valid", "numbered"),
+    [(ExtractedFact, "F1-12", "F1-12-1"), (ExtractedPoc2Fact, "F2-10", "F2-10-1")],
+)
+def test_fact_id_is_an_enum_of_the_frozen_ids(model, valid: str, numbered: str):
+    """실측: 모델이 권리 pass에서 fact_id를 "F1-12-1", "F1-12-2"로 냈다.
+
+    F1-12로 인식되지 않아 subject class가 틀리고 매퍼가 그 문서의 Fact 전체를
+    거부했다 (held-out h1, Rule 6개 결과 소실). 스키마 enum이면 API가 이런 값을
+    낼 수 없다.
+    """
+    from pydantic import ValidationError
+
+    schema = TypeAdapter(model).json_schema()
+    enum = schema["properties"]["fact_id"]["enum"]
+    assert valid in enum and numbered not in enum
+    base = {"ontology_property": None, "value": None, "value_state": "absent",
+            "evidence_text": ["x"]}
+    if model is ExtractedFact:
+        base["activity_id"] = None
+    model.model_validate({**base, "fact_id": valid})
+    with pytest.raises(ValidationError):
+        model.model_validate({**base, "fact_id": numbered})
+
+
 def _gold_facts(poc: str) -> list[dict]:
     facts = []
     for path in (ROOT / "evals" / poc).rglob("*gold_facts*.json"):

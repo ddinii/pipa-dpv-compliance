@@ -65,8 +65,17 @@ class RightProcedure(BaseModel):
 Poc1Value = str | list[str] | RightProcedure | None
 
 
+# structured outputs의 enum으로 묶는다. 자유 문자열이면 모델이 "F1-12-1"처럼 번호를
+# 붙여 내고, 그러면 F1-12로 인식되지 않아 잘못된 subject class가 붙고 매퍼가 문서
+# 전체의 Fact를 거부한다 (실측: held-out h1에서 6개 Rule 결과가 통째로 사라짐).
+Poc1FactId = Literal[
+    "F1-01", "F1-02", "F1-03", "F1-04", "F1-05", "F1-06",
+    "F1-07", "F1-08", "F1-09", "F1-10", "F1-11", "F1-12",
+]
+
+
 class ExtractedFact(BaseModel):
-    fact_id: str = Field(description="F1-02 등 Fact Dictionary ID")
+    fact_id: Poc1FactId = Field(description="Fact Dictionary ID. 번호를 덧붙이지 않는다")
     activity_id: str | None = Field(description="처리행위 ID. 권리 Fact는 null")
     ontology_property: str | None
     value: Poc1Value
