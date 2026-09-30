@@ -393,22 +393,42 @@ def locate_quotes(
 
     같은 문자열이 여러 번 나오면 앞에서부터 순서대로 배정해, 배열 값의 원소별 근거가
     서로 다른 위치를 가리키게 한다. 하나라도 못 찾으면 (빈 목록, 못 찾은 인용)을 돌려준다.
+
+    공백만 다른 인용도 찾는다. 원문에서 줄이 바뀐 문장을 모델이 한 줄로 이어 인용하는
+    일이 실제로 있었다 (PoC2 v1: F2-01 거부 -> P2-R08 AMBER). 이때 근거의 text에는
+    **모델의 인용이 아니라 원문의 해당 구간**을 담으므로 offset은 항상 원문을 가리키고,
+    공백이 아닌 글자는 모두 일치해야 한다 (NFR-07 유지). 모델 인용에 공백이 있는
+    자리에만 원문의 공백 차이를 허용한다. 공백이 없는 자리에 원문 공백을 끼워 맞추지 않는다.
     """
     evidence: list[dict] = []
     cursor: dict[str, int] = {}
 
     for quote in quotes:
-        start = document.find(quote, cursor.get(quote, 0))
-        if start == -1:
+        found = _find_quote(document, quote, cursor.get(quote, 0))
+        if found is None:
             # 앞선 원소가 이미 소비했을 수 있으니 문서 처음부터 한 번 더 본다.
-            start = document.find(quote)
-            if start == -1:
+            found = _find_quote(document, quote, 0)
+            if found is None:
                 return [], quote
+        start, end = found
         cursor[quote] = start + 1
         evidence.append({
-            "text": quote,
+            "text": document[start:end],
             "start_offset": start,
-            "end_offset": start + len(quote),
+            "end_offset": end,
         })
 
     return evidence, None
+
+
+def _find_quote(document: str, quote: str, offset: int) -> tuple[int, int] | None:
+    """정확히 일치하는 곳을 먼저, 없으면 공백만 다른 곳을 찾는다."""
+    start = document.find(quote, offset)
+    if start != -1:
+        return start, start + len(quote)
+    tokens = quote.split()
+    if not tokens:
+        return None
+    pattern = re.compile(r"\s+".join(re.escape(token) for token in tokens))
+    match = pattern.search(document, offset)
+    return (match.start(), match.end()) if match else None

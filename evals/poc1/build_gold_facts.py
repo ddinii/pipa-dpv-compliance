@@ -92,7 +92,8 @@ HEADING_OCCURRENCES = {
 }
 
 # 보유 종료조건이 처리행위에 연결된 경우만 기재한다.
-# 제2조에 명시되지 않은 처리행위는 unknown으로 남긴다 -> P1-R02 AMBER
+# 제2조에 명시되지 않은 처리행위는 "관계 법령에서 정한 기간"에만 걸린다.
+# 기간 unknown / 종료조건 absent -> P1-R02 AMBER (Issue 4 팀 결정)
 RETENTION_END_CONDITIONS = {
     "act-collection-001": "회원 탈퇴 시",
     "act-collection-005": "상담 및 분쟁 처리 종료 시",
@@ -155,9 +156,12 @@ def build() -> list[dict]:
         ))
 
     # --- F1-03 보유기간 ---------------------------------------------------
-    # 처리방침은 기간(개월/년)을 쓰지 않고 종료조건으로만 기재한다.
-    # 제2조 전체를 읽고 기간이 없음을 확인했으므로 unknown이 아니라 absent다.
+    # 팀 결정 (2026-09-30, Issue 4): "관계 법령에서 정한 기간"처럼 법령도 숫자도
+    # 특정하지 않은 기간은 법령을 연동해 채우지 않고 unknown(알 수 없음)으로 둔다.
+    # 기간을 말했지만 값이 비어 있기 때문이다 (PASS2 8번 규칙의 "언급했지만 비어 있음").
+    # 제2조가 종료조건을 명시한 처리행위는 기간을 말하지 않았으므로 absent다.
     for activity_id in [a for a, _, _ in COLLECTION_ACTIVITIES] + ["act-provision-001", "act-crossborder-001"]:
+        unspecified = activity_id in RETENTION_UNKNOWN
         facts.append(fact(
             f"F1-03:{activity_id}",
             subject_id=activity_id,
@@ -165,9 +169,13 @@ def build() -> list[dict]:
             ontology_class="PersonalInformationProcessing",
             ontology_property="hasRetention",
             value=None,
-            value_state="absent",
+            value_state="unknown" if unspecified else "absent",
             evidence=[ev(GENERAL_RETENTION_SENTENCE)],
-            note="처리방침이 보유 기간을 숫자 기간으로 기재하지 않고 종료조건으로만 기재함",
+            note=(
+                "'관계 법령에서 정한 기간' — 기간을 말하지만 근거 법령과 값을 특정하지 않음"
+                if unspecified
+                else "이 처리행위는 종료조건으로만 기재되고 숫자 기간이 없음"
+            ),
         ))
 
     # --- F1-04 보유 종료조건 ---------------------------------------------
@@ -186,7 +194,9 @@ def build() -> list[dict]:
             evidence=[ev(condition)],
         ))
 
-    # 제2조에 열거되지 않은 처리행위. 보유 정보 자체는 존재하므로 absent가 아니라 unknown이다.
+    # 제2조에 열거되지 않은 처리행위. "그 밖의 처리 목적" 문장은 기간을 말할 뿐 끝나는
+    # 사건을 말하지 않으므로 종료조건은 absent다 (Issue 4 팀 결정). 보유 정보는 있으나
+    # 값을 알 수 없으므로 P1-R02는 여전히 AMBER다.
     for activity_id in RETENTION_UNKNOWN:
         facts.append(fact(
             f"F1-04:{activity_id}",
@@ -195,9 +205,9 @@ def build() -> list[dict]:
             ontology_class="CollectionAndUse",
             ontology_property="hasRetention",
             value=None,
-            value_state="unknown",
+            value_state="absent",
             evidence=[ev(GENERAL_RETENTION_SENTENCE)],
-            note="제2조에 일반 보유 문장은 있으나 이 처리행위와의 연결이 특정되지 않음 -> P1-R02 AMBER 근거",
+            note="'그 밖의 처리 목적' 문장에 종료 사건이 없음. 기간은 F1-03 unknown",
         ))
 
     # --- F1-05 / F1-06 / F1-07 제3자 제공 ---------------------------------

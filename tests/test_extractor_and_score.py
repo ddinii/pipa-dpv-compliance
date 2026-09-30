@@ -65,6 +65,37 @@ def test_repeated_quotes_get_different_offsets(policy: str):
     assert evidence[0]["start_offset"] != evidence[1]["start_offset"]
 
 
+WRAPPED = "첫 줄은 여기까지 입력되어\n수신자 간에 서로 노출되었습니다.\n"
+
+
+def test_quote_joined_across_a_line_break_is_found():
+    """원문이 줄바꿈된 문장을 모델이 한 줄로 이어 인용한 실측 사례 (PoC2 v1 F2-01)."""
+    evidence, missing = locate_quotes(WRAPPED, ["입력되어 수신자 간에 서로 노출되었습니다."])
+    assert missing is None
+    piece = evidence[0]
+    # 근거에는 모델 인용이 아니라 원문 구간이 담긴다. offset은 항상 원문을 가리킨다.
+    assert piece["text"] == "입력되어\n수신자 간에 서로 노출되었습니다."
+    assert WRAPPED[piece["start_offset"]:piece["end_offset"]] == piece["text"]
+
+
+@pytest.mark.parametrize(
+    "quote",
+    [
+        "입력되어 수신자 간에 서로 유출되었습니다.",  # 글자가 다르다
+        "입력되어수신자 간에 서로 노출되었습니다.",    # 원문 공백 자리에 공백이 없다
+    ],
+)
+def test_whitespace_tolerance_does_not_accept_other_differences(quote: str):
+    """NFR-07. 공백이 아닌 글자는 모두 일치해야 한다."""
+    assert locate_quotes(WRAPPED, [quote])[1] == quote
+
+
+def test_exact_match_is_preferred_over_a_whitespace_match():
+    document = "가 나\n다\n가 나 다\n"
+    evidence, _ = locate_quotes(document, ["가 나 다"])
+    assert evidence[0]["start_offset"] == document.index("가 나 다\n")
+
+
 # --- Extractor 후처리 ---------------------------------------------------
 
 
@@ -360,7 +391,7 @@ def test_wrong_offset_lowers_offset_accuracy(gold_raw, gold, policy: str):
 def test_value_state_is_part_of_the_match_key(gold_raw, gold, policy: str):
     """unknown을 confirmed로 잘못 판정하면 일치로 쳐주면 안 된다."""
     predicted = copy.deepcopy(gold_raw)
-    target = next(i for i in predicted if i["fact_id"] == "F1-04:act-collection-002")
+    target = next(i for i in predicted if i["fact_id"] == "F1-03:act-collection-002")
     target["value_state"] = "absent"
 
     score = score_facts(gold, [FactEnvelope.model_validate(i) for i in predicted], policy)
