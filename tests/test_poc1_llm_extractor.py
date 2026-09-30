@@ -107,14 +107,18 @@ def gold_shaped_responses(gold: dict) -> list:
     return responses
 
 
-def extract_gold_shaped(gold: dict, policy: str) -> list[dict]:
-    extractor = LlmPoC1Extractor(StubMessages(gold_shaped_responses(gold)))
+def extract_output(gold: dict, policy: str, responses: list | None = None):
+    extractor = LlmPoC1Extractor(StubMessages(responses or gold_shaped_responses(gold)))
     return extractor.extract(
         analysis_id="SC-P01",
         controller_id="ctrl-001",
         controller_name="모아커머스",
         policy_text=policy,
     )
+
+
+def extract_gold_shaped(gold: dict, policy: str) -> list[dict]:
+    return extract_output(gold, policy).facts
 
 
 # --- handoff 2장: Protocol 계약 -----------------------------------------
@@ -146,10 +150,92 @@ def test_return_type_is_accepted_by_the_service_boundary():
     assert presence == []
 
 
-def test_returns_a_list_of_plain_dicts(gold: dict, policy: str):
-    facts = extract_gold_shaped(gold, policy)
-    assert isinstance(facts, list) and facts
-    assert all(isinstance(item, dict) for item in facts)
+def test_returns_facts_and_presence_metadata_separately(gold: dict, policy: str):
+    """Protocol의 ExtractionResult를 돌려준다. presence metadata는 Fact에 섞지 않는다."""
+    from app.extractors.base import ExtractionResult
+    from app.services.compliance import _split_extractor_output
+
+    output = extract_output(gold, policy)
+    assert isinstance(output, ExtractionResult)
+    assert output.facts and all(isinstance(item, dict) for item in output.facts)
+    assert output.system_metadata == []  # SC-P01은 부재를 명시한 유형이 없다
+    facts, presence = _split_extractor_output(output)
+    assert facts == output.facts and presence == []
+
+
+# --- 명시적 부재 -> activity presence metadata -> N/A ---------------------
+
+NO_PROVISION = "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."
+
+
+def _pass1_with(declared, activities=()):
+    from app.extractors.poc1 import DeclaredAbsence
+
+    return ActivityList(
+        activities=list(activities),
+        declared_absent=[DeclaredAbsence(activity_type=t, quote=q) for t, q in declared],
+    )
+
+
+def test_declared_absence_becomes_confirmed_false_metadata(gold: dict):
+    policy = "제3조 (개인정보의 제3자 제공)\n" + NO_PROVISION + "\n"
+    output = extract_output(gold, policy, [
+        _pass1_with([("ThirdPartyProvision", NO_PROVISION)]),
+        fact_list([]),  # 권리 pass
+    ])
+    [item] = output.system_metadata
+    assert item["activity_type"] == "ThirdPartyProvision"
+    assert item["state"] == "confirmed_false"
+    assert item["source_type"] == "policy_text"
+    assert policy[item["evidence"][0]["start_offset"]:item["evidence"][0]["end_offset"]] == NO_PROVISION
+    assert output.facts == []  # Fact가 아니다
+
+
+def test_declared_absence_with_an_invented_quote_is_dropped(gold: dict):
+    """NFR-07. 원문에 없는 부재 선언으로 Rule을 N/A로 만들면 안 된다."""
+    policy = "제3조 (개인정보의 제3자 제공)\n다음의 경우 제공합니다.\n"
+    output = extract_output(gold, policy, [
+        _pass1_with([("ThirdPartyProvision", NO_PROVISION)]),
+        fact_list([]),
+    ])
+    assert output.system_metadata == []
+
+
+def test_declared_absence_that_contradicts_an_activity_is_dropped(gold: dict):
+    """같은 유형의 처리행위를 식별했으면 부재 선언을 믿지 않는다.
+
+    confirmed_false는 그 유형의 Rule을 N/A로 만든다. 모순된 상태에서 내면 실제로
+    있는 제3자 제공의 결함이 판정에서 사라진다.
+    """
+    policy = NO_PROVISION + "\n제공받는 자: 모아마켓 입점 판매자\n"
+    provision = IdentifiedActivity(
+        activity_id="act-provision-001", ontology_class="ThirdPartyProvision",
+        heading="제공받는 자: 모아마켓 입점 판매자",
+    )
+    output = extract_output(gold, policy, [
+        _pass1_with([("ThirdPartyProvision", NO_PROVISION)], [provision]),
+        fact_list([]),  # provision Pass 2
+        fact_list([]),  # 권리 pass
+    ])
+    assert output.system_metadata == []
+
+
+def test_declared_absence_reaches_na_through_the_service(gold: dict):
+    from app.services.compliance import run_policy_check
+
+    policy = "제3조 (개인정보의 제3자 제공)\n" + NO_PROVISION + "\n"
+    extractor = LlmPoC1Extractor(StubMessages([
+        _pass1_with([("ThirdPartyProvision", NO_PROVISION)]),
+        fact_list([]),
+    ]))
+    results = run_policy_check(
+        {"analysis_id": "NA-001", "controller": {"controller_id": "ctrl-001"},
+         "policy_text": policy},
+        extractor=extractor,
+    )
+    status = {r.rule_id: r.status.value for r in results}
+    assert status["P1-R03"] == "N/A"
+    assert status["P1-R06"] != "N/A"  # 위탁은 부재를 명시하지 않았다
 
 
 # --- handoff 3~4장: Fact 출력 계약 ---------------------------------------

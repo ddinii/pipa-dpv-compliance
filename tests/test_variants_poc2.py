@@ -37,6 +37,7 @@ VARIANT_NAMES = [
     "v3-notice-missing-incident-time",
     "v4-partial-response-measures",
     "v5-no-response-measures",
+    "v6-no-notice",
 ]
 
 
@@ -56,7 +57,8 @@ def contract_facts(case) -> list[dict]:
 
 def statuses(case, engine: P0RuleEngine) -> dict[str, str]:
     mapping = facts_to_mapping(
-        contract_facts(case), analysis_id=case.name, controller_id="ctrl-001"
+        contract_facts(case), analysis_id=case.name, controller_id="ctrl-001",
+        system_metadata=case.gold_system_metadata,
     )
     return {
         item.rule_id: item.status.value
@@ -84,6 +86,8 @@ def test_variant_evidence_resolves_in_its_own_document(cases: dict, name: str):
     for item in case.gold_facts:
         document = case.document_for(item["source_type"])
         for piece in item["evidence"]:
+            if "field_path" in piece:
+                continue  # 통지문이 없을 때의 근거는 입력 필드다 (v6)
             start, end = piece["start_offset"], piece["end_offset"]
             assert document[start:end] == piece["text"], (
                 f"{name}/{item['fact_id']}: 근거가 변형 문서에서 해결되지 않는다"
@@ -124,19 +128,39 @@ def test_variant_only_moves_rules_that_consume_the_changed_fact(
     )
 
 
-def test_three_statuses_are_represented_in_poc2(cases: dict):
-    """TST-003: GREEN/AMBER/RED 대표 케이스가 세트에 모두 있어야 한다.
+def test_all_four_statuses_are_represented_in_poc2(cases: dict):
+    """TST-003: GREEN/AMBER/RED/N/A 대표 케이스가 세트에 모두 있어야 한다.
 
-    N/A는 빠져 있다. Rule Engine은 activity presence metadata로 N/A를 내지만
-    (app/mapping/presence_metadata.py), 이 변형 세트의 정답지는 그 메타데이터를
-    싣지 않는다. Extractor가 "하지 않는다고 명시됨"을 감지해 presence metadata로
-    내보내도록 붙이면 그때 N/A 케이스를 추가할 수 있다.
+    N/A는 v6이 낸다. 통지문이 없으면 서비스가 NotificationNotice=confirmed_false를
+    붙이고(with_notice_presence), 정답지도 같은 metadata를 싣는다.
     """
     seen = set()
     for case in cases.values():
         seen.update(case.expected_rule_status.values())
-    assert {"GREEN", "AMBER", "RED"} <= seen
-    assert "N/A" not in seen
+    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+
+
+def test_no_notice_case_has_no_notice_document(cases: dict):
+    """통지문 없는 케이스는 문서 자체가 없다. 러너는 notification=None으로 부른다."""
+    case = cases["v6-no-notice"]
+    assert set(case.documents) == {"incident"}
+    assert case.documents["incident"] == cases["base"].documents["incident"]
+
+
+def test_no_notice_gold_matches_what_the_service_and_extractor_produce(cases: dict):
+    """정답 metadata와 통지문 Fact가 서비스·Extractor 출력과 같아야 한다.
+
+    다르면 러너가 올바르게 동작해도 채점에서 틀린 것으로 나온다.
+    """
+    from app.extractors.poc2 import NOTICE_ABSENCE_SHAPE
+    from app.services.compliance import with_notice_presence
+
+    case = cases["v6-no-notice"]
+    assert case.gold_system_metadata == with_notice_presence([], notification_provided=False)
+    notice_side = [f for f in case.gold_facts if fact_type(f["fact_id"]) in NOTICE_ABSENCE_SHAPE]
+    assert len(notice_side) == len(NOTICE_ABSENCE_SHAPE)
+    for item in notice_side:
+        assert item["value_state"] == "absent" and item["source_type"] == "derived"
 
 
 def test_partial_and_missing_measures_are_distinguished(cases: dict):
@@ -205,5 +229,5 @@ def test_variant_metadata_is_recorded(cases: dict):
         variant = cases[name].payload["variant"]
         assert variant["name"] == name
         assert variant["target_rule"] in COVERAGE
-        assert variant["expected_status"] in {"AMBER", "RED"}
+        assert variant["expected_status"] in {"AMBER", "RED", "N/A"}
         assert variant["changed_facts"]

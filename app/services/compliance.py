@@ -34,6 +34,33 @@ def _split_extractor_output(
     return output, []
 
 
+def with_notice_presence(
+    presence_metadata: list[dict[str, Any]], *, notification_provided: bool
+) -> list[dict[str, Any]]:
+    """통지문이 제공되지 않았으면 NotificationNotice 명시적 부재를 붙인다.
+
+    Extractor가 이미 NotificationNotice presence를 냈으면 그것을 따른다.
+    평가 러너도 이 함수를 쓴다. 서비스와 러너의 판정 경로가 갈라지면 러너 점수가
+    실제 API 동작을 대변하지 못한다.
+    """
+    has_notice_presence = any(
+        item.get("field") == "activity_presence"
+        and item.get("activity_type") == "NotificationNotice"
+        for item in presence_metadata
+    )
+    if notification_provided or has_notice_presence:
+        return list(presence_metadata)
+    return [
+        *presence_metadata,
+        activity_presence_metadata(
+            "NotificationNotice",
+            "confirmed_false",
+            source_type="derived",
+            evidence=[{"field_path": "notification"}],
+        ),
+    ]
+
+
 def run_design_check(form: dict[str, Any]) -> list[RuleResult]:
     """Evaluate a PoC3 structured design form against the frozen PoC3 P0 rules.
 
@@ -190,20 +217,9 @@ def run_breach_check(
     )
 
     facts, presence_metadata = _split_extractor_output(extractor_output)
-    has_notice_presence_metadata = any(
-        item.get("field") == "activity_presence"
-        and item.get("activity_type") == "NotificationNotice"
-        for item in presence_metadata
+    presence_metadata = with_notice_presence(
+        presence_metadata, notification_provided=notification is not None
     )
-    if notification is None and not has_notice_presence_metadata:
-        presence_metadata.append(
-            activity_presence_metadata(
-                "NotificationNotice",
-                "confirmed_false",
-                source_type="derived",
-                evidence=[{"field_path": "notification"}],
-            )
-        )
 
     try:
         mapper = OntologyMapper(

@@ -11,8 +11,9 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Callable
+from typing import Callable
 
+from app.extractors.base import ExtractionResult as ProtocolResult
 from app.extractors.poc1 import DEFAULT_MODEL, ExtractionResult, MessagesClient, PoC1Extractor
 
 ENV_API_KEY = "ANTHROPIC_API_KEY"
@@ -76,8 +77,13 @@ class LlmPoC1Extractor:
         controller_id: str,
         controller_name: str | None,
         policy_text: str,
-    ) -> list[dict[str, Any]]:
+    ) -> ProtocolResult:
+        """Fact와 activity presence metadata를 함께 돌려준다.
+
+        presence metadata는 "처리행위 유형이 없다고 명시됨"이다. Fact가 아니므로
+        facts에 섞지 않는다. 서비스가 둘을 나눠 매퍼에 넘긴다.
+        """
         result = self._extractor.extract(policy_text)
         if self._on_result is not None:
             self._on_result(result)
-        return result.facts
+        return ProtocolResult(facts=result.facts, system_metadata=result.system_metadata)

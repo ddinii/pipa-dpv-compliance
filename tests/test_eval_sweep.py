@@ -93,6 +93,23 @@ def test_amber_predicted_as_red_is_a_mismatch_but_not_a_false_green():
     assert score.mismatches and not score.false_greens
 
 
+@pytest.mark.parametrize("expected", ["RED", "AMBER"])
+def test_na_that_hides_a_finding_is_counted_as_dangerous(expected: str):
+    """잘못된 부재 선언은 Rule을 판정 대상에서 빼 버린다. GREEN만큼 위험하다."""
+    score = RuleScore()
+    score.add("c", {"P1-R03": expected}, {"P1-R03": "N/A"})
+    assert score.false_nas == [("c", "P1-R03", expected)]
+    assert score.false_na_rate == 1.0
+    assert not score.false_greens
+
+
+def test_na_in_place_of_green_is_a_mismatch_but_not_dangerous():
+    """GREEN을 N/A로 내면 틀렸지만 가려진 결함은 없다."""
+    score = RuleScore()
+    score.add("c", {"P1-R03": "GREEN"}, {"P1-R03": "N/A"})
+    assert score.mismatches and not score.false_nas
+
+
 def test_fact_scores_accumulate_across_cases():
     total = Score()
     for case in load_poc1_cases():

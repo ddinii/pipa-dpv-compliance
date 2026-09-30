@@ -5,14 +5,14 @@
   "fact_schema_version": "fact-1.0",
   "variant": {
     "name": "v6-no-third-party-provision",
-    "description": "제3자 제공을 하지 않는다고 명시한다. 관련 Fact가 전부 사라진다.",
+    "description": "제3자 제공을 하지 않는다고 명시한다. 제공 Fact는 사라지고 부재가 명시된다.",
     "target_rule": "P1-R03",
-    "expected_status": "AMBER"
+    "expected_status": "N/A"
   },
   "expected_rule_status": {
     "P1-R01": "GREEN",
     "P1-R02": "AMBER",
-    "P1-R03": "AMBER",
+    "P1-R03": "N/A",
     "P1-R04": "GREEN",
     "P1-R06": "GREEN",
     "P1-R07": "GREEN"
@@ -710,6 +710,21 @@
         }
       ],
       "schema_version": "fact-1.0"
+    }
+  ],
+  "system_metadata": [
+    {
+      "field": "activity_presence",
+      "activity_type": "ThirdPartyProvision",
+      "state": "confirmed_false",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다.",
+          "start_offset": 852,
+          "end_offset": 883
+        }
+      ]
     }
   ]
 }

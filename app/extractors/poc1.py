@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -24,6 +24,7 @@ from app.extractors.prompts import (
 )
 from app.extractors.usage import Usage
 from app.facts.models import FACT_SCHEMA_VERSION
+from app.mapping.presence_metadata import activity_presence_metadata
 
 DEFAULT_MODEL = "claude-opus-5"
 MAX_TOKENS = 16000
@@ -37,8 +38,22 @@ class IdentifiedActivity(BaseModel):
     heading: str = Field(description="원문에서 이 처리행위를 특정하는 짧은 인용구")
 
 
+# activity presence metadata를 받는 PoC1 유형 (app/mapping/presence_metadata.py).
+# P1-R03과 P1-R06만 "처리행위가 없음"을 N/A로 본다.
+PresenceType = Literal["ThirdPartyProvision", "EntrustedProcessing"]
+
+
+class DeclaredAbsence(BaseModel):
+    activity_type: PresenceType = Field(description="하지 않는다고 명시된 처리행위 유형")
+    quote: str = Field(description="그 유형을 하지 않는다고 말한 원문 문장 그대로")
+
+
 class ActivityList(BaseModel):
     activities: list[IdentifiedActivity]
+    declared_absent: list[DeclaredAbsence] = Field(
+        default_factory=list,
+        description="원문이 '하지 않는다'고 명시한 처리행위 유형. 언급이 없으면 비워 둔다",
+    )
 
 
 class RightProcedure(BaseModel):
@@ -80,6 +95,8 @@ class ExtractionResult:
     activities: list[IdentifiedActivity] = field(default_factory=list)
     rejected: list[RejectedFact] = field(default_factory=list)
     usage: Usage = field(default_factory=Usage)
+    # activity presence metadata. Fact가 아니다 (Fact Dictionary 35개에 더하지 않는다).
+    system_metadata: list[dict] = field(default_factory=list)
 
     @property
     def hallucination_rate(self) -> float:
@@ -201,8 +218,48 @@ class PoC1Extractor:
         for raw in self.extract_rights_facts(document):
             self._collect(result, raw, document, expected_activity=None)
 
+        result.system_metadata = self._declared_absences(result, pass1, document)
         result.usage = self.usage
         return result
+
+    @staticmethod
+    def _declared_absences(
+        result: ExtractionResult, pass1: ActivityList, document: str
+    ) -> list[dict]:
+        """원문이 '하지 않는다'고 명시한 처리행위 유형을 presence metadata로 바꾼다.
+
+        확신이 없으면 내지 않는다. confirmed_false는 조건부 Rule을 N/A로 만들어
+        판정 대상에서 빼므로, 잘못 내면 문제가 있는 처리행위를 가리게 된다.
+          - 인용이 원문에 없으면 버린다 (NFR-07)
+          - 같은 유형의 처리행위를 Pass 1이 함께 식별했으면 모순이므로 버린다.
+            그 처리행위는 평소대로 평가된다
+        """
+        present = {activity.ontology_class for activity in pass1.activities}
+        metadata: list[dict] = []
+        seen: set[str] = set()
+        for item in pass1.declared_absent:
+            label = f"presence:{item.activity_type}"
+            if item.activity_type in seen:
+                continue
+            if item.activity_type in present:
+                result.rejected.append(RejectedFact(
+                    label, None,
+                    "부재를 명시했다면서 같은 유형의 처리행위도 식별했습니다. 부재 선언을 버립니다.",
+                    quote=item.quote,
+                ))
+                continue
+            evidence, missing = locate_quotes(document, [item.quote])
+            if missing is not None:
+                result.rejected.append(RejectedFact(
+                    label, None, "부재 선언의 인용을 원문에서 찾지 못했습니다.", quote=missing,
+                ))
+                continue
+            metadata.append(activity_presence_metadata(
+                item.activity_type, "confirmed_false",
+                source_type="policy_text", evidence=evidence,
+            ))
+            seen.add(item.activity_type)
+        return metadata
 
     # -- 후처리 ----------------------------------------------------------
 

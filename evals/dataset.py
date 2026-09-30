@@ -34,6 +34,8 @@ class DatasetSpec:
     base_documents: dict[str, str]
     variant_documents: dict[str, str] = field(default_factory=dict)
     gold_name: str = "gold_facts.json"
+    # 없어도 되는 문서. PoC2 통지문이 없는 케이스는 "통지하지 않음"을 뜻한다.
+    optional_documents: frozenset[str] = frozenset()
 
     @property
     def directory(self) -> Path:
@@ -66,8 +68,8 @@ POC_DATASETS: dict[str, DatasetSpec] = {
             "incident": "sc_p02_incident.txt",
             "notice": "sc_p02_notice.txt",
         },
-        # 변형 세트는 아직 없다. 디렉터리가 생기면 자동으로 잡힌다.
         variant_documents={"incident": "incident.txt", "notice": "notice.txt"},
+        optional_documents=frozenset({"notice"}),
     ),
 }
 
@@ -130,6 +132,11 @@ class EvalCase:
         return self.payload["expected_rule_status"]
 
     @property
+    def gold_system_metadata(self) -> list[dict]:
+        """정답 activity presence metadata. Fact가 아니므로 facts와 따로 둔다."""
+        return self.payload.get("system_metadata", [])
+
+    @property
     def description(self) -> str:
         meta = self.payload.get("variant") or self.payload.get("heldout")
         return meta["description"] if meta else "기준 문서 (변형 없음)"
@@ -180,8 +187,13 @@ def _cases_in(directory: Path, spec: DatasetSpec, poc: str) -> list[EvalCase]:
         documents = {
             name: case_dir / filename for name, filename in spec.variant_documents.items()
         }
+        required = [p for n, p in documents.items() if n not in spec.optional_documents]
+        documents = {
+            n: p for n, p in documents.items()
+            if n not in spec.optional_documents or p.is_file()
+        }
         gold = case_dir / spec.gold_name
-        if gold.is_file() and all(path.is_file() for path in documents.values()):
+        if gold.is_file() and all(path.is_file() for path in required):
             cases.append(EvalCase(case_dir.name, documents, gold, poc=poc))
     return cases
 

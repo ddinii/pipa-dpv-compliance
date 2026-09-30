@@ -42,15 +42,22 @@ def facts_to_mapping(
     analysis_id: str = "analysis",
     controller_id: str = DEFAULT_CONTROLLER_ID,
     controller_name: str | None = None,
+    system_metadata: Iterable[dict] | None = None,
 ) -> MappingResult:
     """Fact 목록(dict 또는 FactEnvelope)을 매핑 결과로 바꾼다.
 
     그래프와 정규화된 Fact를 함께 들고 있어야 Rule Engine이 unknown/absent를
     유지한 채 판정할 수 있다.
+
+    ``system_metadata``는 activity presence metadata다 (Fact가 아니다). 처리행위
+    유형이 "없다고 명시됨"(confirmed_false)이면 조건부 Rule이 N/A가 된다.
     """
     return OntologyMapper(
         analysis_id, controller_id=controller_id, controller_name=controller_name
-    ).map(_contract_payload(facts))
+    ).map(
+        _contract_payload(facts),
+        system_metadata=list(system_metadata) if system_metadata is not None else None,
+    )
 
 
 def facts_to_graph(

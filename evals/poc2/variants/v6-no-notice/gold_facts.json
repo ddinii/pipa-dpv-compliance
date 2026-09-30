@@ -1,0 +1,254 @@
+{
+  "source_document_id": "SC-P02-v6-no-notice",
+  "poc": "poc2",
+  "incident_text_file": "incident.txt",
+  "notice_text_file": null,
+  "fact_schema_version": "fact-1.0",
+  "variant": {
+    "name": "v6-no-notice",
+    "description": "통지문을 제공하지 않는다. 통지문 부재가 명시되어 통지문 Rule은 N/A가 된다.",
+    "target_rule": "P2-R02",
+    "expected_status": "N/A",
+    "also_moves": {
+      "P2-R01": "RED",
+      "P2-R03": "N/A"
+    },
+    "changed_facts": [
+      "F2-03",
+      "F2-04",
+      "F2-07",
+      "F2-08",
+      "F2-09"
+    ]
+  },
+  "expected_rule_status": {
+    "P2-R01": "RED",
+    "P2-R02": "N/A",
+    "P2-R03": "N/A",
+    "P2-R08": "GREEN"
+  },
+  "facts": [
+    {
+      "fact_id": "F2-01:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "수신자 이메일 주소가 숨은참조가 아닌 일반 참조에 입력되어",
+          "start_offset": 76,
+          "end_offset": 108
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "사고 인스턴스의 존재. Class assertion이라 value가 없다"
+    },
+    {
+      "fact_id": "F2-02:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "affectsPersonalInformation",
+      "value": [
+        "이메일 주소"
+      ],
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "이번 사고로 실제 노출된 개인정보 항목은 이메일 주소입니다.",
+          "start_offset": 207,
+          "end_offset": 240
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "실제 영향 항목. 통지문 기재 항목(F2-04)과 별개다"
+    },
+    {
+      "fact_id": "F2-05:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "incidentDate",
+      "value": "2026-09-05T14:30:00+09:00",
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "사고 발생시점: 2026년 9월 5일 14시 30분",
+          "start_offset": 129,
+          "end_offset": 157
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "실제 발생시점. 통지문 기재 시점(F2-08)과 절대 합치지 않는다"
+    },
+    {
+      "fact_id": "F2-06:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "detectionDate",
+      "value": "2026-09-05T16:10:00+09:00",
+      "value_state": "confirmed",
+      "source_type": "incident_record",
+      "evidence": [
+        {
+          "text": "사고 인지시점: 2026년 9월 5일 16시 10분",
+          "start_offset": 158,
+          "end_offset": 186
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "P0 Rule이 직접 소비하지 않지만 입력이 뒷받침하므로 추출한다 (EXTRACTOR_DECISIONS #2)"
+    },
+    {
+      "fact_id": "F2-10:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "hasResponseMeasure",
+      "value": [
+        {
+          "measure_role": "data_subject_guidance",
+          "text": "의심스러운 이메일과 링크에 주의하도록 안내"
+        },
+        {
+          "measure_role": "controller_response",
+          "text": "발송 경로를 확인하고 추가 노출을 차단"
+        },
+        {
+          "measure_role": "remedy_procedure",
+          "text": "개인정보보호 담당부서 연락처를 통한 문의 및 피해구제 절차 안내"
+        },
+        {
+          "measure_role": "post_incident_mitigation",
+          "text": "대량 메일 발송 절차 점검과 수신자 필드 검증 통제 적용"
+        }
+      ],
+      "value_state": "confirmed",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "text": "의심스러운 이메일과 링크에 주의하도록 안내하였습니다",
+          "start_offset": 312,
+          "end_offset": 340
+        },
+        {
+          "text": "발송 경로를 확인하고 추가 노출을 차단하였습니다",
+          "start_offset": 349,
+          "end_offset": 375
+        },
+        {
+          "text": "개인정보보호 담당부서 연락처를 통한 문의 및 피해구제 절차를 안내하였습니다",
+          "start_offset": 377,
+          "end_offset": 418
+        },
+        {
+          "text": "대량 메일 발송 절차 점검과 수신자 필드 검증 통제를 적용하였습니다",
+          "start_offset": 430,
+          "end_offset": 467
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "4장 enum 4종. P2-R08은 넷이 모두 확인될 때만 GREEN이다"
+    },
+    {
+      "fact_id": "F2-03:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "hasNotificationNotice",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-04:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "mentionsPersonalInformation",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-07:breach-incident",
+      "subject_id": "breach-incident",
+      "activity_id": "breach-incident",
+      "ontology_class": "DataBreachIncident",
+      "ontology_property": "notificationDate",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-08:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-09:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasIncidentCircumstances",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ],
+  "system_metadata": [
+    {
+      "field": "activity_presence",
+      "activity_type": "NotificationNotice",
+      "state": "confirmed_false",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ]
+    }
+  ]
+}

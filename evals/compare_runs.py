@@ -26,6 +26,8 @@ COLUMNS: list[tuple[str, tuple[str, ...], str, bool]] = [
     ("혼합률", ("fact_level", "activity_leak_rate"), ".3f", False),
     ("Rule일치", ("rule_level", "agreement"), ".3f", True),
     ("위험오판", ("rule_level", "false_green_rate"), ".3f", False),
+    # N/A 경로가 생긴 뒤의 실행에만 있다. 이전 실행은 "-"로 보인다.
+    ("N/A오판", ("rule_level", "false_na_rate"), ".3f", False),
 ]
 
 USAGE_COLUMNS: list[tuple[str, tuple[str, ...], str]] = [
