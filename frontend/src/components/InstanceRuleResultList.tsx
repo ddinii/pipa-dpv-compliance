@@ -1,5 +1,10 @@
 import type { InstanceRuleResult } from '../types/api'
-import { applicabilityLabel, statusLabel, termLabel } from '../utils/complianceLabels'
+import {
+  applicabilityLabel,
+  humanizeNarrative,
+  statusLabel,
+  termLabel,
+} from '../utils/complianceLabels'
 import { EvidenceList } from './EvidenceList'
 
 interface InstanceRuleResultListProps {
@@ -23,8 +28,10 @@ export function InstanceRuleResultList({ instances }: InstanceRuleResultListProp
             <span>규칙 적용: {applicabilityLabel(instance.applicability)}</span>
             <span>검토 대상: {termLabel(instance.instance_id)}</span>
           </div>
-          {instance.reason && <p>{instance.reason}</p>}
-          {instance.recommendation && <p className="recommendation">{instance.recommendation}</p>}
+          {instance.reason && <p>{humanizeNarrative(instance.reason)}</p>}
+          {instance.recommendation && (
+            <p className="recommendation">{humanizeNarrative(instance.recommendation)}</p>
+          )}
           <EvidenceList evidence={instance.evidence} />
         </li>
       ))}

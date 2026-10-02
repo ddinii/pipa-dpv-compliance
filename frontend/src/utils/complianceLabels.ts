@@ -1,6 +1,13 @@
 import type { Applicability, RuleStatus } from '../types/api'
 
 const TERM_LABELS: Record<string, string> = {
+  provision: '제3자 제공 처리행위',
+  collection: '개인정보 수집 처리행위',
+  use: '개인정보 이용 처리행위',
+  entrustment: '개인정보 처리위탁 활동',
+  retention: '개인정보 보유 활동',
+  destruction: '개인정보 파기 활동',
+  crossBorderTransfer: '개인정보 국외이전 활동',
   CollectionAndUse: '개인정보 수집·이용',
   PersonalInformationProcessing: '개인정보 처리',
   ThirdPartyProvision: '제3자 제공',
@@ -178,4 +185,12 @@ export function statusLabel(status: RuleStatus): string {
 
 export function applicabilityLabel(value: Applicability): string {
   return { TRUE: '적용 대상', FALSE: '적용 대상 아님', UNKNOWN: '확인 필요' }[value]
+}
+
+export function humanizeNarrative(value: string): string {
+  return value
+    .replaceAll('processing activity', '처리행위')
+    .replaceAll('해당 activity', '해당 처리행위')
+    .replaceAll('activity 연결', '처리행위와의 연결')
+    .replaceAll('provision', '제3자 제공 처리행위')
 }
