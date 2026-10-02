@@ -1,4 +1,5 @@
 import type { InstanceRuleResult } from '../types/api'
+import { applicabilityLabel, statusLabel, termLabel } from '../utils/complianceLabels'
 import { EvidenceList } from './EvidenceList'
 
 interface InstanceRuleResultListProps {
@@ -6,20 +7,21 @@ interface InstanceRuleResultListProps {
 }
 
 export function InstanceRuleResultList({ instances }: InstanceRuleResultListProps) {
-  if (instances.length === 0) {
-    return null
-  }
+  if (instances.length === 0) return null
 
   return (
     <ul className="instance-results">
       {instances.map((instance) => (
         <li key={instance.instance_id}>
           <div className="instance-header">
-            <span className={`status-badge status-${instance.status.replace('/', '-').toLowerCase()}`}>
-              {instance.status}
+            <span
+              className={`status-badge status-${instance.status.replace('/', '-').toLowerCase()}`}
+              title={instance.status}
+            >
+              {statusLabel(instance.status)}
             </span>
-            <span>적용 여부: {instance.applicability}</span>
-            <span>{instance.instance_id}</span>
+            <span>규칙 적용: {applicabilityLabel(instance.applicability)}</span>
+            <span>검토 대상: {termLabel(instance.instance_id)}</span>
           </div>
           {instance.reason && <p>{instance.reason}</p>}
           {instance.recommendation && <p className="recommendation">{instance.recommendation}</p>}
