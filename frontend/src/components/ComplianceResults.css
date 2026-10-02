@@ -237,11 +237,34 @@
 
 .evidence-type {
   padding: 2px 7px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.evidence-type.evidence-confirmed {
+  border-color: #9bd0b2;
+  background: var(--green-bg);
+  color: var(--green);
+}
+
+.evidence-type.evidence-warning {
+  border-color: #e9c77d;
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+
+.evidence-type.evidence-critical {
+  border-color: #e7aaaa;
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.evidence-type.evidence-neutral {
+  border-color: var(--primary-border);
+  background: var(--primary-soft);
+  color: var(--primary-strong);
 }
 
 .evidence-predicate {

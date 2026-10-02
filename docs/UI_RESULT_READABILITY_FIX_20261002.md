@@ -19,6 +19,13 @@
 | `absence` | 확인 필요 |
 | `GREEN / AMBER / RED / N/A` | 충족 / 추가 확인 / 미충족 / 해당 없음 |
 
+판단 근거 뱃지는 의미와 판정 영향에 따라 다음과 같이 표시함.
+
+- 확인된 관계: 초록색
+- 추가 확인이 필요하며 결과가 `추가 확인`인 항목: 주황색
+- 누락으로 인해 결과가 `미충족`인 항목: 빨간색
+- 원문 근거: 파란색 중립 뱃지
+
 ## RDF·Fact 표시 원칙
 
 - `rdf:ActivityId:hasPurpose` 같은 내부 식별자는 `처리행위 · 처리 목적` 형태로 변환함.
@@ -29,6 +36,10 @@
 - `provision`, `processing activity`, `activity` 등 사용자용 설명에 섞인 내부 용어를 한국어로 변환함.
 - 판단 근거의 해시형 RDF 개체 URI 대신 해당 개체의 `rdfs:label`을 표시함.
 - 라벨이 없는 생성형 URI도 개체 유형에 따라 `권리 행사절차`, `개인정보 항목` 등으로 표시함.
+- `retention-period-*`, `F2-10-*-measure-*`, `breach-notice` 같은 생성형 식별자를 각각 `보유기간`, `사고 대응조치`, `정보주체 통지문`으로 표시함.
+- `collect`, `destroy`, `entrust`, `user` 같은 내부 개체명을 사용자용 한국어로 표시함.
+- `measure_role`과 네 개의 영문 역할 코드를 일반 사용자가 이해할 수 있는 한국어 설명으로 표시함.
+- 규칙 번호 대신 규칙의 한국어 제목을 표시함.
 - 원문 인용은 `원문 근거` 블록으로 구분하여 표시함.
 
 ## 변경 파일
@@ -43,11 +54,11 @@
 
 - `npm run lint` 통과함.
 - `npm run build` 통과함.
-- `python run_tests.py` 45개 통과함.
-- 프록시 환경변수를 제외하고 `python -m pytest -q` 실행 시 521개 통과함.
+- 프록시 환경변수를 제외하고 `python -m pytest -q` 실행 시 522개 통과함.
 
 ## 비변경 범위
 
-- 온톨로지 TTL, SHACL, Fact Dictionary, Mapper 및 Rule Engine 로직은 변경하지 않음.
+- 온톨로지 TTL, SHACL, Fact Dictionary, Mapper 및 Rule Engine 판정 조건은 변경하지 않음.
+- 룰엔진 근거의 URI 객체값은 사용자용 라벨을 우선 반환하도록 표시용 근거 생성만 보완함.
 - API 응답 필드명과 값은 변경하지 않음.
 - 본 변경은 프론트엔드 표시 계층에 한정함.

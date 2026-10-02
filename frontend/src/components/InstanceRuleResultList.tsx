@@ -32,7 +32,7 @@ export function InstanceRuleResultList({ instances }: InstanceRuleResultListProp
           {instance.recommendation && (
             <p className="recommendation">{humanizeNarrative(instance.recommendation)}</p>
           )}
-          <EvidenceList evidence={instance.evidence} />
+          <EvidenceList evidence={instance.evidence} status={instance.status} />
         </li>
       ))}
     </ul>
