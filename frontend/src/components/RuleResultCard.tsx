@@ -3,6 +3,7 @@ import {
   applicabilityLabel,
   humanizeFactReference,
   humanizeNarrative,
+  ruleLabel,
   statusLabel,
 } from '../utils/complianceLabels'
 import './ComplianceResults.css'
@@ -20,7 +21,7 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
     <article className={`rule-result-card ${statusClass}`}>
       <div className="rule-summary">
         <header>
-          <h3>{result.rule_id}</h3>
+          <h3>{ruleLabel(result.rule_id)}</h3>
           <span className={`status-badge ${statusClass}`} title={result.status}>
             {statusLabel(result.status)}
           </span>
@@ -55,7 +56,7 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
         </section>
       )}
 
-      <EvidenceList evidence={result.evidence} />
+      <EvidenceList evidence={result.evidence} status={result.status} />
 
       <p className="evaluated-at">검토 시각: {result.evaluated_at}</p>
     </article>

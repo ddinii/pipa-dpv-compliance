@@ -1,6 +1,14 @@
 import type { Applicability, RuleStatus } from '../types/api'
 
 const TERM_LABELS: Record<string, string> = {
+  collect: '수집·이용 처리행위',
+  destroy: '파기 처리행위',
+  entrust: '처리위탁 활동',
+  user: '정보주체',
+  controller: '개인정보처리자',
+  incident: '개인정보 유출등 사고',
+  'breach-notice': '정보주체 통지문',
+  breachNotice: '정보주체 통지문',
   provision: '제3자 제공 처리행위',
   collection: '개인정보 수집 처리행위',
   use: '개인정보 이용 처리행위',
@@ -40,7 +48,9 @@ const TERM_LABELS: Record<string, string> = {
   hasLegalBasis: '법적 근거',
   hasRetention: '보유정보',
   hasRetentionPeriod: '보유기간',
+  hasDurationValue: '보유기간 값',
   hasRetentionEndCondition: '보유 종료조건',
+  hasEndConditionDescription: '보유 종료조건 설명',
   triggersDestruction: '파기 계획',
   hasDestructionMethod: '파기 방법',
   hasDestinationCountry: '이전 대상 국가',
@@ -57,6 +67,7 @@ const TERM_LABELS: Record<string, string> = {
   hasIncidentCircumstances: '통지문 기재 사고경위',
   hasResponseMeasure: '사고 대응조치',
   measureRole: '대응조치 역할',
+  entrustedTaskText: '위탁업무',
   hasConsentRequest: '동의요청',
   isRequired: '필수 항목 여부',
   designRationale: '수집 필요성',
@@ -68,6 +79,27 @@ const TERM_LABELS: Record<string, string> = {
   entrustedProcessingState: '처리위탁 존재 여부',
   dataBreachIncidentState: '개인정보 유출등 사고 존재 여부',
   notificationNoticeState: '정보주체 통지문 존재 여부',
+}
+
+const RULE_LABELS: Record<string, string> = {
+  'P1-R01': '처리목적 명시',
+  'P1-R02': '처리·보유기간 명시',
+  'P1-R03': '제3자 제공 기재',
+  'P1-R04': '파기 절차·방법 기재',
+  'P1-R06': '처리위탁 기재',
+  'P1-R07': '정보주체 권리행사 방법',
+  'P2-R01': '개인정보 유출등 사고와 통지문 확인',
+  'P2-R02': '통지 개인정보 항목 확인',
+  'P2-R03': '통지 시점·경위 확인',
+  'P2-R08': '피해 최소화·대응·구제 정보 확인',
+  'P3-R01': '수집·이용 법적 근거 확인',
+  'P3-R02': '동의 처리목적 고지 설계',
+  'P3-R03': '동의 개인정보 항목 고지 설계',
+  'P3-R04': '동의 보유·이용기간 고지 설계',
+  'P3-R05': '최소수집 설계 사유',
+  'P3-R06': '선택항목 미동의 시 서비스 거부 금지',
+  'P3-R08': '보유 종료 후 파기 설계',
+  'P3-R11': '처리위탁 설계',
 }
 
 const FACT_LABELS: Record<string, string> = {
@@ -143,9 +175,15 @@ function generatedResourceLabel(value: string): string | null {
     [/^(third_?party|recipient)_[0-9a-f]{6,}$/, '제공받는 자'],
     [/^processor_[0-9a-f]{6,}$/, '수탁자'],
     [/^retention_[0-9a-f]{6,}$/, '보유정보'],
+    [/^retention_period_[0-9a-z]{6,}$/, '보유기간'],
     [/^(legal_?basis|basis)_[0-9a-f]{6,}$/, '법적 근거'],
     [/^(destruction|destroy)_[0-9a-f]{6,}$/, '파기 계획'],
     [/^(response_?measure|measure)_[0-9a-f]{6,}$/, '사고 대응조치'],
+    [/^f2_10_\d+_measure_\d+$/, '사고 대응조치'],
+    [/^(act_)?collect(ion)?_\d+$/, '수집·이용 처리행위'],
+    [/^(act_)?destroy(uction)?_\d+$/, '파기 처리행위'],
+    [/^(act_)?entrust(ment)?_\d+$/, '처리위탁 활동'],
+    [/^breach_?notice(?:_[0-9a-z]+)?$/, '정보주체 통지문'],
   ]
   return patterns.find(([pattern]) => pattern.test(normalized))?.[1] ?? null
 }
@@ -206,6 +244,10 @@ export function evidenceTypeLabel(value: string): string {
   return EVIDENCE_TYPE_LABELS[value] ?? '판단 근거'
 }
 
+export function ruleLabel(ruleId: string): string {
+  return RULE_LABELS[ruleId] ?? '개인정보 보호법 준수 검토'
+}
+
 export function statusLabel(status: RuleStatus): string {
   return { GREEN: '충족', AMBER: '추가 확인', RED: '미충족', 'N/A': '해당 없음' }[status]
 }
@@ -215,9 +257,53 @@ export function applicabilityLabel(value: Applicability): string {
 }
 
 export function humanizeNarrative(value: string): string {
-  return value
+  const narrativeLabels: Record<string, string> = {
+    measure_role: '대응조치 유형',
+    data_subject_guidance: '정보주체 피해 최소화 안내',
+    controller_response: '개인정보처리자의 대응조치',
+    remedy_procedure: '피해구제 절차 안내',
+    post_incident_mitigation: '사고 후 피해 완화조치',
+    confirmed_false: '없음이 명시적으로 확인된 상태',
+    UNKNOWN: '확인 필요',
+    ProcessingPurpose: '처리 목적',
+    hasPurposeDescription: '처리 목적 설명',
+    hasPurpose: '처리 목적',
+    Destruction: '개인정보 파기',
+    hasDestructionMethod: '파기 방법',
+    DataBreachIncident: '개인정보 유출등 사고',
+    affectsPersonalInformation: '실제 사고 영향 개인정보',
+    NotificationNotice: '정보주체 통지문',
+    hasNotificationNotice: '정보주체 통지문',
+    incidentDate: '실제 사고 발생시점',
+    CollectionAndUse: '개인정보 수집·이용',
+    ConsentRequest: '동의요청',
+    RetentionPeriod: '보유기간',
+    RetentionEndCondition: '보유 종료조건',
+    Retention: '개인정보 보유',
+    isRequired: '필수 항목 여부',
+    designRationale: '수집 필요성',
+    deniesServiceOnOptionalRefusal: '선택정보 거부 시 서비스 제한 여부',
+    triggersDestruction: '파기 계획',
+    EntrustedProcessor: '수탁자',
+    hasName: '명칭',
+    entrustedTaskText: '위탁업무',
+  }
+
+  let result = value
+    .replace(
+      /measure_role을 data_subject_guidance, controller_response, remedy_procedure, post_incident_mitigation 4종으로만 구분해 명시하세요\./g,
+      '대응조치를 정보주체 피해 최소화 안내, 개인정보처리자의 대응조치, 피해구제 절차 안내, 사고 후 피해 완화조치의 네 유형으로 구분해 명시하세요.',
+    )
     .replaceAll('processing activity', '처리행위')
     .replaceAll('해당 activity', '해당 처리행위')
     .replaceAll('activity 연결', '처리행위와의 연결')
     .replaceAll('provision', '제3자 제공 처리행위')
+
+  for (const [technicalTerm, label] of Object.entries(narrativeLabels)) {
+    result = result.replace(new RegExp(`\\b${technicalTerm}\\b`, 'g'), label)
+  }
+  result = result
+    .replace(/\bF[123][- ]?\d{2}(?:[- ]?\d{3})?\b/g, '관련 검토 항목')
+    .replace(/\bP[123]-R\d{2}\b/g, '해당 준수 기준')
+  return result
 }
