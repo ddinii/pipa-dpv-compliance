@@ -286,12 +286,28 @@ class P0RuleEngine:
                     evidence_type="rdf_assertion",
                     subject=str(subject),
                     predicate=_local_name(predicate),
-                    value=_literal_value(value),
+                    value=self._evidence_value(graph, value),
                 )
             )
             if include_object_evidence and isinstance(value, URIRef):
                 evidence.extend(self._source_evidence(graph, value))
         return self._dedupe_evidence(evidence)
+
+    @staticmethod
+    def _evidence_value(graph: Graph, value: Node) -> str | bool:
+        """Return a human-readable RDF object without changing rule matching.
+
+        Mapper-generated resource URIs contain hashes for stable identity.  Those
+        identifiers are useful internally but are not suitable as user-facing
+        evidence.  Prefer the resource's Korean/declared rdfs:label when one is
+        available and retain the original literal/URI only as a fallback.
+        """
+        if isinstance(value, URIRef):
+            labels = [str(label).strip() for label in graph.objects(value, RDFS.label)]
+            readable_labels = [label for label in labels if label]
+            if readable_labels:
+                return readable_labels[0]
+        return _literal_value(value)
 
     def _absence_evidence(self, subject: Node | str, predicate: str, note: str) -> Evidence:
         return Evidence(

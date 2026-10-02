@@ -17,6 +17,7 @@ const TERM_LABELS: Record<string, string> = {
   Destruction: '개인정보 파기',
   DataSubject: '정보주체',
   DataSubjectRight: '정보주체 권리',
+  RightsExerciseProcedure: '권리 행사절차',
   DataBreachIncident: '개인정보 유출등 사고',
   NotificationNotice: '정보주체 통지문',
   ConsentRequest: '동의요청',
@@ -45,6 +46,7 @@ const TERM_LABELS: Record<string, string> = {
   hasDestinationCountry: '이전 대상 국가',
   hasRight: '보장된 정보주체 권리',
   hasExerciseProcedure: '권리 행사절차',
+  hasProcedureDescription: '권리 행사방법 설명',
   hasNotificationNotice: '정보주체 통지문',
   affectsPersonalInformation: '실제 사고 영향 개인정보',
   mentionsPersonalInformation: '통지문 기재 개인정보',
@@ -124,7 +126,28 @@ function readableFallback(value: string): string {
 
 export function termLabel(value: string): string {
   const name = localName(value)
-  return TERM_LABELS[name] ?? FACT_LABELS[name] ?? ROLE_LABELS[name] ?? readableFallback(name)
+  return TERM_LABELS[name]
+    ?? FACT_LABELS[name]
+    ?? ROLE_LABELS[name]
+    ?? generatedResourceLabel(name)
+    ?? readableFallback(name)
+}
+
+function generatedResourceLabel(value: string): string | null {
+  const normalized = value.toLowerCase().replaceAll('-', '_')
+  const patterns: Array<[RegExp, string]> = [
+    [/^rights?_procedure_[0-9a-f]{6,}$/, '권리 행사절차'],
+    [/^right_[0-9a-f]{6,}$/, '정보주체 권리'],
+    [/^(personal_?information|pi)_[0-9a-f]{6,}$/, '개인정보 항목'],
+    [/^purpose_[0-9a-f]{6,}$/, '처리 목적'],
+    [/^(third_?party|recipient)_[0-9a-f]{6,}$/, '제공받는 자'],
+    [/^processor_[0-9a-f]{6,}$/, '수탁자'],
+    [/^retention_[0-9a-f]{6,}$/, '보유정보'],
+    [/^(legal_?basis|basis)_[0-9a-f]{6,}$/, '법적 근거'],
+    [/^(destruction|destroy)_[0-9a-f]{6,}$/, '파기 계획'],
+    [/^(response_?measure|measure)_[0-9a-f]{6,}$/, '사고 대응조치'],
+  ]
+  return patterns.find(([pattern]) => pattern.test(normalized))?.[1] ?? null
 }
 
 export function humanizeFactReference(value: string): string {
@@ -171,7 +194,11 @@ export function humanizeDisplayValue(value: string): string {
     : [value]
   return parts.map((part) => {
     if (/^(https?:\/\/|urn:)/.test(part)) return termLabel(part)
-    return TERM_LABELS[part] ?? FACT_LABELS[part] ?? ROLE_LABELS[part] ?? part
+    return TERM_LABELS[part]
+      ?? FACT_LABELS[part]
+      ?? ROLE_LABELS[part]
+      ?? generatedResourceLabel(part)
+      ?? part
   }).join(' · ')
 }
 

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from rdflib import Graph, Literal, Namespace, RDF
+from rdflib import Graph, Literal, Namespace, RDF, RDFS
 
 from app.mapping.ontology_mapper import OntologyMapper
 from app.rules.engine import P0RuleEngine
@@ -174,6 +174,29 @@ def test_p1_r07_partial_right_procedures_are_amber_not_green():
 
     result = P0RuleEngine().evaluate_rule(graph, "P1-R07")
     assert result.status.value == "AMBER"
+
+
+def test_p1_r07_evidence_uses_right_label_instead_of_generated_uri():
+    ex = Namespace("https://example.org/right-label#")
+    graph = Graph()
+    subject = ex.subject
+    right = ex.right_1092db0a53a0
+    procedure = ex.rights_procedure_ce20f6429aab
+
+    graph.add((subject, RDF.type, PIPA.DataSubject))
+    graph.add((subject, PIPA.hasRight, right))
+    graph.add((right, RDF.type, PIPA.DataSubjectRight))
+    graph.add((right, RDFS.label, Literal("개인정보 열람 요구", lang="ko")))
+    graph.add((right, PIPA.hasExerciseProcedure, procedure))
+    graph.add((procedure, RDF.type, PIPA.RightsExerciseProcedure))
+    graph.add((procedure, PIPA.hasProcedureDescription, Literal("마이페이지에서 신청")))
+
+    result = P0RuleEngine().evaluate_rule(graph, "P1-R07")
+    assertion_values = {
+        item.value for item in result.evidence if item.evidence_type == "rdf_assertion"
+    }
+    assert "개인정보 열람 요구" in assertion_values
+    assert str(right) not in assertion_values
 
 
 def test_p1_r07_rights_with_no_procedure_are_red():
