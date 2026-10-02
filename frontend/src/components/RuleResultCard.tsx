@@ -1,8 +1,12 @@
 import type { RuleResult } from '../types/api'
+import {
+  applicabilityLabel,
+  humanizeFactReference,
+  statusLabel,
+} from '../utils/complianceLabels'
 import './ComplianceResults.css'
 import { EvidenceList } from './EvidenceList'
 import { InstanceRuleResultList } from './InstanceRuleResultList'
-import { PipeSeparatedValue } from './PipeSeparatedValue'
 
 interface RuleResultCardProps {
   result: RuleResult
@@ -16,15 +20,15 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
       <div className="rule-summary">
         <header>
           <h3>{result.rule_id}</h3>
-          <span className={`status-badge ${statusClass}`}>{result.status}</span>
-          <span>적용 여부: {result.applicability}</span>
+          <span className={`status-badge ${statusClass}`} title={result.status}>
+            {statusLabel(result.status)}
+          </span>
+          <span>규칙 적용: {applicabilityLabel(result.applicability)}</span>
         </header>
 
         {result.rule_version && <p className="rule-version">규칙 버전: {result.rule_version}</p>}
-
         {result.reason && <p className="rule-reason">{result.reason}</p>}
         {result.recommendation && <p className="recommendation">{result.recommendation}</p>}
-
         {result.legal_basis.length > 0 && <p>법적 근거: {result.legal_basis.join(', ')}</p>}
 
         <p className="status-disclaimer">
@@ -33,11 +37,11 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
       </div>
 
       <details className="fact-details">
-        <summary>판정에 사용된 Fact 보기</summary>
+        <summary>판정에 사용된 검토 항목 보기</summary>
         <div className="fact-groups">
-          <FactGroup title="확인된 Fact" items={result.matched_facts} tone="confirmed" />
-          <FactGroup title="누락된 Fact" items={result.missing_facts} tone="missing" />
-          <FactGroup title="불확실한 Fact" items={result.uncertain_facts} tone="uncertain" />
+          <FactGroup title="확인된 사항" items={result.matched_facts} tone="confirmed" />
+          <FactGroup title="누락된 필수사항" items={result.missing_facts} tone="missing" />
+          <FactGroup title="추가 확인사항" items={result.uncertain_facts} tone="uncertain" />
         </div>
       </details>
 
@@ -54,9 +58,7 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
         <details className="implementation-notes-details">
           <summary>기술 상세 보기</summary>
           <ul className="implementation-notes">
-            {result.implementation_notes.map((note, index) => (
-              <li key={index}>{note}</li>
-            ))}
+            {result.implementation_notes.map((note, index) => <li key={index}>{note}</li>)}
           </ul>
         </details>
       )}
@@ -79,14 +81,10 @@ function FactGroup({ title, items, tone }: FactGroupProps) {
       {items.length > 0 ? (
         <ul>
           {items.map((item, index) => (
-            <li key={`${tone}-${index}`}>
-              <PipeSeparatedValue value={item} />
-            </li>
+            <li key={`${tone}-${index}`}>{humanizeFactReference(item)}</li>
           ))}
         </ul>
-      ) : (
-        <p>없음</p>
-      )}
+      ) : <p>없음</p>}
     </section>
   )
 }
