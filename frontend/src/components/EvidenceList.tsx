@@ -51,27 +51,6 @@ export function EvidenceList({ evidence }: EvidenceListProps) {
               )}
               {item.note && <p className="evidence-note">{humanizeNote(item.note)}</p>}
 
-              {(item.subject || item.predicate || item.evidence_type) && (
-                <details className="developer-details">
-                  <summary>개발자 정보</summary>
-                  <dl>
-                    <dt>근거 유형</dt>
-                    <dd>{item.evidence_type}</dd>
-                    {item.subject && (
-                      <>
-                        <dt>RDF 주체</dt>
-                        <dd>{item.subject}</dd>
-                      </>
-                    )}
-                    {item.predicate && (
-                      <>
-                        <dt>RDF 속성</dt>
-                        <dd>{item.predicate}</dd>
-                      </>
-                    )}
-                  </dl>
-                </details>
-              )}
             </li>
           )
         })}

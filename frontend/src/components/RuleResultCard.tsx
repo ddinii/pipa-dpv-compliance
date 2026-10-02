@@ -2,6 +2,7 @@ import type { RuleResult } from '../types/api'
 import {
   applicabilityLabel,
   humanizeFactReference,
+  humanizeNarrative,
   statusLabel,
 } from '../utils/complianceLabels'
 import './ComplianceResults.css'
@@ -27,8 +28,10 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
         </header>
 
         {result.rule_version && <p className="rule-version">규칙 버전: {result.rule_version}</p>}
-        {result.reason && <p className="rule-reason">{result.reason}</p>}
-        {result.recommendation && <p className="recommendation">{result.recommendation}</p>}
+        {result.reason && <p className="rule-reason">{humanizeNarrative(result.reason)}</p>}
+        {result.recommendation && (
+          <p className="recommendation">{humanizeNarrative(result.recommendation)}</p>
+        )}
         {result.legal_basis.length > 0 && <p>법적 근거: {result.legal_basis.join(', ')}</p>}
 
         <p className="status-disclaimer">
@@ -53,15 +56,6 @@ export function RuleResultCard({ result }: RuleResultCardProps) {
       )}
 
       <EvidenceList evidence={result.evidence} />
-
-      {result.implementation_notes.length > 0 && (
-        <details className="implementation-notes-details">
-          <summary>기술 상세 보기</summary>
-          <ul className="implementation-notes">
-            {result.implementation_notes.map((note, index) => <li key={index}>{note}</li>)}
-          </ul>
-        </details>
-      )}
 
       <p className="evaluated-at">검토 시각: {result.evaluated_at}</p>
     </article>
