@@ -157,7 +157,7 @@ def test_minimum_compliance_api_returns_the_frozen_contract(client: TestClient, 
         # NFR-04 · TST-010: 입력 추적 ID가 결과마다 남는다
         assert result["source_document_id"] == body["analysis_id"]
         # COM-007: 상태는 네 가지 중 하나
-        assert result["status"] in {"GREEN", "AMBER", "RED", "N/A"}
+        assert result["status"] in {"GREEN", "YELLOW", "RED", "N/A"}
         # COM-009: 법적 근거가 비어 있지 않다
         assert result["legal_basis"], result["rule_id"]
         # COM-008 · TST-004: G/A/R 판정에는 근거가 있어야 한다
@@ -198,7 +198,7 @@ def test_na_is_reachable_but_our_fixtures_do_not_exercise_it(client: TestClient)
         body = client.post(path, json=payload(fixture)).json()
         seen.update(result["status"] for result in body["results"])
 
-    assert {"GREEN", "AMBER", "RED"} <= seen
+    assert {"GREEN", "YELLOW", "RED"} <= seen
     assert "N/A" not in seen
 
 

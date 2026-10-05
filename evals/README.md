@@ -85,7 +85,7 @@ Extractor가 이 원문을 입력받아 `sc_p01_gold_facts.json`의 `facts`와 �
 | unknown | 3 |
 | absent | 7 |
 
-`expected_rule_status`는 SC-P01의 Freeze 기대값과 동일합니다. **P1-R02가 AMBER인 이유를
+`expected_rule_status`는 SC-P01의 Freeze 기대값과 동일합니다. **P1-R02가 YELLOW인 이유를
 gold set이 그대로 담고 있습니다** — 제2조가 회원가입/고객상담의 보유 종료조건만 열거하고
 주문·배송 / 결제·환불 / 서비스 개선은 "그 밖의 처리 목적" 한 문장으로 뭉뚱그리기 때문에,
 해당 3개 activity의 F1-04가 `unknown`입니다.
@@ -125,7 +125,7 @@ Fact -> RDF 경로에서 Rule이 읽을 트리플이 없어 Freeze 기대값에 
 | 문제 | 해결 |
 |---|---|
 | `entrustedTaskText` / `noticeIncidentTime`이 그래프에 없어 P1-R06·P3-R11이 항상 RED | 매퍼가 그래프에 싣는다 |
-| `measureRole`이 `system_metadata`에만 남아 P2-R08이 AMBER 고정 | 매퍼가 그래프에 싣는다 |
+| `measureRole`이 `system_metadata`에만 남아 P2-R08이 YELLOW 고정 | 매퍼가 그래프에 싣는다 |
 | `triggersNotificationObligation`이 Freeze에 없는데 P2-R01 필수 Fact였음 | [RULE_SPEC_ERRATA_v1.0.md](../docs/RULE_SPEC_ERRATA_v1.0.md)로 Required Fact에서 제거 |
 | P3-R11이 수탁자명을 평가하지 않음 | F3-12를 `EntrustedProcessor.hasName`까지 소비 |
 | `_finalize_global_destruction_links`가 임의의 Destruction을 붙임 | 함수 제거 |
@@ -142,7 +142,7 @@ engine.evaluate_mapping_result(mapping, poc="poc1")
 ```
 
 그래프만 넘기면(`evaluate_graph(graph)`) 엔진이 unknown과 absent를 구별할 수 없어
-Rule Matrix의 AMBER 분기에 도달하지 못합니다.
+Rule Matrix의 YELLOW 분기에 도달하지 못합니다.
 
 ## Day 0 결정 필요 — 여기서 임의로 정한 규약
 
@@ -155,14 +155,14 @@ Fact Dictionary v1.0에 명시가 없어 제가 정한 것들입니다. **확정
 | 3 | `evidence` = `{text, start_offset, end_offset}` | 2장은 "text+offset"이라고만 적혀 있어 필드명 미정 |
 | 4 | `_note` = 비계약 주석 (언더스코어로 계약 필드와 구분) | 제거하거나 정식 필드로 승격 |
 | 5 | **결정됨 (2026-09-30, Issue 4)**. "관계 법령에서 정한 기간"처럼 법령도 숫자도 특정하지 않은 기간은 **법령을 연동해 채우지 않고 알 수 없음**으로 둔다 → 그 문장에만 걸리는 3건은 F1-03 `unknown`. 종료조건이 명시된 처리행위는 F1-03 `absent` | 아래 "관계 법령" 절 |
-| 6 | **결정됨**. 같은 3건의 F1-04는 `absent` — 그 문장은 기간을 말할 뿐 끝나는 사건을 말하지 않는다 | P1-R02는 그대로 AMBER |
+| 6 | **결정됨**. 같은 3건의 F1-04는 `absent` — 그 문장은 기간을 말할 뿐 끝나는 사건을 말하지 않는다 | P1-R02는 그대로 YELLOW |
 
 ### "관계 법령에서 정한 기간" — 연동하지 않고 알 수 없음으로 둡니다
 
 처리방침이 법령 이름을 적지 않으면 어느 법령인지 문서만으로는 알 수 없습니다. 업종을 보고
 "전자상거래법일 것"이라고 채우는 것은 사실 추출이 아니라 법적 판단이고, 법정 보존기간은
 P0 범위 밖의 시행령 수치입니다 (CLAUDE.md §5). 그래서 연동하지 않고 `unknown`으로 두며,
-P1-R02 AMBER가 "근거 법령·기간 미특정, 확인 필요"를 드러냅니다.
+P1-R02 YELLOW가 "근거 법령·기간 미특정, 확인 필요"를 드러냅니다.
 
 | 원문 | F1-03 |
 |---|---|
@@ -208,7 +208,7 @@ Fact Dictionary 본문에도 같은 설명을 덧붙일지는 Fact 담당자 결
 
 처리방침은 4개 권리에 공통 절차 1문장을 기재하지만, **엔진은 모든 `DataSubjectRight`에
 `hasExerciseProcedure`가 있어야 P1-R07을 GREEN으로 줍니다**
-(`test_p1_r07_partial_right_procedures_are_amber_not_green`).
+(`test_p1_r07_partial_right_procedures_are_yellow_not_green`).
 
 그래서 gold set은 F1-12를 권리 수만큼 내고, 값이 `{"right": ..., "procedure": ...}`로
 어느 권리에 대한 절차인지 스스로 밝힙니다. 근거는 같은 문장입니다.
@@ -284,7 +284,7 @@ Pass 2는 처리행위 수만큼 호출되는데 원문은 매번 같으므로, 
 | activity 혼합률 | 다른 처리행위의 값을 가져온 Fact 비율 (TST-002) |
 
 `value_state`를 일치 키에 넣은 이유는 **unknown을 confirmed로 잘못 판정하는 것이 가장
-위험한 오류**이기 때문입니다. AMBER여야 할 Rule이 GREEN이 됩니다.
+위험한 오류**이기 때문입니다. YELLOW여야 할 Rule이 GREEN이 됩니다.
 
 ### Rule-level — 이게 헤드라인입니다
 
@@ -296,7 +296,7 @@ Pass 2는 처리행위 수만큼 호출되는데 원문은 매번 같으므로, 
 | **위험 오판율** | gold가 GREEN이 아닌데 **GREEN으로 예측한** 비율 |
 
 Fact를 몇 개 맞췄는지보다 **"추출 오류가 판정을 뒤집는가"**가 중요합니다. Fact 하나를
-놓쳐도 판정이 안 바뀌면 실무 영향이 없고, 반대로 `value_state` 하나를 틀려서 AMBER가
+놓쳐도 판정이 안 바뀌면 실무 영향이 없고, 반대로 `value_state` 하나를 틀려서 YELLOW가
 GREEN이 되면 준수한 것처럼 보이게 됩니다.
 
 **일치율만 보면 안 되는 이유**: 아무것도 안 하고 전부 GREEN이라고 우기는 추출기도
@@ -449,7 +449,7 @@ PoC2는 `incident` + `notification`)을 흡수하므로 러너는 PoC를 몰라�
 | v1-incident-missing-items | 사고 기록의 실제 영향 항목 삭제 | P2-R01 **RED** + P2-R02 RED |
 | v2-notice-omits-items | 통지문의 항목 기재 삭제 | P2-R02 **RED** |
 | v3-notice-missing-incident-time | 통지문의 유출 시점 기재 삭제 | P2-R03 **RED** |
-| v4-partial-response-measures | 대응조치 4종 중 2종만 남김 | P2-R08 **AMBER** |
+| v4-partial-response-measures | 대응조치 4종 중 2종만 남김 | P2-R08 **YELLOW** |
 | v5-no-response-measures | 대응조치 기재를 통째로 삭제 | P2-R08 **RED** |
 
 ```powershell
@@ -462,7 +462,7 @@ python -m pytest -q tests	est_variants_poc2.py
 않고, **움직인 Rule이 그 Fact를 소비한다고 7장이 적은 Rule 안에 드는지**를 봅니다.
 그 밖의 Rule이 움직이면 변형이 문서를 의도보다 넓게 건드린 것입니다.
 
-v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(AMBER)와 "대응조치를
+v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(YELLOW)와 "대응조치를
 안 한 경우"(RED)**가 달라야 하기 때문입니다. 둘이 같아지면 판정이 구별력을 잃습니다.
 
 ## 남은 일
@@ -476,7 +476,7 @@ v4와 v5를 나눈 이유는 P2-R08에서 **"역할 분류가 모호한 경우"(
 ### 근거 인용 — 공백만 다르면 원문 위치로 되찾습니다
 
 원문에서 줄이 바뀐 문장을 모델이 한 줄로 이어 인용하면 정확히 일치하지 않아 Fact가
-거부됐습니다 (PoC2 v1: F2-01 거부 -> P2-R08 GREEN이 AMBER). 이제 정확히 일치하는
+거부됐습니다 (PoC2 v1: F2-01 거부 -> P2-R08 GREEN이 YELLOW). 이제 정확히 일치하는
 곳이 없으면 **공백만 다른** 곳을 찾고, 근거에는 모델 인용이 아니라 **원문 구간**을
 담습니다. offset은 항상 원문을 가리키고 공백이 아닌 글자는 모두 일치해야 하므로
 NFR-07은 그대로입니다. 모델 인용에 공백이 있는 자리에서만 허용합니다.
@@ -611,13 +611,13 @@ python evals\run_extraction.py --poc poc2 --split heldout --model claude-sonnet-
 
 | PoC | 케이스 | 무엇이 다른가 | 기대 판정 |
 |---|---|---|---|
-| PoC1 | `h1-fitness-app` | 목록형. **숫자 보유기간**(dev에 F1-03 confirmed가 없음), 항목이 겹치는 제3자 제공 2건(TST-002 함정) | R02 AMBER, 나머지 GREEN |
-| PoC1 | `h2-online-academy` | **서술형**(조문 안 문장). 제공 목적 누락, 이름 없는 수탁자("외부 전문업체"), 국외 이전 | R02 AMBER, R03 RED, R06 AMBER |
+| PoC1 | `h1-fitness-app` | 목록형. **숫자 보유기간**(dev에 F1-03 confirmed가 없음), 항목이 겹치는 제3자 제공 2건(TST-002 함정) | R02 YELLOW, 나머지 GREEN |
+| PoC1 | `h2-online-academy` | **서술형**(조문 안 문장). 제공 목적 누락, 이름 없는 수탁자("외부 전문업체"), 국외 이전 | R02 YELLOW, R03 RED, R06 YELLOW |
 | PoC2 | `h1-shop-hacking` | 날짜 표기 `2026. 8. 14. 오전 3시 20분경`, `2026-08-14 10:05`. 통지문이 배송지 주소 누락 | R02 RED |
-| PoC2 | `h2-clinic-misdirected` | `오후 2시 15분` 표기. 통지문에 경위 없음, 대응조치 4역할 중 2개 | R03 RED, R08 AMBER |
+| PoC2 | `h2-clinic-misdirected` | `오후 2시 15분` 표기. 통지문에 경위 없음, 대응조치 4역할 중 2개 | R03 RED, R08 YELLOW |
 | PoC1 | `h3-no-sharing` | 제3자 제공과 위탁을 **하지 않는다고 명시** | R03 **N/A**, R06 **N/A** |
-| PoC1 | `h4-partial-negation` | **함정**: "원칙적으로 제공하지 않습니다. 다만 다음의 경우 제공" + 그 제공에 목적 누락. 위탁은 언급 없음 | R03 **RED** (N/A면 위험 오판), R06 AMBER |
-| PoC2 | `h3-academy-no-notice` | 통지문 없음, `오후 1시` 표기, 대응조치 2역할 | R01 RED, R02·R03 **N/A**, R08 AMBER |
+| PoC1 | `h4-partial-negation` | **함정**: "원칙적으로 제공하지 않습니다. 다만 다음의 경우 제공" + 그 제공에 목적 누락. 위탁은 언급 없음 | R03 **RED** (N/A면 위험 오판), R06 YELLOW |
+| PoC2 | `h3-academy-no-notice` | 통지문 없음, `오후 1시` 표기, 대응조치 2역할 | R01 RED, R02·R03 **N/A**, R08 YELLOW |
 
 h4는 잘못된 N/A를 잡기 위해 만들었습니다. 부정문으로 시작하지만 실제 제공이 뒤따르므로
 부재가 아닙니다. 그 제공에 결함(목적 누락)을 넣어 둔 이유는, 제공이 완전하면 잘못된 N/A가
@@ -637,7 +637,7 @@ h4는 잘못된 N/A를 잡기 위해 만들었습니다. 부정문으로 시작�
 ### 정정 기록 (결과를 본 뒤의 정정)
 
 `h2-online-academy`의 결제 대행 수탁자 F1-09를 처음에 `absent`(P1-R06 RED)로 붙였다가
-`unknown`(AMBER)으로 고쳤습니다. 첫 held-out 실행에서 Sonnet 5와 Opus 5가 **모두**
+`unknown`(YELLOW)으로 고쳤습니다. 첫 held-out 실행에서 Sonnet 5와 Opus 5가 **모두**
 unknown으로 읽었고, 다음 두 기준에 비추면 정답지가 틀렸습니다.
 
 - dev v4 "수탁자: 추후 선정 예정"(언급했지만 비어 있음) = unknown, dev v5(언급 자체가
@@ -739,7 +739,7 @@ COM-006은 "처리행위가 없다고 확인됨"을 N/A로 봅니다. Fact Dicti
   평소대로 평가됩니다
 - "기재가 없음"은 부재 선언이 아닙니다. 원문이 "하지 않는다"고 말할 때만입니다
 
-채점기는 이 위험을 **위험 오판(N/A)**으로 따로 셉니다. gold가 RED/AMBER인데 N/A로
+채점기는 이 위험을 **위험 오판(N/A)**으로 따로 셉니다. gold가 RED/YELLOW인데 N/A로
 예측하면 위험 오판이고, 러너는 GREEN 오판과 마찬가지로 종료 코드 1을 냅니다.
 
 실측은 위 "현재 결과 — 3회 반복"에 있습니다. 부재 선언은 dev에서는 v6에서만, held-out에서는
@@ -749,7 +749,7 @@ h3에서만 나왔고 h4 함정에서는 한 번도 나오지 않았습니다. �
 
 ## PoC1 Controlled Variants (TST-003)
 
-SC-P01 하나로는 GREEN과 AMBER만 나옵니다. `evals/poc1/variants/`의 6개 변형이 나머지를 채웁니다.
+SC-P01 하나로는 GREEN과 YELLOW만 나옵니다. `evals/poc1/variants/`의 6개 변형이 나머지를 채웁니다.
 
 ```powershell
 python evals\poc1\build_variants.py
@@ -759,9 +759,9 @@ python -m pytest -q tests\test_variants_poc1.py
 | 변형 | 조작 | 결과 |
 |---|---|---|
 | v1-missing-purpose | 처리 목적 문장 삭제 | P1-R01 **RED** |
-| v2-vague-destruction | "적절한 방법으로 파기" | P1-R04 **AMBER** |
+| v2-vague-destruction | "적절한 방법으로 파기" | P1-R04 **YELLOW** |
 | v3-missing-destruction | 파기 방법 기재 삭제 (F1-08 `absent`) | P1-R04 **RED** |
-| v4-unknown-processor | "수탁자: 추후 선정 예정" | P1-R06 **AMBER** |
+| v4-unknown-processor | "수탁자: 추후 선정 예정" | P1-R06 **YELLOW** |
 | v5-missing-processor | 수탁자명 기재 삭제 | P1-R06 **RED** |
 | v6-no-third-party-provision | "제3자에게 제공하지 않습니다" 명시 | P1-R03 **N/A** |
 
@@ -773,12 +773,12 @@ python -m pytest -q tests\test_variants_poc1.py
 ### v6는 N/A입니다
 
 v6의 정답지는 제공 Fact를 빼고 `ThirdPartyProvision=confirmed_false` presence
-metadata를 싣습니다. 예전 기대값 AMBER는 N/A를 낼 경로가 없던 때의 값입니다.
+metadata를 싣습니다. 예전 기대값 YELLOW는 N/A를 낼 경로가 없던 때의 값입니다.
 PoC2에는 통지문이 없는 `v6-no-notice`가 같은 역할을 합니다 (P2-R02/R03 N/A).
 
 **absent와 unknown의 구분**은 v2와 v3이 보여줍니다. 같은 P1-R04를 v2(파기방법
-`unknown`)는 AMBER로, v3(파기방법 `absent`)는 RED로 움직입니다. Fact를 아예 빼면
-"입력 계약 불완전"으로 AMBER가 되므로, 기재가 없을 때는 Fact를 빼지 말고
+`unknown`)는 YELLOW로, v3(파기방법 `absent`)는 RED로 움직입니다. Fact를 아예 빼면
+"입력 계약 불완전"으로 YELLOW가 되므로, 기재가 없을 때는 Fact를 빼지 말고
 `value_state="absent"`로 유지해야 합니다 (8장).
 
 ## PoC3 Privacy-by-Design
@@ -798,12 +798,12 @@ Form 값 하나만 바꾸면 상태가 전이되므로 PoC3의 변형은 별도 
 
 | Form 변경 | 결과 |
 |---|---|
-| `legal_basis: null` | P3-R01 AMBER |
-| `design_rationale: null` (필수항목) | P3-R05 AMBER |
+| `legal_basis: null` | P3-R01 YELLOW |
+| `design_rationale: null` (필수항목) | P3-R05 YELLOW |
 | `denies_service_on_optional_refusal: true` | P3-R06 **RED** |
-| `denies_service_on_optional_refusal: null` | P3-R06 AMBER |
-| `destruction_method: null` | P3-R08 AMBER |
-| `entrustments: []` | P3-R11 AMBER |
+| `denies_service_on_optional_refusal: null` | P3-R06 YELLOW |
+| `destruction_method: null` | P3-R08 YELLOW |
+| `entrustments: []` | P3-R11 YELLOW |
 
 `false`와 `null`이 다른 결과를 낸다는 점이 핵심입니다. Form Builder가 `if not value`로
 판정하면 둘이 같아져 Fact Dictionary 1장을 위반합니다.

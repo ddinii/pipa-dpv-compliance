@@ -249,7 +249,7 @@ export function ruleLabel(ruleId: string): string {
 }
 
 export function statusLabel(status: RuleStatus): string {
-  return { GREEN: '충족', AMBER: '추가 확인', RED: '미충족', 'N/A': '해당 없음' }[status]
+  return { GREEN: '충족', YELLOW: '추가 확인', RED: '미충족', 'N/A': '해당 없음' }[status]
 }
 
 export function applicabilityLabel(value: Applicability): string {

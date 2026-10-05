@@ -136,7 +136,7 @@ def test_gold_reproduces_the_hand_written_statuses(
 @pytest.mark.parametrize("poc", HELDOUT)
 def test_heldout_covers_all_four_statuses(poc: str):
     seen = {s for case in heldout(poc).values() for s in case.expected_rule_status.values()}
-    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+    assert {"GREEN", "YELLOW", "RED", "N/A"} <= seen
 
 
 def test_partial_negation_is_not_an_absence():
@@ -151,9 +151,9 @@ def test_partial_negation_is_not_an_absence():
     assert any(f["activity_id"] == "act-provision-001" for f in case.gold_facts)
     assert case.expected_rule_status["P1-R03"] == "RED"
     assert "원칙적으로 이용자의 개인정보를 제3자에게 제공하지 않습니다" in case.documents["policy"]
-    # 위탁은 언급이 없다. 부재 선언도 아니고 처리행위도 아니다 -> AMBER
+    # 위탁은 언급이 없다. 부재 선언도 아니고 처리행위도 아니다 -> YELLOW
     assert not any("entrust" in (f["activity_id"] or "") for f in case.gold_facts)
-    assert case.expected_rule_status["P1-R06"] == "AMBER"
+    assert case.expected_rule_status["P1-R06"] == "YELLOW"
 
 
 def test_explicit_absences_are_metadata_with_verbatim_quotes():

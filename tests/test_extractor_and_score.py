@@ -245,7 +245,7 @@ def test_joined_heading_keeps_the_activity(policy: str):
     """heading 하나 때문에 처리행위가 빠지면 판정이 GREEN 쪽으로만 움직인다.
 
     실측: v4에서 '추후 선정 예정' 수탁자의 heading이 두 줄을 이어 붙인 형태라 그
-    처리행위가 통째로 빠졌고, P1-R06이 AMBER가 아니라 GREEN이 되었다.
+    처리행위가 통째로 빠졌고, P1-R06이 YELLOW가 아니라 GREEN이 되었다.
     """
     extractor, stub = make_extractor([
         activity_list(IdentifiedActivity(

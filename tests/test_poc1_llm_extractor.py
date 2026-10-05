@@ -431,7 +431,7 @@ def test_diagnostics_are_opt_in(gold: dict, policy: str):
 def test_extractor_never_assigns_a_rule_status(gold: dict, policy: str):
     """handoff 1장: Extractor는 Fact만 낸다. G/A/R/N-A를 만들지 않는다."""
     facts = extract_gold_shaped(gold, policy)
-    forbidden = {"GREEN", "AMBER", "RED", "N/A"}
+    forbidden = {"GREEN", "YELLOW", "RED", "N/A"}
     for item in facts:
         assert not (set(item) & {"status", "rule_id", "applicability"}), item["fact_id"]
         assert str(item["value"]) not in forbidden, item["fact_id"]

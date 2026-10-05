@@ -7,13 +7,13 @@
     "name": "v2-vague-destruction",
     "description": "파기 방법을 '적절한 방법으로'라는 모호한 표현으로 바꾼다.",
     "target_rule": "P1-R04",
-    "expected_status": "AMBER"
+    "expected_status": "YELLOW"
   },
   "expected_rule_status": {
     "P1-R01": "GREEN",
-    "P1-R02": "AMBER",
+    "P1-R02": "YELLOW",
     "P1-R03": "GREEN",
-    "P1-R04": "AMBER",
+    "P1-R04": "YELLOW",
     "P1-R06": "GREEN",
     "P1-R07": "GREEN"
   },

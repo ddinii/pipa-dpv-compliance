@@ -5,7 +5,7 @@
  * Do not add, remove, or rename fields without updating the backend contract first.
  */
 
-export type RuleStatus = 'GREEN' | 'AMBER' | 'RED' | 'N/A'
+export type RuleStatus = 'GREEN' | 'YELLOW' | 'RED' | 'N/A'
 
 export type Applicability = 'TRUE' | 'FALSE' | 'UNKNOWN'
 

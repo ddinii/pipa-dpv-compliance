@@ -30,7 +30,7 @@ incident / notification input
 ```
 
 The extractor extracts Facts only. It must never:
-- assign GREEN / AMBER / RED / N/A;
+- assign GREEN / YELLOW / RED / N/A;
 - determine legal compliance;
 - implement P0 Rule logic or replace `P0RuleEngine`.
 
@@ -136,7 +136,7 @@ traceable evidence.
 
 Property absence and activity absence are different. For example, F1-05
 `value_state=absent` says that an existing ThirdPartyProvision has no recipient
-value and is a RED/AMBER input. `ThirdPartyProvision=confirmed_false` says that
+value and is a RED/YELLOW input. `ThirdPartyProvision=confirmed_false` says that
 the provision activity itself is explicitly absent and makes P1-R03 N/A.
 
 ## 4. PoC1 output scope
@@ -267,7 +267,7 @@ This handoff document does NOT define:
 - prompt engineering strategy;
 - fine-tuning;
 - LLM-based legal judgment;
-- LLM-based GREEN/AMBER/RED scoring;
+- LLM-based GREEN/YELLOW/RED scoring;
 - automatic `ReportingObligation` determination;
 - frontend redesign.
 

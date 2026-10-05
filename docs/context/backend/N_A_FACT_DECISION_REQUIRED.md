@@ -47,7 +47,7 @@ CollectionAndUse 및 Retention은 현재 Form 계약에서 필수이므로 별�
 ## 모델링 원칙
 
 - **property 부재**: 활동은 존재하지만 필수 속성이 없음. 해당 Rule은 RED 또는
-  AMBER가 될 수 있음. 예: ThirdPartyProvision은 있으나 recipient가 없음.
+  YELLOW가 될 수 있음. 예: ThirdPartyProvision은 있으나 recipient가 없음.
 - **activity 부재**: 조건부 활동 자체가 없다고 입력 또는 원문에서 명시적으로
   확인됨. 해당 조건부 Rule은 N/A임.
 - RDF triple이 없다는 사실만으로 activity 부재를 추론하지 않음.

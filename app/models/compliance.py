@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-RuleStatusOut = Literal["GREEN", "AMBER", "RED", "N/A"]
+RuleStatusOut = Literal["GREEN", "YELLOW", "RED", "N/A"]
 ApplicabilityOut = Literal["TRUE", "FALSE", "UNKNOWN"]
 
 

@@ -43,7 +43,7 @@
 }
 
 .status-count.status-green { border-color: #9bd0b2; color: var(--green); background: var(--green-bg); }
-.status-count.status-amber { border-color: #e9c77d; color: var(--amber); background: var(--amber-bg); }
+.status-count.status-yellow { border-color: #e9c77d; color: var(--yellow); background: var(--yellow-bg); }
 .status-count.status-red { border-color: #e7aaaa; color: var(--red); background: var(--red-bg); }
 .status-count.status-n-a { color: var(--neutral); background: var(--neutral-bg); }
 
@@ -69,7 +69,7 @@
 }
 
 .rule-result-card.status-green { border-left-color: var(--green); }
-.rule-result-card.status-amber { border-left-color: var(--amber); }
+.rule-result-card.status-yellow { border-left-color: var(--yellow); }
 .rule-result-card.status-red { border-left-color: var(--red); }
 .rule-result-card.status-n-a { border-left-color: var(--neutral); }
 
@@ -103,7 +103,7 @@
 }
 
 .status-badge.status-green { border-color: #9bd0b2; color: var(--green); background: var(--green-bg); }
-.status-badge.status-amber { border-color: #e9c77d; color: var(--amber); background: var(--amber-bg); }
+.status-badge.status-yellow { border-color: #e9c77d; color: var(--yellow); background: var(--yellow-bg); }
 .status-badge.status-red { border-color: #e7aaaa; color: var(--red); background: var(--red-bg); }
 .status-badge.status-n-a { color: var(--neutral); background: var(--neutral-bg); }
 
@@ -183,7 +183,7 @@
 
 .fact-confirmed { border-top: 3px solid var(--green); }
 .fact-missing { border-top: 3px solid var(--red); }
-.fact-uncertain { border-top: 3px solid var(--amber); }
+.fact-uncertain { border-top: 3px solid var(--yellow); }
 
 .evidence-list,
 .instance-results,
@@ -251,8 +251,8 @@
 
 .evidence-type.evidence-warning {
   border-color: #e9c77d;
-  background: var(--amber-bg);
-  color: var(--amber);
+  background: var(--yellow-bg);
+  color: var(--yellow);
 }
 
 .evidence-type.evidence-critical {

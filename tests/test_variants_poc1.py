@@ -1,7 +1,7 @@
 """PoC1 controlled variants 검증 (TST-003).
 
 각 변형이 의도한 status 전이를 실제로 만들어 내는지 확인한다.
-기준 문서 하나만으로는 GREEN/AMBER밖에 나오지 않아 RED와 N/A 대표 케이스가 없었다.
+기준 문서 하나만으로는 GREEN/YELLOW밖에 나오지 않아 RED와 N/A 대표 케이스가 없었다.
 """
 
 import json
@@ -61,7 +61,7 @@ def test_variant_only_moves_its_target_rule(name: str):
     """변형은 겨냥한 Rule 하나만 바꿔야 한다. 나머지가 같이 움직이면 통제된 변형이 아니다."""
     gold, _ = load(name)
     base_status = {
-        "P1-R01": "GREEN", "P1-R02": "AMBER", "P1-R03": "GREEN",
+        "P1-R01": "GREEN", "P1-R02": "YELLOW", "P1-R03": "GREEN",
         "P1-R04": "GREEN", "P1-R06": "GREEN", "P1-R07": "GREEN",
     }
     target = gold["variant"]["target_rule"]
@@ -73,16 +73,16 @@ def test_variant_only_moves_its_target_rule(name: str):
 
 
 def test_all_four_statuses_are_represented_in_poc1():
-    """TST-003: GREEN/AMBER/RED/N/A 대표 케이스가 세트에 모두 있어야 한다.
+    """TST-003: GREEN/YELLOW/RED/N/A 대표 케이스가 세트에 모두 있어야 한다.
 
     N/A는 v6이 낸다. 원문이 "제3자에게 제공하지 않습니다"라고 명시하면 정답지가
     ThirdPartyProvision=confirmed_false presence metadata를 싣는다 (Fact가 아니다).
     """
-    seen = {"GREEN", "AMBER"}  # 기준 SC-P01이 제공한다
+    seen = {"GREEN", "YELLOW"}  # 기준 SC-P01이 제공한다
     for name in VARIANT_NAMES:
         gold, _ = load(name)
         seen.update(gold["expected_rule_status"].values())
-    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+    assert {"GREEN", "YELLOW", "RED", "N/A"} <= seen
 
 
 def test_na_comes_from_presence_metadata_not_from_a_fact():
@@ -99,12 +99,12 @@ def test_na_comes_from_presence_metadata_not_from_a_fact():
 def test_absent_and_unknown_move_the_same_rule_differently(engine: P0RuleEngine):
     """Fact Dictionary 1장: absent와 unknown은 다르다.
 
-    같은 P1-R04를 v2(unknown)는 AMBER로, v3(absent)는 RED로 움직인다.
+    같은 P1-R04를 v2(unknown)는 YELLOW로, v3(absent)는 RED로 움직인다.
     둘을 합치면 "기재가 모호한 것"과 "기재가 없는 것"을 구별할 수 없게 된다.
     """
     vague, _ = load("v2-vague-destruction")
     missing, _ = load("v3-missing-destruction")
-    assert vague["expected_rule_status"]["P1-R04"] == "AMBER"
+    assert vague["expected_rule_status"]["P1-R04"] == "YELLOW"
     assert missing["expected_rule_status"]["P1-R04"] == "RED"
 
     # 두 변형의 fact_id가 같으므로 dict로 모으면 하나가 덮인다. 상태만 모은다.

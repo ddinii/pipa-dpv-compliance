@@ -124,7 +124,7 @@ Each result must preserve at least:
 
 Existing instance_results and implementation_notes may also be returned.
 
-Do not translate GREEN/AMBER/RED/N/A into PASS/FAIL.
+Do not translate GREEN/YELLOW/RED/N/A into PASS/FAIL.
 
 ## Legal Meaning
 
