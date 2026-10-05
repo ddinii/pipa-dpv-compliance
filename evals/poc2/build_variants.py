@@ -1,7 +1,7 @@
 """SC-P02 기준 세트에서 controlled variants를 만든다.
 
 기준 세트 하나로는 GREEN만 나온다. TST-003은 PoC마다 대표 케이스를 요구하므로
-AMBER와 RED 경로를 만들 변형이 필요하다.
+YELLOW와 RED 경로를 만들 변형이 필요하다.
 
 각 변형은 Fact 하나만 건드리고, 움직이는 Rule은 **Fact Dictionary 7장 Coverage가
 그 Fact를 소비한다고 적은 Rule**뿐이어야 한다. F2-02처럼 두 Rule이 공유하는 Fact는
@@ -113,7 +113,7 @@ VARIANTS: list[Variant] = [
         name="v4-partial-response-measures",
         description="사고 기록에서 대응조치 2건을 삭제한다. 필수 4종 중 2종만 남는다.",
         target_rule="P2-R08",
-        expected_status="AMBER",
+        expected_status="YELLOW",
         incident_edits=(
             ("개인정보보호 담당부서 연락처를 통한 문의 및 피해구제 절차를 안내하였습니다.\n", ""),
             ("재발을 막기 위해 대량 메일 발송 절차 점검과 수신자 필드 검증 통제를 적용하였습니다.\n", ""),

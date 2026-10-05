@@ -1,7 +1,7 @@
 """평가 데이터셋 탐색.
 
 한 PoC의 평가 세트는 기준 문서 1묶음 + controlled variants n개다. 기준 문서 하나로만
-재면 GREEN/AMBER 경로만 보게 되므로 RED 케이스까지 포함한 전체를 쓸어야 한다.
+재면 GREEN/YELLOW 경로만 보게 되므로 RED 케이스까지 포함한 전체를 쓸어야 한다.
 
 PoC마다 입력 문서 수가 다르다. PoC1은 처리방침 하나, PoC2는 사고 기록과 통지문
 둘이다. EvalCase가 문서를 이름으로 들고, Extractor 호출 규약도 PoC별로 안다.

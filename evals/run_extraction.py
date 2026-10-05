@@ -5,7 +5,7 @@
                      Fact-level 채점          Rule-level 비교
 
 평가 세트는 기준 문서 1개 + controlled variants n개다. 기준 문서 하나로만 재면
-GREEN/AMBER 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린다.
+GREEN/YELLOW 경로만 보게 되므로 RED와 N/A 케이스까지 함께 돌린다.
 
 이 스크립트는 Claude API를 호출하므로 비용이 발생한다.
 
