@@ -75,7 +75,7 @@ An LLM extractor may identify and structure F1 Facts from policy text.
 
 It must not:
 
-- assign GREEN/AMBER/RED/N/A;
+- assign GREEN/YELLOW/RED/N/A;
 - replace P0RuleEngine;
 - invent legal thresholds;
 - create new Rule IDs;

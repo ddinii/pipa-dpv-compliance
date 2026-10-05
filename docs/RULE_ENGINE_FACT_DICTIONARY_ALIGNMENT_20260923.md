@@ -22,8 +22,8 @@ Source contract:
    - This preserves `confirmed / unknown / absent` across the RDF boundary.
 
 2. **Frozen Rule ↔ Fact coverage is enforced in strict Fact mode.**
-   - Missing required Fact envelope: `AMBER` (input contract incomplete).
-   - Required Fact `unknown`: `AMBER`.
+   - Missing required Fact envelope: `YELLOW` (input contract incomplete).
+   - Required Fact `unknown`: `YELLOW`.
    - Required Fact `absent`: `RED` for an applicable rule when the required
      combination is explicitly absent.
    - `false` remains a confirmed value and is never treated as unknown.

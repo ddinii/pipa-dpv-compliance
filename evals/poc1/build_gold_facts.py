@@ -93,7 +93,7 @@ HEADING_OCCURRENCES = {
 
 # 보유 종료조건이 처리행위에 연결된 경우만 기재한다.
 # 제2조에 명시되지 않은 처리행위는 "관계 법령에서 정한 기간"에만 걸린다.
-# 기간 unknown / 종료조건 absent -> P1-R02 AMBER (Issue 4 팀 결정)
+# 기간 unknown / 종료조건 absent -> P1-R02 YELLOW (Issue 4 팀 결정)
 RETENTION_END_CONDITIONS = {
     "act-collection-001": "회원 탈퇴 시",
     "act-collection-005": "상담 및 분쟁 처리 종료 시",
@@ -196,7 +196,7 @@ def build() -> list[dict]:
 
     # 제2조에 열거되지 않은 처리행위. "그 밖의 처리 목적" 문장은 기간을 말할 뿐 끝나는
     # 사건을 말하지 않으므로 종료조건은 absent다 (Issue 4 팀 결정). 보유 정보는 있으나
-    # 값을 알 수 없으므로 P1-R02는 여전히 AMBER다.
+    # 값을 알 수 없으므로 P1-R02는 여전히 YELLOW다.
     for activity_id in RETENTION_UNKNOWN:
         facts.append(fact(
             f"F1-04:{activity_id}",
@@ -315,7 +315,7 @@ def main() -> int:
         "fact_schema_version": SCHEMA_VERSION,
         "expected_rule_status": {
             "P1-R01": "GREEN",
-            "P1-R02": "AMBER",
+            "P1-R02": "YELLOW",
             "P1-R03": "GREEN",
             "P1-R04": "GREEN",
             "P1-R06": "GREEN",

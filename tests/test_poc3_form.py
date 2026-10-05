@@ -154,7 +154,7 @@ def test_item_facts_identify_their_item_by_name(raw_form: dict):
             lambda d: d["collection_activities"][1]["consent"].update(
                 denies_service_on_optional_refusal=None
             ),
-            "P3-R06", "AMBER",
+            "P3-R06", "YELLOW",
         ),
         (
             "보유 종료조건 없음",
@@ -169,7 +169,7 @@ def test_item_facts_identify_their_item_by_name(raw_form: dict):
         (
             "위탁 목록이 비어 있음",
             lambda d: d.update(entrustments=[]),
-            "P3-R11", "AMBER",
+            "P3-R11", "YELLOW",
         ),
     ],
 )
@@ -200,17 +200,17 @@ def test_missing_required_form_field_never_reaches_the_rule_engine(
     """TST-001 · COM-002: 필수 Form 필드가 빠지면 Rule Engine까지 가지 않는다.
 
     Fact Dictionary 5장에서 unknown 입력이 허용되는 것은 F3-09(boolean/unknown)
-    하나뿐이다. 나머지를 결측으로 받아 AMBER로 넘기면 '임의 보완 금지'를 어긴다.
+    하나뿐이다. 나머지를 결측으로 받아 YELLOW로 넘기면 '임의 보완 금지'를 어긴다.
     """
     with pytest.raises(Poc3FormError):
         build_facts(DesignForm.model_validate(mutate(raw_form, change)))
 
 
-def test_false_denial_is_green_but_unset_denial_is_amber(raw_form: dict, engine: P0RuleEngine):
+def test_false_denial_is_green_but_unset_denial_is_yellow(raw_form: dict, engine: P0RuleEngine):
     """Fact Dictionary 1장: false는 confirmed 값이며 unknown과 다르다.
 
     선택항목 미동의 시 서비스를 거부하지 '않는다'는 설계는 GREEN이어야 하고,
-    아직 정하지 않은 상태는 AMBER여야 한다. Form이 False를 결측으로 취급하면
+    아직 정하지 않은 상태는 YELLOW여야 한다. Form이 False를 결측으로 취급하면
     둘이 같아져 버린다.
     """
     assert evaluate(raw_form, engine)["P3-R06"] == "GREEN"
@@ -220,7 +220,7 @@ def test_false_denial_is_green_but_unset_denial_is_amber(raw_form: dict, engine:
             denies_service_on_optional_refusal=None
         ),
     )
-    assert evaluate(unset, engine)["P3-R06"] == "AMBER"
+    assert evaluate(unset, engine)["P3-R06"] == "YELLOW"
 
 
 def test_untouched_activity_types_create_no_instances(raw_form: dict):

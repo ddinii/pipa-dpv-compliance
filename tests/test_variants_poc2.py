@@ -1,6 +1,6 @@
 """SC-P02 controlled variants 검증.
 
-기준 세트 하나로는 GREEN만 나온다. 변형이 AMBER와 RED 경로를 채운다 (TST-003).
+기준 세트 하나로는 GREEN만 나온다. 변형이 YELLOW와 RED 경로를 채운다 (TST-003).
 
 변형이 의도보다 넓게 퍼지면 "판정이 바뀐 원인이 이 변형"이라고 말할 수 없다.
 그래서 움직인 Rule이 **Fact Dictionary 7장 Coverage가 그 Fact를 소비한다고 적은
@@ -129,7 +129,7 @@ def test_variant_only_moves_rules_that_consume_the_changed_fact(
 
 
 def test_all_four_statuses_are_represented_in_poc2(cases: dict):
-    """TST-003: GREEN/AMBER/RED/N/A 대표 케이스가 세트에 모두 있어야 한다.
+    """TST-003: GREEN/YELLOW/RED/N/A 대표 케이스가 세트에 모두 있어야 한다.
 
     N/A는 v6이 낸다. 통지문이 없으면 서비스가 NotificationNotice=confirmed_false를
     붙이고(with_notice_presence), 정답지도 같은 metadata를 싣는다.
@@ -137,7 +137,7 @@ def test_all_four_statuses_are_represented_in_poc2(cases: dict):
     seen = set()
     for case in cases.values():
         seen.update(case.expected_rule_status.values())
-    assert {"GREEN", "AMBER", "RED", "N/A"} <= seen
+    assert {"GREEN", "YELLOW", "RED", "N/A"} <= seen
 
 
 def test_no_notice_case_has_no_notice_document(cases: dict):
@@ -164,14 +164,14 @@ def test_no_notice_gold_matches_what_the_service_and_extractor_produce(cases: di
 
 
 def test_partial_and_missing_measures_are_distinguished(cases: dict):
-    """P2-R08: 일부만 있는 것(AMBER)과 아예 없는 것(RED)은 달라야 한다.
+    """P2-R08: 일부만 있는 것(YELLOW)과 아예 없는 것(RED)은 달라야 한다.
 
     둘이 같아지면 "역할 분류가 모호한 경우"와 "대응조치를 안 한 경우"를
     구별하지 못한다.
     """
     partial = cases["v4-partial-response-measures"]
     missing = cases["v5-no-response-measures"]
-    assert partial.expected_rule_status["P2-R08"] == "AMBER"
+    assert partial.expected_rule_status["P2-R08"] == "YELLOW"
     assert missing.expected_rule_status["P2-R08"] == "RED"
 
     by_type = {fact_type(f["fact_id"]): f for f in partial.gold_facts}
@@ -229,5 +229,5 @@ def test_variant_metadata_is_recorded(cases: dict):
         variant = cases[name].payload["variant"]
         assert variant["name"] == name
         assert variant["target_rule"] in COVERAGE
-        assert variant["expected_status"] in {"AMBER", "RED", "N/A"}
+        assert variant["expected_status"] in {"YELLOW", "RED", "N/A"}
         assert variant["changed_facts"]

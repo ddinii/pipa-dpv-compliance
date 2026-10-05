@@ -17,7 +17,7 @@ Frozen Fact 35종과 core ontology term은 변경하지 않음. 조건부 활동
 투영함. core ontology assertion으로 직렬화하지 않음.
 
 활동이 존재하지만 recipient, processor, 통지 내용 등 속성이 빠진 경우에는 해당
-Frozen Fact의 `value_state=absent`를 사용함. 이 경우 N/A가 아니라 RED/AMBER 평가
+Frozen Fact의 `value_state=absent`를 사용함. 이 경우 N/A가 아니라 RED/YELLOW 평가
 대상임.
 
 ## PoC1

@@ -59,7 +59,7 @@
       "poc": "PoC1",
       "title": "제3자 제공 기재",
       "rule_version": "1.0",
-      "applicability": "ThirdPartyProvision 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
+      "applicability": "ThirdPartyProvision 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 YELLOW",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제3호",
         "개인정보 보호법 제17조"
@@ -111,7 +111,7 @@
       "poc": "PoC1",
       "title": "처리위탁 기재",
       "rule_version": "1.0",
-      "applicability": "EntrustedProcessing 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
+      "applicability": "EntrustedProcessing 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 YELLOW",
       "legal_basis": [
         "개인정보 보호법 제30조제1항제5호",
         "개인정보 보호법 제26조"
@@ -201,7 +201,7 @@
       "poc": "PoC2",
       "title": "통지 개인정보 항목 완전성",
       "rule_version": "1.0",
-      "applicability": "NotificationNotice 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
+      "applicability": "NotificationNotice 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 YELLOW",
       "legal_basis": [
         "개인정보 보호법 제34조제1항제1호"
       ],
@@ -228,7 +228,7 @@
       "poc": "PoC2",
       "title": "통지 시점·경위 기재",
       "rule_version": "1.0",
-      "applicability": "NotificationNotice 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
+      "applicability": "NotificationNotice 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 YELLOW",
       "legal_basis": [
         "개인정보 보호법 제34조제1항제2호"
       ],
@@ -456,7 +456,7 @@
       "poc": "PoC3",
       "title": "처리위탁 설계",
       "rule_version": "1.0",
-      "applicability": "EntrustedProcessing 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 AMBER",
+      "applicability": "EntrustedProcessing 존재 여부에 따라 적용; confirmed_false이면 N/A; 그 외 불확실하면 YELLOW",
       "legal_basis": [
         "개인정보 보호법 제26조"
       ],

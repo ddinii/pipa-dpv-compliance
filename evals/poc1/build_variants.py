@@ -1,7 +1,7 @@
 """SC-P01 controlled variants 생성 (TST-003).
 
-기준 처리방침을 조금씩 망가뜨려 RED / AMBER / N/A 대표 케이스를 만든다.
-SC-P01 하나만으로는 GREEN과 AMBER밖에 나오지 않아 TST-003을 충족할 수 없다.
+기준 처리방침을 조금씩 망가뜨려 RED / YELLOW / N/A 대표 케이스를 만든다.
+SC-P01 하나만으로는 GREEN과 YELLOW밖에 나오지 않아 TST-003을 충족할 수 없다.
 
 각 변형은 (문서 편집, Fact 편집, 기대 status)로 정의된다. 문서를 편집하면 글자 위치가
 전부 밀리므로, 기준 gold Fact의 근거를 **변형 문서에서 다시 찾아** offset을 새로 계산한다.
@@ -25,7 +25,7 @@ OUT_DIR = HERE / "variants"
 
 BASE_STATUS = {
     "P1-R01": "GREEN",
-    "P1-R02": "AMBER",
+    "P1-R02": "YELLOW",
     "P1-R03": "GREEN",
     "P1-R04": "GREEN",
     "P1-R06": "GREEN",
@@ -71,7 +71,7 @@ VARIANTS: list[Variant] = [
         name="v2-vague-destruction",
         description="파기 방법을 '적절한 방법으로'라는 모호한 표현으로 바꾼다.",
         target_rule="P1-R04",
-        expected_status="AMBER",
+        expected_status="YELLOW",
         edits=[(
             "파기 방법: 전자파일은 복구·재생이 어렵도록 삭제하고 종이문서는 분쇄 또는 안전한 방법으로 폐기합니다.",
             "파기 방법: 적절한 방법으로 파기합니다.",
@@ -102,7 +102,7 @@ VARIANTS: list[Variant] = [
         name="v4-unknown-processor",
         description="수탁자 한 곳을 '추후 선정 예정'으로 바꿔 수탁자명을 특정할 수 없게 만든다.",
         target_rule="P1-R06",
-        expected_status="AMBER",
+        expected_status="YELLOW",
         edits=[("수탁자: 빠른택배 주식회사", "수탁자: 추후 선정 예정")],
         restate={
             "F1-09:act-entrust-001": ("unknown", "수탁자: 추후 선정 예정"),
@@ -122,7 +122,7 @@ VARIANTS: list[Variant] = [
         # Fact Dictionary 3장에는 "처리행위 유형이 없다"를 담을 Fact ID가 없다
         # (F1-00 같은 것은 존재하지 않는다). 부재는 Fact가 아니라 activity presence
         # metadata로 싣는다 (app/mapping/presence_metadata.py). 명시적 부재는
-        # COM-006에 따라 N/A다. 예전 기대값 AMBER는 N/A를 낼 경로가 없던 때의 값이다.
+        # COM-006에 따라 N/A다. 예전 기대값 YELLOW는 N/A를 낼 경로가 없던 때의 값이다.
         description="제3자 제공을 하지 않는다고 명시한다. 제공 Fact는 사라지고 부재가 명시된다.",
         target_rule="P1-R03",
         expected_status="N/A",

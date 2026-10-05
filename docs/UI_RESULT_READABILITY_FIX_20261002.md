@@ -17,7 +17,7 @@
 | `source_text` | 원문 근거 |
 | `fact_contract` | 입력자료 확인 |
 | `absence` | 확인 필요 |
-| `GREEN / AMBER / RED / N/A` | 충족 / 추가 확인 / 미충족 / 해당 없음 |
+| `GREEN / YELLOW / RED / N/A` | 충족 / 추가 확인 / 미충족 / 해당 없음 |
 
 판단 근거 뱃지는 의미와 판정 영향에 따라 다음과 같이 표시함.
 

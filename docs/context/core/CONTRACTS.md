@@ -134,7 +134,7 @@ Canonical deterministic RuleResult contains:
 Rule status:
 
 - GREEN
-- AMBER
+- YELLOW
 - RED
 - N/A
 

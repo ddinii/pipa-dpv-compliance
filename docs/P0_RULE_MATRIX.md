@@ -6,15 +6,15 @@
 ## 공통 상태
 
 - `GREEN`: Applicability=TRUE이고 필수 Fact가 명시적으로 확인됨
-- `AMBER`: Applicability 또는 필수 Fact가 UNKNOWN/모호하여 자동 확정 불가
+- `YELLOW`: Applicability 또는 필수 Fact가 UNKNOWN/모호하여 자동 확정 불가
 - `RED`: Applicability=TRUE이고 필수 Fact의 명시적 부재 또는 금지조건이 확인됨
 - `N/A`: Applicability=FALSE가 명시적으로 확인됨. 단순 결측은 N/A로 처리하지 않음
-- 동일 Rule의 여러 인스턴스는 `RED > AMBER > GREEN` 우선순위로 대표 상태를 요약하며 N/A 인스턴스는 적용 대상 집계에서 제외
+- 동일 Rule의 여러 인스턴스는 `RED > YELLOW > GREEN` 우선순위로 대표 상태를 요약하며 N/A 인스턴스는 적용 대상 집계에서 제외
 - 조건부 활동 자체의 명시적 부재는 `system_metadata.activity_presence=confirmed_false`로 전달함. 속성 Fact의 `value_state=absent`와 구분함.
 
 ## PoC1
 
-| Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
+| Rule | Applicability | 핵심 Fact | GREEN | YELLOW | RED |
 |---|---|---|---|---|---|
 | P1-R01 처리목적 명시 | 항상 | `CollectionAndUse.hasPurpose` | 처리행위별 목적 식별 가능 | 목적 문구는 있으나 연결/의미 모호 | 목적 미확인 |
 | P1-R02 처리·보유기간 명시 | 항상 | `hasRetention -> Retention`, period 또는 identifiable end condition | 기간 또는 식별 가능한 종료조건 | 종료시점/대상 activity 연결 모호 | 기간·종료조건 미확인 |
@@ -25,7 +25,7 @@
 
 ## PoC2
 
-| Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
+| Rule | Applicability | 핵심 Fact | GREEN | YELLOW | RED |
 |---|---|---|---|---|---|
 | P2-R01 사고 사실·통지문 존재 검토 | `DataBreachIncident=TRUE` | `F2-01` incident + `F2-02` affected PI + `F2-03` notice | 사고·영향항목·notice 존재 확인 | 영향항목 또는 notice 값 UNKNOWN/모호 | 사고·영향항목 확인 + notice 부재 |
 | P2-R02 통지 항목 완전성 | `NotificationNotice=TRUE` | incident affected items vs notice mentioned items | 실제 영향 항목 모두 포함 | 포괄표현 등으로 집합 비교 불가 | 실제 영향 항목 누락 |
@@ -40,7 +40,7 @@ P2-R08의 역할은 `data_subject_guidance`, `controller_response`, `remedy_proc
 
 ## PoC3
 
-| Rule | Applicability | 핵심 Fact | GREEN | AMBER | RED |
+| Rule | Applicability | 핵심 Fact | GREEN | YELLOW | RED |
 |---|---|---|---|---|---|
 | P3-R01 법적근거 | `CollectionAndUse=TRUE` | `hasLegalBasis` | 구체 법적근거 유형 명시 | 유형 UNKNOWN/모호 | 근거 미지정 |
 | P3-R02 동의 목적 | `LegalBasis=Consent` | consent request + purpose | 동의 맥락 목적 구체적 | 포괄/연결 모호 | 목적 미지정 |

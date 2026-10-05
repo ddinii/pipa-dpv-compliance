@@ -167,7 +167,7 @@ def test_pass2_guards_against_the_observed_false_greens(phrase: str):
 def test_vague_value_rule_matches_the_gold_set(variant: str, state: str):
     """프롬프트 8번 규칙의 두 갈래를 정답지도 같은 방식으로 나눈다.
 
-    8번 규칙 첫 버전은 둘을 구분하지 않아 v3가 RED -> AMBER로 움직였다 (실측).
+    8번 규칙 첫 버전은 둘을 구분하지 않아 v3가 RED -> YELLOW로 움직였다 (실측).
     """
     import json
 

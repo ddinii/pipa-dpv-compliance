@@ -2,7 +2,7 @@
 
 개인정보 보호법(PIPA) 준수 검토를 **기계가 읽을 수 있는 형태**로 구현한 프로토타입입니다.
 입력은 고정된(Frozen) Fact 계약으로 구조화되고, 고정된 온톨로지에 매핑된 뒤,
-**결정론적(deterministic) Rule Engine**이 규칙별 `GREEN` / `AMBER` / `RED` / `N/A`
+**결정론적(deterministic) Rule Engine**이 규칙별 `GREEN` / `YELLOW` / `RED` / `N/A`
 `RuleResult`를 산출합니다.
 
 > **`GREEN`은 법적 준수 인증이 아니며, `RED`는 확정적인 법 위반 판정이 아닙니다.**
@@ -49,7 +49,7 @@ Input
   고정(Frozen)되어 있으며, API와 UI는 특정 LLM 구현이 아니라 이 안정된 계약에 의존합니다.
 - 모든 Fact의 `value_state`는 **`confirmed` / `unknown` / `absent`** 중 하나이며 서로 의미를
   변환하지 않습니다(예: `unknown` → `absent` 금지). 누락되었거나 추출되지 않은 정보는 자동으로 `N/A`가 아닙니다.
-- `GREEN` / `AMBER` / `RED` / `N/A` 판정은 오직 결정론적 `P0RuleEngine`만 수행합니다.
+- `GREEN` / `YELLOW` / `RED` / `N/A` 판정은 오직 결정론적 `P0RuleEngine`만 수행합니다.
 - 활동(`activity_id`) 단위의 process-centered 그룹핑과 Evidence / provenance를 보존합니다.
 
 ## Frozen 범위

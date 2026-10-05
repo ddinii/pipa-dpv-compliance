@@ -8,7 +8,7 @@ SC-P02와 일부러 다르게 만든다. 특히 날짜 표기를 여러 방식�
     h1-shop-hacking        "2026. 8. 14. 오전 3시 20분경", "2026-08-14 10:05",
                            통지문이 배송지 주소를 빠뜨림 (P2-R02 RED)
     h2-clinic-misdirected  "오후 2시 15분", 통지문에 경위 없음 (P2-R03 RED),
-                           대응조치 4역할 중 2개만 (P2-R08 AMBER)
+                           대응조치 4역할 중 2개만 (P2-R08 YELLOW)
 
 사고 Fact의 근거는 사고 기록에서만, 통지문 Fact의 근거는 통지문에서만 찾는다
 (build_gold_facts.py와 같은 규칙).
@@ -166,7 +166,7 @@ def build_h2(incident: str, notice: str) -> dict:
         items_anchor="잘못 발송된 메일에는 환자의 이름과 진료 예약 일시가 포함되어 있었습니다.",
         incident_time=("사고 발생 일시: 2026년 7월 3일 오후 2시 15분", "2026-07-03T14:15:00+09:00"),
         detection_time=("사고 인지 일시: 2026년 7월 3일 오후 5시 40분", "2026-07-03T17:40:00+09:00"),
-        # 정보주체 안내와 재발방지 조치는 적혀 있지 않다 -> P2-R08 AMBER
+        # 정보주체 안내와 재발방지 조치는 적혀 있지 않다 -> P2-R08 YELLOW
         measures=[
             ("controller_response", "오발송 메일 수신자에게 삭제를 요청하고 발송 시스템을 일시 중지하였습니다",
              "오발송 메일 수신자에게 삭제를 요청하고 발송 시스템을 일시 중지"),
@@ -201,7 +201,7 @@ def build_h2(incident: str, notice: str) -> dict:
             "P2-R01": "GREEN",
             "P2-R02": "GREEN",
             "P2-R03": "RED",    # 통지문에 경위가 없다
-            "P2-R08": "AMBER",  # 4역할 중 2개만 확인
+            "P2-R08": "YELLOW",  # 4역할 중 2개만 확인
         },
         "facts": facts,
     }
@@ -222,7 +222,7 @@ def build_h3(incident: str, notice: str | None) -> dict:
         items_anchor="유출 항목: 이름, 휴대전화번호",
         incident_time=("사고 발생 일시: 2026년 6월 11일 오전 10시 20분", "2026-06-11T10:20:00+09:00"),
         detection_time=("사고 인지 일시: 2026년 6월 11일 오후 1시", "2026-06-11T13:00:00+09:00"),
-        # 정보주체 안내와 피해구제 절차는 적혀 있지 않다 -> P2-R08 AMBER
+        # 정보주체 안내와 피해구제 절차는 적혀 있지 않다 -> P2-R08 YELLOW
         measures=[
             ("controller_response", "잘못 받은 수신자에게 문자 삭제를 요청하였습니다",
              "잘못 받은 수신자에게 문자 삭제를 요청"),
@@ -245,7 +245,7 @@ def build_h3(incident: str, notice: str | None) -> dict:
             "P2-R01": "RED",    # 사고는 있으나 통지문이 없다 (통지 의무 판정이 아니다)
             "P2-R02": "N/A",
             "P2-R03": "N/A",
-            "P2-R08": "AMBER",  # 4역할 중 2개
+            "P2-R08": "YELLOW",  # 4역할 중 2개
         },
         "system_metadata": [{
             "field": "activity_presence",

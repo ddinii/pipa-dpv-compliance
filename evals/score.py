@@ -196,7 +196,7 @@ def score_facts(
 #
 # 이 PoC의 헤드라인 지표다. Fact를 몇 개 맞췄는지보다 "추출 오류가 판정을 뒤집는가"가
 # 중요하다. Fact 하나를 놓쳐도 판정이 안 바뀌면 실무 영향이 없고, 반대로 value_state
-# 하나를 틀려서 AMBER가 GREEN이 되면 준수한 것처럼 보이게 된다.
+# 하나를 틀려서 YELLOW가 GREEN이 되면 준수한 것처럼 보이게 된다.
 
 
 @dataclass
@@ -207,7 +207,7 @@ class RuleScore:
     mismatches: list[tuple[str, str, str, str]] = field(default_factory=list)
     # gold가 GREEN이 아닌데 GREEN으로 예측한 경우. 가장 위험한 방향이다.
     false_greens: list[tuple[str, str, str]] = field(default_factory=list)
-    # gold가 RED/AMBER인데 N/A로 예측한 경우. 잘못된 부재 선언(confirmed_false)이
+    # gold가 RED/YELLOW인데 N/A로 예측한 경우. 잘못된 부재 선언(confirmed_false)이
     # Rule을 판정 대상에서 빼 버려 결함이 보이지 않게 된다. GREEN만큼 위험하다.
     false_nas: list[tuple[str, str, str]] = field(default_factory=list)
 
@@ -234,7 +234,7 @@ class RuleScore:
             self.mismatches.append((case, rule_id, expected, actual))
             if actual == "GREEN" and expected != "GREEN":
                 self.false_greens.append((case, rule_id, expected))
-            if actual == "N/A" and expected in {"RED", "AMBER"}:
+            if actual == "N/A" and expected in {"RED", "YELLOW"}:
                 self.false_nas.append((case, rule_id, expected))
 
     def as_dict(self) -> dict:
@@ -273,7 +273,7 @@ def format_rule_report(score: RuleScore) -> str:
         lines += ["", "  불일치:"]
         for case, rule_id, expected, actual in score.mismatches[:20]:
             risky = (actual == "GREEN" and expected != "GREEN") or (
-                actual == "N/A" and expected in {"RED", "AMBER"}
+                actual == "N/A" and expected in {"RED", "YELLOW"}
             )
             mark = "  <-- 위험" if risky else ""
             lines.append(f"    {case:28s} {rule_id}  gold={expected:6s} 예측={actual}{mark}")

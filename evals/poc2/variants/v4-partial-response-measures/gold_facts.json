@@ -8,7 +8,7 @@
     "name": "v4-partial-response-measures",
     "description": "사고 기록에서 대응조치 2건을 삭제한다. 필수 4종 중 2종만 남는다.",
     "target_rule": "P2-R08",
-    "expected_status": "AMBER",
+    "expected_status": "YELLOW",
     "also_moves": {},
     "changed_facts": [
       "F2-10"
@@ -18,7 +18,7 @@
     "P2-R01": "GREEN",
     "P2-R02": "GREEN",
     "P2-R03": "GREEN",
-    "P2-R08": "AMBER"
+    "P2-R08": "YELLOW"
   },
   "facts": [
     {

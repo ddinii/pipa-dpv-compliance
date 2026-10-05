@@ -6,7 +6,7 @@
 
 Fact-Ontology Mapping 계층은 Frozen Fact 35종(F1 12종, F2 10종, F3 13종)에 대한 등록, 온톨로지 용어 존재, 매퍼 핸들러 존재, 처리행위 분리, PoC2 사고/통지 분리, PoC3 Form 변환 및 SHACL 구조 검증을 통과한다.
 
-그러나 프로젝트 전체의 P0 18개 Rule E2E 완료를 의미하지 않는다. 현재 패키지에는 Rule Engine, p0_rules.json, API 및 UI가 포함되어 있지 않으므로 RuleResult의 GREEN/AMBER/RED/N/A, Evidence, legal_basis, version 및 결정론성은 이 패키지만으로 검증할 수 없다.
+그러나 프로젝트 전체의 P0 18개 Rule E2E 완료를 의미하지 않는다. 현재 패키지에는 Rule Engine, p0_rules.json, API 및 UI가 포함되어 있지 않으므로 RuleResult의 GREEN/YELLOW/RED/N/A, Evidence, legal_basis, version 및 결정론성은 이 패키지만으로 검증할 수 없다.
 
 P2-R01은 팀 결정에 따라 v1 범위를 유지한다. F2-01/F2-02/F2-03 및 `hasNotificationNotice`를 사용하며 `triggersNotificationObligation`, F2-11, ReportingObligation 자동판정은 사용하지 않는다.
 
@@ -55,7 +55,7 @@ Rule Specification의 `triggersNotificationObligation` 문구와 Fact Dictionary
 - PoC1 6개 Rule 실제 실행 PASS
 - PoC2 4개 Rule 실제 실행 PASS
 - PoC3 8개 Rule 실제 실행 PASS
-- GREEN/AMBER/RED/N/A 대표 케이스 재현
+- GREEN/YELLOW/RED/N/A 대표 케이스 재현
 - 모든 G/A/R 결과 Evidence 존재
 - 모든 결과 legal_basis 및 ontology/rule/fact version 존재
 - 동일 입력 재실행 결과 결정론성 확인
