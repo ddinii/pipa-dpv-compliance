@@ -129,8 +129,8 @@ inst:purpose-001 a pipa:ProcessingPurpose ;
 ### 값 상태
 
 - `confirmed`: RDF assertion 생성
-- `unknown`: RDF를 생성하지 않고 Fact 상태 유지 → Rule의 AMBER 판단에 사용
-- `absent`: RDF를 생성하지 않고 명시적 부재 Fact 유지 → Rule의 RED/AMBER 판단에 사용
+- `unknown`: RDF를 생성하지 않고 Fact 상태 유지 → Rule의 YELLOW 판단에 사용
+- `absent`: RDF를 생성하지 않고 명시적 부재 Fact 유지 → Rule의 RED/YELLOW 판단에 사용
 
 OWL/RDF의 Open World Assumption 때문에 triple이 없다는 사실만으로 `absent`로 판단하면 안 된다.
 

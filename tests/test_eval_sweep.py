@@ -87,13 +87,13 @@ def test_missing_prediction_is_a_mismatch_not_a_pass():
     assert score.mismatches == [("c", "P1-R01", "GREEN", "(없음)")]
 
 
-def test_amber_predicted_as_red_is_a_mismatch_but_not_a_false_green():
+def test_yellow_predicted_as_red_is_a_mismatch_but_not_a_false_green():
     score = RuleScore()
-    score.add("c", {"P1-R02": "AMBER"}, {"P1-R02": "RED"})
+    score.add("c", {"P1-R02": "YELLOW"}, {"P1-R02": "RED"})
     assert score.mismatches and not score.false_greens
 
 
-@pytest.mark.parametrize("expected", ["RED", "AMBER"])
+@pytest.mark.parametrize("expected", ["RED", "YELLOW"])
 def test_na_that_hides_a_finding_is_counted_as_dangerous(expected: str):
     """잘못된 부재 선언은 Rule을 판정 대상에서 빼 버린다. GREEN만큼 위험하다."""
     score = RuleScore()

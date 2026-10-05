@@ -26,7 +26,7 @@ ONTOLOGY_PATH = ROOT_DIR / "ontology" / "PIPA_Ontology_v1.0.ttl"
 
 STATUS_PRIORITY = {
     RuleStatus.RED: 3,
-    RuleStatus.AMBER: 2,
+    RuleStatus.YELLOW: 2,
     RuleStatus.GREEN: 1,
     RuleStatus.NOT_APPLICABLE: 0,
 }
@@ -353,8 +353,8 @@ class P0RuleEngine:
         Dictionary requires that distinction at the Rule Engine boundary.
 
         Contract policy:
-        * missing Fact envelope -> AMBER (input contract incomplete)
-        * required Fact with value_state=unknown -> AMBER
+        * missing Fact envelope -> YELLOW (input contract incomplete)
+        * required Fact with value_state=unknown -> YELLOW
         * required Fact with value_state=absent -> RED when the rule's required
           combination is explicitly absent
         * confirmed false remains a confirmed value; it is never rewritten as
@@ -471,7 +471,7 @@ class P0RuleEngine:
                 # Unknown and a missing Fact envelope are unresolved input
                 # states.  They must not collapse to graph-level RED simply
                 # because no confirmed triple was emitted by the mapper.
-                result.status = RuleStatus.AMBER
+                result.status = RuleStatus.YELLOW
                 result.uncertain_facts = sorted(
                     set(result.uncertain_facts)
                     | {f"fact:{fact_type}:unknown" for fact_type in unknown_types}
@@ -510,7 +510,7 @@ class P0RuleEngine:
             instance_results = [
                 InstanceRuleResult(
                     instance_id="__document__",
-                    status=RuleStatus.AMBER,
+                    status=RuleStatus.YELLOW,
                     applicability=Applicability.UNKNOWN,
                     uncertain_facts=["applicability"],
                     evidence=[
@@ -589,7 +589,7 @@ class P0RuleEngine:
         return [
             InstanceRuleResult(
                 instance_id="__document__",
-                status=RuleStatus.AMBER,
+                status=RuleStatus.YELLOW,
                 applicability=Applicability.UNKNOWN,
                 uncertain_facts=[label],
                 evidence=[
@@ -657,7 +657,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(activity, PIPA.hasPurpose)],
                         uncertain_facts=[
@@ -753,7 +753,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         uncertain_facts=[self._fact_key(activity, PIPA.hasRetention)],
                         evidence=evidence,
@@ -812,7 +812,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(activity, predicate) for predicate in required],
                         uncertain_facts=[
@@ -875,7 +875,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(destruction),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         uncertain_facts=[self._fact_key(destruction, PIPA.hasDestructionMethod)],
                         evidence=evidence,
@@ -962,7 +962,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=matched_facts,
                         uncertain_facts=uncertain_facts,
@@ -1075,7 +1075,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(subject),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(subject, PIPA.hasRight)],
                         uncertain_facts=[self._fact_key(right, PIPA.hasExerciseProcedure) for right in incomplete_rights],
@@ -1127,7 +1127,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         uncertain_facts=[self._fact_key(incident, PIPA.affectsPersonalInformation)],
                         evidence=self._dedupe_evidence(evidence) + notes,
@@ -1158,7 +1158,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=matched,
                         uncertain_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
@@ -1223,7 +1223,7 @@ class P0RuleEngine:
                     results.append(
                         InstanceRuleResult(
                             instance_id=str(incident),
-                            status=RuleStatus.AMBER,
+                            status=RuleStatus.YELLOW,
                             applicability=Applicability.UNKNOWN,
                             uncertain_facts=["NotificationNotice"],
                             evidence=[self._absence_evidence(incident, "hasNotificationNotice", "NotificationNotice의 존재/부재가 명시적으로 확정되지 않음")],
@@ -1247,7 +1247,7 @@ class P0RuleEngine:
                     results.append(
                         InstanceRuleResult(
                             instance_id=f"{incident}|{notice}",
-                            status=RuleStatus.AMBER,
+                            status=RuleStatus.YELLOW,
                             applicability=Applicability.TRUE,
                             uncertain_facts=["PersonalInformation.hasItemName"],
                             evidence=self._dedupe_evidence(evidence) or [self._absence_evidence(notice, "mentionsPersonalInformation/hasItemName", "항목 집합 비교에 필요한 값 부족")],
@@ -1361,7 +1361,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(notice),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         uncertain_facts=[self._fact_key(notice, predicate) for predicate in uncertain_predicates],
                         evidence=self._dedupe_evidence(evidence),
@@ -1426,7 +1426,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(incident),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[f"measure_role:{role}" for role in sorted(confirmed_required_roles)],
                         uncertain_facts=uncertain_facts,
@@ -1507,7 +1507,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
                         uncertain_facts=[f"legal_basis_type:{_local_name(basis)}" for basis in unknown_bases],
@@ -1565,7 +1565,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.UNKNOWN,
                         uncertain_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
                         evidence=self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) or [
@@ -1619,7 +1619,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(activity, predicate) for predicate in required_predicates],
                         uncertain_facts=[self._fact_key(linked, predicate) for linked, predicate in ambiguous],
@@ -1697,7 +1697,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.UNKNOWN,
                         uncertain_facts=[self._fact_key(activity, PIPA.hasLegalBasis)],
                         evidence=self._assertion_evidence(graph, activity, PIPA.hasLegalBasis) or [
@@ -1767,7 +1767,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[
                             self._fact_key(activity, PIPA.hasLegalBasis),
@@ -1812,7 +1812,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         uncertain_facts=[self._fact_key(activity, PIPA.hasPersonalInformation)],
                         evidence=[self._absence_evidence(activity, "hasPersonalInformation", "수집 항목 설계 확인 불가")],
@@ -1898,7 +1898,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=matched,
                         uncertain_facts=[
@@ -1947,7 +1947,7 @@ class P0RuleEngine:
                 return [
                     InstanceRuleResult(
                         instance_id="__document__",
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.UNKNOWN,
                         uncertain_facts=[self._fact_key(item, PIPA.isRequired) for _, item in unknown_items],
                         evidence=[
@@ -1980,7 +1980,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=f"{activity}|{item}",
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(item, PIPA.isRequired)],
                         uncertain_facts=[self._fact_key(activity, PIPA.hasConsentRequest)],
@@ -2037,7 +2037,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=f"{activity}|{item}",
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(item, PIPA.isRequired)],
                         uncertain_facts=[
@@ -2122,7 +2122,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(end),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=[self._fact_key(end, PIPA.triggersDestruction)],
                         uncertain_facts=[self._fact_key(destruction, PIPA.hasDestructionMethod) for destruction in destructions],
@@ -2212,7 +2212,7 @@ class P0RuleEngine:
                 results.append(
                     InstanceRuleResult(
                         instance_id=str(activity),
-                        status=RuleStatus.AMBER,
+                        status=RuleStatus.YELLOW,
                         applicability=Applicability.TRUE,
                         matched_facts=matched_facts,
                         uncertain_facts=uncertain_facts,

@@ -172,8 +172,8 @@ def test_facts_of_one_activity_never_mix_ontology_classes(gold: dict):
             }, (activity_id, classes)
 
 
-def test_p1_r02_stays_amber_because_three_activities_lack_retention(gold: dict):
-    """SC-P01의 P1-R02는 AMBER다. gold set이 그 원인을 그대로 담고 있어야 한다.
+def test_p1_r02_stays_yellow_because_three_activities_lack_retention(gold: dict):
+    """SC-P01의 P1-R02는 YELLOW다. gold set이 그 원인을 그대로 담고 있어야 한다.
 
     세 처리행위는 "그 밖의 처리 목적에 대해서는 관계 법령에서 정한 기간 동안
     보관합니다"에만 걸린다. 팀 결정(Issue 4): 법령도 숫자도 특정하지 않은 기간은
@@ -191,7 +191,7 @@ def test_p1_r02_stays_amber_because_three_activities_lack_retention(gold: dict):
     assert {a for a, s in states("F1-03").items() if s == "unknown"} == lacking
     assert {a for a, s in states("F1-04").items() if s == "absent"} == lacking
     assert "unknown" not in states("F1-04").values()
-    assert gold["expected_rule_status"]["P1-R02"] == "AMBER"
+    assert gold["expected_rule_status"]["P1-R02"] == "YELLOW"
 
 
 def test_builder_is_deterministic(gold: dict):

@@ -7,14 +7,14 @@
     "name": "v4-unknown-processor",
     "description": "수탁자 한 곳을 '추후 선정 예정'으로 바꿔 수탁자명을 특정할 수 없게 만든다.",
     "target_rule": "P1-R06",
-    "expected_status": "AMBER"
+    "expected_status": "YELLOW"
   },
   "expected_rule_status": {
     "P1-R01": "GREEN",
-    "P1-R02": "AMBER",
+    "P1-R02": "YELLOW",
     "P1-R03": "GREEN",
     "P1-R04": "GREEN",
-    "P1-R06": "AMBER",
+    "P1-R06": "YELLOW",
     "P1-R07": "GREEN"
   },
   "facts": [

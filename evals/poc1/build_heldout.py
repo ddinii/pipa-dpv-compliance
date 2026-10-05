@@ -167,7 +167,7 @@ def build_h1(document: str) -> dict:
         },
         "expected_rule_status": {
             "P1-R01": "GREEN",
-            "P1-R02": "AMBER",  # 경품 이벤트에 보유 정보가 없다
+            "P1-R02": "YELLOW",  # 경품 이벤트에 보유 정보가 없다
             "P1-R03": "GREEN",
             "P1-R04": "GREEN",
             "P1-R06": "GREEN",
@@ -204,7 +204,7 @@ def build_h2(document: str) -> dict:
         *retention("act-collection-003", "CollectionAndUse", ev, end="수신 동의를 철회할 때",
                    searched=searched),
 
-        # 제공 목적이 없다 -> F1-07 absent -> P1-R03 RED. 보유 정보도 없다 -> P1-R02 AMBER
+        # 제공 목적이 없다 -> F1-07 absent -> P1-R03 RED. 보유 정보도 없다 -> P1-R02 YELLOW
         fact("F1-05", "act-provision-001", "ThirdPartyProvision", "hasRecipient",
              [ev("한국직무교육협회")], value="한국직무교육협회"),
         fact("F1-06", "act-provision-001", "ThirdPartyProvision", "hasPersonalInformation",
@@ -215,7 +215,7 @@ def build_h2(document: str) -> dict:
         *retention("act-provision-001", "ThirdPartyProvision", ev, searched=provision),
 
         # 위탁 2건 중 결제 대행은 수탁자를 "외부 전문업체"로만 언급하고 이름이 없다.
-        # 언급했지만 비어 있으므로 unknown -> P1-R06 AMBER (dev v4 '추후 선정 예정'과 같은 갈래,
+        # 언급했지만 비어 있으므로 unknown -> P1-R06 YELLOW (dev v4 '추후 선정 예정'과 같은 갈래,
         # 아예 언급이 없는 dev v5는 absent -> RED).
         #
         # 정정 기록: 처음에는 absent(RED)로 붙였다. 첫 held-out 실행에서 Sonnet 5와
@@ -260,10 +260,10 @@ def build_h2(document: str) -> dict:
         },
         "expected_rule_status": {
             "P1-R01": "GREEN",
-            "P1-R02": "AMBER",  # 제3자 제공에 보유 정보가 없다
+            "P1-R02": "YELLOW",  # 제3자 제공에 보유 정보가 없다
             "P1-R03": "RED",    # 제공 목적 누락
             "P1-R04": "GREEN",
-            "P1-R06": "AMBER",  # 결제 대행 수탁자명을 특정할 수 없다 (정정: 처음엔 RED)
+            "P1-R06": "YELLOW",  # 결제 대행 수탁자명을 특정할 수 없다 (정정: 처음엔 RED)
             "P1-R07": "GREEN",
         },
         "facts": facts,
@@ -331,7 +331,7 @@ def build_h3(document: str) -> dict:
 # 잘못된 N/A를 잡는 함정이다. 부정문으로 시작하지만 실제 제공이 뒤따르므로 부재
 # 선언이 아니다. 그 제공에는 목적이 빠져 있어 P1-R03은 RED다. 여기서 N/A가 나오면
 # 그 결함이 판정에서 사라지고, 채점기가 위험 오판(N/A)으로 센다.
-# 위탁은 아예 언급이 없다. "기재 없음"은 부재 선언이 아니므로 AMBER다.
+# 위탁은 아예 언급이 없다. "기재 없음"은 부재 선언이 아니므로 YELLOW다.
 
 
 def build_h4(document: str) -> dict:
@@ -373,7 +373,7 @@ def build_h4(document: str) -> dict:
             "P1-R02": "GREEN",
             "P1-R03": "RED",    # 부분 부정은 부재가 아니다. 목적 누락 -> RED. N/A면 위험 오판
             "P1-R04": "GREEN",
-            "P1-R06": "AMBER",  # 위탁 언급 없음. 부재 선언도 아니다
+            "P1-R06": "YELLOW",  # 위탁 언급 없음. 부재 선언도 아니다
             "P1-R07": "GREEN",
         },
         "facts": facts,

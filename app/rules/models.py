@@ -8,7 +8,7 @@ from typing import Any
 
 class RuleStatus(str, Enum):
     GREEN = "GREEN"
-    AMBER = "AMBER"
+    YELLOW = "YELLOW"
     RED = "RED"
     NOT_APPLICABLE = "N/A"
 

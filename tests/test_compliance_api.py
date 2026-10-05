@@ -44,7 +44,7 @@ def test_design_check_preserves_rule_result_status_and_applicability_semantics()
 
     body = response.json()
     for result in body["results"]:
-        assert result["status"] in {"GREEN", "AMBER", "RED", "N/A"}
+        assert result["status"] in {"GREEN", "YELLOW", "RED", "N/A"}
         assert result["applicability"] in {"TRUE", "FALSE", "UNKNOWN"}
         assert "matched_facts" in result
         assert "missing_facts" in result

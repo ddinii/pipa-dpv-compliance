@@ -6,7 +6,7 @@ interface ComplianceResultsPanelProps {
   result: ComplianceResponse
 }
 
-const STATUSES: RuleStatus[] = ['GREEN', 'AMBER', 'RED', 'N/A']
+const STATUSES: RuleStatus[] = ['GREEN', 'YELLOW', 'RED', 'N/A']
 
 export function ComplianceResultsPanel({ result }: ComplianceResultsPanelProps) {
   const counts = Object.fromEntries(

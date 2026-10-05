@@ -88,7 +88,7 @@ def test_sc_p01_expected_freeze_results():
     result = statuses(P0RuleEngine().evaluate_graph(load("SC-P01_FINAL_Protege.ttl"), poc="poc1"))
     assert result == {
         "P1-R01": "GREEN",
-        "P1-R02": "AMBER",
+        "P1-R02": "YELLOW",
         "P1-R03": "GREEN",
         "P1-R04": "GREEN",
         "P1-R06": "GREEN",
@@ -136,7 +136,7 @@ def test_p2_r03_does_not_substitute_incident_time_for_notice_time():
     graph.add((notice, RDF.type, PIPA.NotificationNotice))
     graph.add((notice, PIPA.hasIncidentCircumstances, ex.circumstance))
     result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
-    assert result.status.value in {"AMBER", "RED"}
+    assert result.status.value in {"YELLOW", "RED"}
     assert result.status.value != "GREEN"
     assert any("noticeIncidentTime" in fact for fact in result.missing_facts + result.uncertain_facts)
 
@@ -155,7 +155,7 @@ def test_rule_engine_does_not_mix_facts_across_activities():
     assert result.status.value != "GREEN"
     assert len(result.instance_results) == 2
 
-def test_p1_r07_partial_right_procedures_are_amber_not_green():
+def test_p1_r07_partial_right_procedures_are_yellow_not_green():
     ex = Namespace("https://example.org/right-partial#")
     graph = Graph()
     subject = ex.subject
@@ -173,7 +173,7 @@ def test_p1_r07_partial_right_procedures_are_amber_not_green():
     graph.add((procedure, PIPA.hasProcedureDescription, Literal("온라인 신청")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P1-R07")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
 def test_p1_r07_evidence_uses_right_label_instead_of_generated_uri():
@@ -223,7 +223,7 @@ def test_p2_r03_missing_one_required_notice_fact_is_red():
     assert result.status.value == "RED"
 
 
-def test_p2_r08_rejects_role_outside_frozen_four_as_amber():
+def test_p2_r08_rejects_role_outside_frozen_four_as_yellow():
     ex = Namespace("https://example.org/p2r08#")
     graph = Graph()
     incident = ex.incident
@@ -243,11 +243,11 @@ def test_p2_r08_rejects_role_outside_frozen_four_as_amber():
         graph.add((incident, PIPA.hasResponseMeasure, measure))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R08")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert "unexpected_measure_role:internal_tracking" in result.uncertain_facts
 
 
-def test_p2_r08_unclassified_response_measure_is_amber():
+def test_p2_r08_unclassified_response_measure_is_yellow():
     ex = Namespace("https://example.org/p2r08-unclassified#")
     graph = Graph()
     incident = ex.incident
@@ -257,10 +257,10 @@ def test_p2_r08_unclassified_response_measure_is_amber():
     graph.add((incident, PIPA.hasResponseMeasure, measure))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R08")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p3_r01_untyped_legal_basis_is_amber():
+def test_p3_r01_untyped_legal_basis_is_yellow():
     ex = Namespace("https://example.org/p3r01#")
     graph = Graph()
     activity = ex.activity
@@ -269,10 +269,10 @@ def test_p3_r01_untyped_legal_basis_is_amber():
     graph.add((activity, PIPA.hasLegalBasis, basis))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R01")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p3_r02_purpose_without_description_is_amber():
+def test_p3_r02_purpose_without_description_is_yellow():
     ex = Namespace("https://example.org/p3r02#")
     graph = Graph()
     activity = ex.activity
@@ -289,10 +289,10 @@ def test_p3_r02_purpose_without_description_is_amber():
     graph.add((activity, PIPA.hasPurpose, purpose))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R02")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p3_r03_personal_information_without_item_name_is_amber():
+def test_p3_r03_personal_information_without_item_name_is_yellow():
     ex = Namespace("https://example.org/p3r03#")
     graph = Graph()
     activity = ex.activity
@@ -309,10 +309,10 @@ def test_p3_r03_personal_information_without_item_name_is_amber():
     graph.add((activity, PIPA.hasPersonalInformation, item))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R03")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p3_r04_unidentified_end_condition_is_amber():
+def test_p3_r04_unidentified_end_condition_is_yellow():
     ex = Namespace("https://example.org/p3r04#")
     graph = Graph()
     activity = ex.activity
@@ -332,7 +332,7 @@ def test_p3_r04_unidentified_end_condition_is_amber():
     graph.add((retention, PIPA.hasRetentionEndCondition, end))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R04")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
 def test_p3_r04_requires_f3_03_consent_request():
@@ -373,7 +373,7 @@ def test_p3_r06_unknown_refusal_value_does_not_become_green():
     graph.add((request, PIPA.deniesServiceOnOptionalRefusal, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R06")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
 def test_rule_metadata_legal_basis_matches_frozen_spec():
@@ -382,7 +382,7 @@ def test_rule_metadata_legal_basis_matches_frozen_spec():
         assert metadata.legal_basis == metadata.source_spec_legal_basis
 
 
-def test_p1_r04_unknown_destruction_method_is_amber():
+def test_p1_r04_unknown_destruction_method_is_yellow():
     ex = Namespace("https://example.org/p1r04-unknown#")
     graph = Graph()
     destruction = ex.destruction
@@ -390,10 +390,10 @@ def test_p1_r04_unknown_destruction_method_is_amber():
     graph.add((destruction, PIPA.hasDestructionMethod, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P1-R04")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p1_r06_unknown_task_or_processor_name_is_amber():
+def test_p1_r06_unknown_task_or_processor_name_is_yellow():
     ex = Namespace("https://example.org/p1r06-unknown#")
     graph = Graph()
     activity = ex.activity
@@ -404,10 +404,10 @@ def test_p1_r06_unknown_task_or_processor_name_is_amber():
     graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P1-R06")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p3_r05_unknown_design_rationale_is_amber():
+def test_p3_r05_unknown_design_rationale_is_yellow():
     ex = Namespace("https://example.org/p3r05-unknown#")
     graph = Graph()
     activity = ex.activity
@@ -419,10 +419,10 @@ def test_p3_r05_unknown_design_rationale_is_amber():
     graph.add((item, PIPA.designRationale, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R05")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_p3_r05_unknown_required_flag_is_amber():
+def test_p3_r05_unknown_required_flag_is_yellow():
     ex = Namespace("https://example.org/p3r05-flag-unknown#")
     graph = Graph()
     activity = ex.activity
@@ -433,7 +433,7 @@ def test_p3_r05_unknown_required_flag_is_amber():
     graph.add((item, PIPA.isRequired, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R05")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
 def test_p2_r02_unknown_item_name_does_not_compare_as_green():
@@ -452,7 +452,7 @@ def test_p2_r02_unknown_item_name_does_not_compare_as_green():
     graph.add((mentioned, PIPA.hasItemName, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
 def test_p2_r01_v1_does_not_require_notification_obligation_fact():
@@ -490,7 +490,7 @@ def test_p2_r01_missing_notice_is_red_without_reporting_obligation_inference():
     assert "통지 의무 대상 여부 판정이 아닙니다" in result.instance_results[0].reason
 
 
-def test_p2_r02_missing_notice_is_amber_without_explicit_false():
+def test_p2_r02_missing_notice_is_yellow_without_explicit_false():
     ex = Namespace("https://example.org/p2r02-no-notice#")
     graph = Graph()
     incident = ex.incident
@@ -498,14 +498,14 @@ def test_p2_r02_missing_notice_is_amber_without_explicit_false():
     graph.add((incident, PIPA.affectsPersonalInformation, ex.item))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R02")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert result.applicability.value == "UNKNOWN"
 
 
-def test_p2_r03_missing_notice_is_amber_without_explicit_false():
+def test_p2_r03_missing_notice_is_yellow_without_explicit_false():
     graph = Graph()
     result = P0RuleEngine().evaluate_rule(graph, "P2-R03")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert result.applicability.value == "UNKNOWN"
 
 
@@ -548,7 +548,7 @@ def test_p1_r06_still_requires_processor_name():
     assert result.status.value == "RED"
 
 
-def test_p3_r11_unknown_task_is_amber():
+def test_p3_r11_unknown_task_is_yellow():
     ex = Namespace("https://example.org/p3r11-unknown#")
     graph = Graph()
     activity = ex.activity
@@ -559,7 +559,7 @@ def test_p3_r11_unknown_task_is_amber():
     graph.add((activity, PIPA.entrustedTaskText, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R11")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
 def test_p1_r01_requires_concrete_f1_02_purpose_value():
@@ -572,7 +572,7 @@ def test_p1_r01_requires_concrete_f1_02_purpose_value():
     graph.add((activity, PIPA.hasPurpose, purpose))
 
     result = P0RuleEngine().evaluate_rule(graph, "P1-R01")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert any("hasPurposeDescription" in fact for fact in result.uncertain_facts)
 
 
@@ -586,7 +586,7 @@ def test_p1_r03_requires_concrete_frozen_values_not_only_links():
     graph.add((activity, PIPA.hasPurpose, ex.purpose))
 
     result = P0RuleEngine().evaluate_rule(graph, "P1-R03")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert any("hasName" in fact for fact in result.uncertain_facts)
     assert any("hasItemName" in fact for fact in result.uncertain_facts)
     assert any("hasPurposeDescription" in fact for fact in result.uncertain_facts)
@@ -601,10 +601,10 @@ def test_p2_r01_requires_concrete_f2_02_item_name():
     graph.add((incident, PIPA.hasNotificationNotice, ex.notice))
 
     result = P0RuleEngine().evaluate_rule(graph, "P2-R01")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
 
 
-def test_strict_fact_contract_preserves_unknown_as_amber():
+def test_strict_fact_contract_preserves_unknown_as_yellow():
     facts = [
         frozen_fact(
             "F3-01-001",
@@ -631,7 +631,7 @@ def test_strict_fact_contract_preserves_unknown_as_amber():
         "P3-R01",
         facts=mapping.facts,
     )
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert "fact:F3-02:unknown" in result.uncertain_facts
 
 
@@ -659,7 +659,7 @@ def test_strict_fact_contract_missing_required_fact_prevents_green():
         "P3-R08",
         facts=mapping.facts,
     )
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"
     assert "fact:F3-10:missing_envelope" in result.uncertain_facts
 
 
@@ -790,7 +790,7 @@ def test_strict_p1_r02_unknown_alternative_does_not_override_confirmed_period():
     assert result.status.value == "GREEN"
 
 
-def test_p3_r08_unknown_destruction_method_is_amber():
+def test_p3_r08_unknown_destruction_method_is_yellow():
     ex = Namespace("https://example.org/p3r08-unknown#")
     graph = Graph()
     retention = ex.retention
@@ -804,4 +804,4 @@ def test_p3_r08_unknown_destruction_method_is_amber():
     graph.add((destruction, PIPA.hasDestructionMethod, Literal("UNKNOWN")))
 
     result = P0RuleEngine().evaluate_rule(graph, "P3-R08")
-    assert result.status.value == "AMBER"
+    assert result.status.value == "YELLOW"

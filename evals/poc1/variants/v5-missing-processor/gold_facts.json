@@ -11,7 +11,7 @@
   },
   "expected_rule_status": {
     "P1-R01": "GREEN",
-    "P1-R02": "AMBER",
+    "P1-R02": "YELLOW",
     "P1-R03": "GREEN",
     "P1-R04": "GREEN",
     "P1-R06": "RED",
