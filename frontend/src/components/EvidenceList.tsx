@@ -1,6 +1,7 @@
 import type { Evidence, RuleStatus } from '../types/api'
 import {
   evidenceTypeLabel,
+  humanizeFactIdsNote,
   humanizeDisplayValue,
   humanizeNarrative,
   termLabel,
@@ -21,8 +22,10 @@ function formatEvidenceValue(value: Evidence['value']): string | null {
   return humanizeDisplayValue(value)
 }
 
-function humanizeNote(note: string): string {
+function humanizeNote(rawNote: string): string {
+  const note = humanizeFactIdsNote(rawNote)
   return humanizeNarrative(note
+    .replace('명시적 부재(confirmed_false)', '없음이 명시적으로 확인된 상태')
     .replace('required Fact envelope missing', '필수 입력자료가 전달되지 않았음')
     .replace('Fact IDs:', '관련 검토 항목:')
     .replace('confirmed_false', '명시적 부재 확인')

@@ -7,6 +7,7 @@ const TERM_LABELS: Record<string, string> = {
   user: '정보주체',
   controller: '개인정보처리자',
   incident: '개인정보 유출등 사고',
+  'breach-incident': '개인정보 유출등 사고',
   'breach-notice': '정보주체 통지문',
   breachNotice: '정보주체 통지문',
   provision: '제3자 제공 처리행위',
@@ -29,6 +30,7 @@ const TERM_LABELS: Record<string, string> = {
   DataBreachIncident: '개인정보 유출등 사고',
   NotificationNotice: '정보주체 통지문',
   ConsentRequest: '동의요청',
+  Consent: '동의',
   PersonalInformation: '개인정보',
   LegalBasis: '법적 근거',
   ProcessingPurpose: '처리 목적',
@@ -120,8 +122,8 @@ const FACT_LABELS: Record<string, string> = {
 
 const STATE_LABELS: Record<string, string> = {
   confirmed: '확인됨', confirmed_true: '있음이 명시적으로 확인됨',
-  confirmed_false: '없음이 명시적으로 확인됨', unknown: '추가 확인 필요',
-  absent: '문서에서 확인되지 않음', missing_envelope: '입력 데이터가 전달되지 않음',
+  confirmed_false: '없음이 명시적으로 확인됨', unknown: '확인 필요',
+  absent: '명시적으로 없음', missing_envelope: '입력 데이터가 전달되지 않음',
   true: '예', false: '아니오',
 }
 
@@ -156,17 +158,99 @@ function readableFallback(value: string): string {
   return value.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim() || value
 }
 
+const ACTIVITY_LABELS: Record<string, string> = {
+  AccountCollection: '계정 정보 수집',
+  LocationRecommendation: '위치 기반 모임 추천',
+  InterestRecommendation: '관심분야 맞춤 추천',
+  EntrustKCloud: 'K-Cloud 서버 운영 위탁',
+  EntrustMessageLink: 'MessageLink 인증번호 발송 위탁',
+}
+
+const ACTIVITY_SUFFIX_LABELS: Array<[string, string]> = [
+  ['-retention-end', '보유 종료조건'],
+  ['-retention', '보유정보'],
+  ['-destruction', '파기 계획'],
+  ['-consent-request', '동의요청'],
+]
+
+/** 사용자 입력 activity_id를 한글 명칭으로. 등록되지 않은 ID는 원문 ID를 그대로 보여 서로 구분되게 한다. */
+export function activityLabel(activityId: string): string {
+  return ACTIVITY_LABELS[activityId] ?? `'${activityId}'`
+}
+
+/** `{activity_id}-destruction` 같은 매퍼 생성 ID → `계정 정보 수집 · 파기 계획`. */
+export function activityResourceLabel(name: string): string | null {
+  for (const [suffix, label] of ACTIVITY_SUFFIX_LABELS) {
+    if (name.length > suffix.length && name.endsWith(suffix)) {
+      return `${activityLabel(name.slice(0, -suffix.length))} · ${label}`
+    }
+  }
+  return null
+}
+
+/** 파기 객체 ID(`X-destruction`)에서 처리행위 ID를 추출. */
+function destructionActivityId(text: string | null | undefined): string | null {
+  if (!text) return null
+  const name = localName(text)
+  const match = /^(.+)-destruction$/.exec(name)
+  return match ? match[1] : null
+}
+
+interface InstanceLike {
+  instance_id: string
+  matched_facts: string[]
+  missing_facts: string[]
+  uncertain_facts: string[]
+  evidence: Array<{ subject: string | null; value: string | boolean | null }>
+}
+
+function instanceActivityId(instance: InstanceLike): string | null {
+  const candidates: Array<string | null> = [
+    ...[...instance.matched_facts, ...instance.uncertain_facts, ...instance.missing_facts].map((fact) => {
+      const rdf = /^rdf:([^:]+):[^:]+$/.exec(fact)
+      return destructionActivityId(rdf?.[1])
+    }),
+    ...instance.evidence.flatMap((item) => [
+      destructionActivityId(item.subject),
+      destructionActivityId(typeof item.value === 'string' ? item.value : null),
+    ]),
+  ]
+  return candidates.find((id): id is string => id !== null) ?? null
+}
+
+/** 해시 기반 인스턴스 ID(보유 종료조건 등)를 같은 인스턴스의 파기 객체로부터 처리행위별로 구분한다. */
+export function instanceLabel(instance: InstanceLike): string {
+  const base = termLabel(instance.instance_id)
+  const activityId = instanceActivityId(instance)
+  return activityId ? `${activityLabel(activityId)} — ${base}` : base
+}
+
+/** 해시 인스턴스 로컬명 → 처리행위 한글명. 규칙 단위 fact 목록에서 동일 라벨 반복을 구분하는 데 쓴다. */
+export function instanceActivityAliases(instances: InstanceLike[]): Record<string, string> {
+  const aliases: Record<string, string> = {}
+  for (const instance of instances) {
+    const activityId = instanceActivityId(instance)
+    if (activityId) aliases[localName(instance.instance_id)] = activityLabel(activityId)
+  }
+  return aliases
+}
+
 export function termLabel(value: string): string {
   const name = localName(value)
   return TERM_LABELS[name]
     ?? FACT_LABELS[name]
     ?? ROLE_LABELS[name]
     ?? generatedResourceLabel(name)
+    ?? activityResourceLabel(name)
+    ?? ACTIVITY_LABELS[name]
     ?? readableFallback(name)
 }
 
-function generatedResourceLabel(value: string): string | null {
+export function generatedResourceLabel(value: string): string | null {
   const normalized = value.toLowerCase().replaceAll('-', '_')
+  // LLM 추출기가 만드는 대응조치 ID: `F2-10:breach-incident-measure-N` (번호는 보존)
+  const measure = /^f2_10:breach_incident(?:#\d+)?_measure_(\d+)$/.exec(normalized)
+  if (measure) return `사고 대응조치 (${measure[1]})`
   const patterns: Array<[RegExp, string]> = [
     [/^rights?_procedure_[0-9a-f]{6,}$/, '권리 행사절차'],
     [/^right_[0-9a-f]{6,}$/, '정보주체 권리'],
@@ -176,6 +260,8 @@ function generatedResourceLabel(value: string): string | null {
     [/^processor_[0-9a-f]{6,}$/, '수탁자'],
     [/^retention_[0-9a-f]{6,}$/, '보유정보'],
     [/^retention_period_[0-9a-z]{6,}$/, '보유기간'],
+    [/^retention_end_[0-9a-f]{6,}$/, '보유 종료조건'],
+    [/^consent_?request_[0-9a-f]{6,}$/, '동의요청'],
     [/^(legal_?basis|basis)_[0-9a-f]{6,}$/, '법적 근거'],
     [/^(destruction|destroy)_[0-9a-f]{6,}$/, '파기 계획'],
     [/^(response_?measure|measure)_[0-9a-f]{6,}$/, '사고 대응조치'],
@@ -188,7 +274,10 @@ function generatedResourceLabel(value: string): string | null {
   return patterns.find(([pattern]) => pattern.test(normalized))?.[1] ?? null
 }
 
-export function humanizeFactReference(value: string): string {
+export function humanizeFactReference(
+  value: string,
+  subjectAliases: Record<string, string> = {},
+): string {
   const factMatch = /^fact:(F[123]-\d{2}):(.+)$/.exec(value)
   if (factMatch) {
     return `${FACT_LABELS[factMatch[1]] ?? factMatch[1]} — ${STATE_LABELS[factMatch[2]] ?? termLabel(factMatch[2])}`
@@ -196,7 +285,8 @@ export function humanizeFactReference(value: string): string {
 
   const rdfMatch = /^rdf:([^:]+):([^:]+)$/.exec(value)
   if (rdfMatch) {
-    const subject = termLabel(rdfMatch[1])
+    const alias = subjectAliases[rdfMatch[1]]
+    const subject = alias ? `${alias} — ${termLabel(rdfMatch[1])}` : termLabel(rdfMatch[1])
     const predicate = termLabel(rdfMatch[2])
     return subject === predicate ? predicate : `${subject} · ${predicate}`
   }
@@ -236,6 +326,8 @@ export function humanizeDisplayValue(value: string): string {
       ?? FACT_LABELS[part]
       ?? ROLE_LABELS[part]
       ?? generatedResourceLabel(part)
+      ?? activityResourceLabel(part)
+      ?? ACTIVITY_LABELS[part]
       ?? part
   }).join(' · ')
 }
@@ -256,7 +348,18 @@ export function applicabilityLabel(value: Applicability): string {
   return { TRUE: '적용 대상', FALSE: '적용 대상 아님', UNKNOWN: '확인 필요' }[value]
 }
 
-export function humanizeNarrative(value: string): string {
+const P2_R03_RECHECK_RECOMMENDATION =
+  '필수 Fact의 value_state를 confirmed 또는 명시적 absent로 확정한 뒤 다시 평가하세요.'
+
+export function humanizeNarrative(value: string, ruleId?: string): string {
+  // 같은 문장이 여러 규칙에 쓰이므로 P2-R03(통지 시점·경위)에서만 사고시점 문맥으로 바꾼다.
+  if (ruleId === 'P2-R03') {
+    value = value.replaceAll(
+      P2_R03_RECHECK_RECOMMENDATION,
+      '사고시점에 관한 정보를 추가 확인하고, 확인 결과를 반영하여 다시 검토하세요.',
+    )
+  }
+
   const narrativeLabels: Record<string, string> = {
     measure_role: '대응조치 유형',
     data_subject_guidance: '정보주체 피해 최소화 안내',
@@ -265,12 +368,17 @@ export function humanizeNarrative(value: string): string {
     post_incident_mitigation: '사고 후 피해 완화조치',
     confirmed_false: '없음이 명시적으로 확인된 상태',
     UNKNOWN: '확인 필요',
+    value_state: '정보 확인 상태',
+    confirmed: '확인됨',
+    absent: '명시적으로 없음',
+    threshold: '판단 기준',
     ProcessingPurpose: '처리 목적',
     hasPurposeDescription: '처리 목적 설명',
     hasPurpose: '처리 목적',
     Destruction: '개인정보 파기',
     hasDestructionMethod: '파기 방법',
     DataBreachIncident: '개인정보 유출등 사고',
+    'breach-incident': '개인정보 유출등 사고',
     affectsPersonalInformation: '실제 사고 영향 개인정보',
     NotificationNotice: '정보주체 통지문',
     hasNotificationNotice: '정보주체 통지문',
@@ -289,7 +397,40 @@ export function humanizeNarrative(value: string): string {
     entrustedTaskText: '위탁업무',
   }
 
+  // 백엔드 문장 중 개발자 용어가 섞인 구절은 문맥이 보존되도록 구절 단위로 먼저 바꾼다.
+  const phrases: Array<[string | RegExp, string]> = [
+    ['Frozen Fact input contract에서 필수 Fact가 absent로 확인되었습니다.',
+      '필수 검토 정보 중 일부가 명시적으로 없는 것으로 확인되었습니다.'],
+    ['Frozen Fact input contract가 불완전하거나 UNKNOWN 상태를 포함합니다.',
+      '필수 검토 정보가 충분히 전달되지 않았거나 확인이 필요한 상태를 포함합니다.'],
+    ['absent인 필수 Fact를 원문/구조화 Form 근거로 보완한 뒤 다시 평가하세요.',
+      '명시적으로 없는 것으로 확인된 필수 검토 정보를 원문 또는 입력 양식의 근거로 보완한 뒤 다시 검토하세요.'],
+    ['필수 Fact의 value_state를 confirmed 또는 명시적 absent로 확정한 뒤 다시 평가하세요.',
+      "필수 검토 정보의 정보 확인 상태를 '확인됨' 또는 '명시적으로 없음'으로 확정한 뒤 다시 검토하세요."],
+    ['명시적 부재(confirmed_false)', '없음이 명시적으로 확인된 상태'],
+    ['UNKNOWN/모호', '확인 필요 또는 모호'],
+    ['threshold를', '판단 기준을'],
+    ['absent로', '명시적으로 없음으로'],
+    ['RDF 그래프에서', '분석 데이터에서'],
+    ['Fact extraction 단계', '정보 추출 단계'],
+    [/P\d-R\d{2} frozen coverage의 F\d-\d{2} /g, '필수 검토 범위의 '],
+    ['frozen coverage', '필수 검토 범위'],
+    ['대응정보는 존재하지만 v1 필수 4개 역할 중 일부가 누락되었거나 허용되지 않은 역할 값이 포함되어 있습니다.',
+      '대응정보는 존재하지만 필수 대응조치 4개 유형 중 일부가 확인되지 않았거나 허용되지 않은 유형이 포함되어 있습니다.'],
+    ['v1에서 허용된', '현재 버전에서 허용된'],
+    ['isRequired=true인 각 항목', '필수 항목으로 지정된 각 항목'],
+    ['deniesServiceOnOptionalRefusal을 true/false로', '선택정보 거부 시 서비스 제한 여부를 예 또는 아니오로'],
+    ['서비스 제공 거부가 false로 명시', "서비스 제공 거부가 '아니오'로 명시"],
+  ]
   let result = value
+  for (const [from, to] of phrases) {
+    result = typeof from === 'string' ? result.replaceAll(from, to) : result.replace(from, to)
+  }
+  result = result
+    .replace(
+      /\b(?:rights?[-_ ]procedure|retention[-_ ]period|retention[-_ ]end|consent[-_ ]request|legal[-_ ]basis|third[-_ ]party|right|retention|purpose|processor|pi)[-_ ][0-9a-f]{12}\b/gi,
+      (match) => generatedResourceLabel(match.replace(/ /g, '_')) ?? match,
+    )
     .replace(
       /measure_role을 data_subject_guidance, controller_response, remedy_procedure, post_incident_mitigation 4종으로만 구분해 명시하세요\./g,
       '대응조치를 정보주체 피해 최소화 안내, 개인정보처리자의 대응조치, 피해구제 절차 안내, 사고 후 피해 완화조치의 네 유형으로 구분해 명시하세요.',
@@ -305,5 +446,54 @@ export function humanizeNarrative(value: string): string {
   result = result
     .replace(/\bF[123][- ]?\d{2}(?:[- ]?\d{3})?\b/g, '관련 검토 항목')
     .replace(/\bP[123]-R\d{2}\b/g, '해당 준수 기준')
+    .replace(/\bFact\b/g, '검토 정보')
   return result
+}
+
+const EVALUATED_AT_WITH_OFFSET =
+  /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/i
+
+/**
+ * `검토 시각`을 `YYYY.MM.DD HH:mm (KST)`로 표시한다.
+ * UTC(Z) 또는 오프셋이 명시된 값만 Asia/Seoul로 변환하고, 시간대 정보가 없거나
+ * 해석할 수 없는 값은 임의로 가정하지 않고 원문을 그대로 돌려준다.
+ */
+export function formatEvaluatedAt(value: string): string {
+  const match = EVALUATED_AT_WITH_OFFSET.exec(value.trim())
+  if (!match) return value
+  const [, date, hm, seconds = '', , zone] = match
+  const offset = /^z$/i.test(zone) ? 'Z' : zone.includes(':') ? zone : `${zone.slice(0, 3)}:${zone.slice(3)}`
+  const parsed = new Date(`${date}T${hm}${seconds || ':00'}${offset}`)
+  if (Number.isNaN(parsed.getTime())) return value
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Seoul', hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+    }).formatToParts(parsed).map((part) => [part.type, part.value]),
+  )
+  return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute} (KST)`
+}
+
+/** `Fact IDs: F2-08:breach-notice` → `관련 검토 항목: 정보주체 통지문` (대상 객체가 없으면 원문 유지). */
+export function humanizeFactIdsNote(note: string): string {
+  const match = /^Fact IDs:\s*(.+)$/.exec(note)
+  if (!match) return note
+  const subjects = match[1].split(',').map((id) => /^\s*F[123]-\d{2}:([^#\s]+)(?:#\d+)?\s*$/.exec(id)?.[1])
+  if (subjects.some((subject) => !subject)) return note
+  const labels = [...new Set(subjects.map((subject) => termLabel(subject as string)))]
+  return `관련 검토 항목: ${labels.join(', ')}`
+}
+
+const RED_WITHOUT_MISSING_NOTICE =
+  '필수 검토 정보의 누락은 없지만, 확인된 내용이 해당 검토 기준을 충족하지 않아 미충족으로 판정되었습니다.'
+
+/** PoC3 RED인데 누락 항목이 없을 때만 보여 줄 안내. 그 외에는 null. */
+export function redWithoutMissingNotice(
+  ruleId: string,
+  status: RuleStatus,
+  missingFacts: string[],
+): string | null {
+  return /^P3-/.test(ruleId) && status === 'RED' && missingFacts.length === 0
+    ? RED_WITHOUT_MISSING_NOTICE
+    : null
 }

@@ -158,6 +158,12 @@
   padding: 0 10px 10px;
 }
 
+.fact-red-notice {
+  margin: 0 10px 10px;
+  font-size: 0.86rem;
+  color: var(--text);
+}
+
 .fact-group {
   min-width: 0;
   padding: 10px;

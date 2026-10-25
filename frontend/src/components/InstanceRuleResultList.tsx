@@ -2,16 +2,17 @@ import type { InstanceRuleResult } from '../types/api'
 import {
   applicabilityLabel,
   humanizeNarrative,
+  instanceLabel,
   statusLabel,
-  termLabel,
 } from '../utils/complianceLabels'
 import { EvidenceList } from './EvidenceList'
 
 interface InstanceRuleResultListProps {
   instances: InstanceRuleResult[]
+  ruleId?: string
 }
 
-export function InstanceRuleResultList({ instances }: InstanceRuleResultListProps) {
+export function InstanceRuleResultList({ instances, ruleId }: InstanceRuleResultListProps) {
   if (instances.length === 0) return null
 
   return (
@@ -26,11 +27,11 @@ export function InstanceRuleResultList({ instances }: InstanceRuleResultListProp
               {statusLabel(instance.status)}
             </span>
             <span>규칙 적용: {applicabilityLabel(instance.applicability)}</span>
-            <span>검토 대상: {termLabel(instance.instance_id)}</span>
+            <span>검토 대상: {instanceLabel(instance)}</span>
           </div>
-          {instance.reason && <p>{humanizeNarrative(instance.reason)}</p>}
+          {instance.reason && <p>{humanizeNarrative(instance.reason, ruleId)}</p>}
           {instance.recommendation && (
-            <p className="recommendation">{humanizeNarrative(instance.recommendation)}</p>
+            <p className="recommendation">{humanizeNarrative(instance.recommendation, ruleId)}</p>
           )}
           <EvidenceList evidence={instance.evidence} status={instance.status} />
         </li>
