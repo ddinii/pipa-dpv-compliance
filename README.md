@@ -120,29 +120,48 @@ PoC 1·2·3의 실제 작동 화면입니다. 아래 미리보기 이미지를 �
   <tr>
     <td width="50%" align="center" valign="top">
       <strong>PoC 1 · 개인정보처리방침 점검</strong><br>
-      <a href="docs/media/poc1-demo.mp4"><img src="docs/media/previews/poc1-poster.jpg" alt="PoC 1 개인정보처리방침 점검 시연 미리보기" width="100%"></a>
-      <br><a href="docs/media/poc1-demo.mp4">▶ 영상 보기 · 3분 20초</a>
+      <a href="https://github.com/user-attachments/assets/eeb1a1b9-730d-4e80-b93f-15fc885d6644"><img src="docs/media/previews/poc1-poster.jpg" alt="PoC 1 개인정보처리방침 점검 영상" width="100%"></a>
+      <br><a href="https://github.com/user-attachments/assets/eeb1a1b9-730d-4e80-b93f-15fc885d6644">▶ 영상 보기 · 3분 20초</a>
     </td>
     <td width="50%" align="center" valign="top">
       <strong>PoC 2 · 개인정보 침해사고 통지 검토</strong><br>
-      <a href="docs/media/poc2-demo.mp4"><img src="docs/media/previews/poc2-poster.jpg" alt="PoC 2 개인정보 침해사고 통지 검토 시연 미리보기" width="100%"></a>
-      <br><a href="docs/media/poc2-demo.mp4">▶ 영상 보기 · 2분 14초</a>
+      <a href="https://github.com/user-attachments/assets/1df1c1f8-e30b-44d4-8f55-625fe2300ad3"><img src="docs/media/previews/poc2-poster.jpg" alt="PoC 2 침해사고 통지 검토 영상" width="100%"></a>
+      <br><a href="https://github.com/user-attachments/assets/1df1c1f8-e30b-44d4-8f55-625fe2300ad3">▶ 영상 보기 · 2분 14초</a>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center" valign="top">
       <strong>PoC 3 · Privacy-by-Design (시연 ①)</strong><br>
-      <a href="docs/media/poc3-1-demo.mp4"><img src="docs/media/previews/poc3-1-poster.jpg" alt="PoC 3 첫 번째 시연 영상 미리보기" width="100%"></a>
-      <br><a href="docs/media/poc3-1-demo.mp4">▶ 영상 보기 · 3분 57초</a>
+      <a href="https://github.com/user-attachments/assets/2ef241dc-5699-47c2-9224-e23bd9da27a0"><img src="docs/media/previews/poc3-1-poster.jpg" alt="PoC 3 첫 번째 시연 영상" width="100%"></a>
+      <br><a href="https://github.com/user-attachments/assets/2ef241dc-5699-47c2-9224-e23bd9da27a0">▶ 영상 보기 · 3분 57초</a>
     </td>
     <td width="50%" align="center" valign="top">
       <strong>PoC 3 · Privacy-by-Design (시연 ②)</strong><br>
-      <a href="docs/media/poc3-2-demo.mp4"><img src="docs/media/previews/poc3-2-poster.jpg" alt="PoC 3 두 번째 시연 영상 미리보기" width="100%"></a>
-      <br><a href="docs/media/poc3-2-demo.mp4">▶ 영상 보기 · 3분 54초</a>
+      <a href="https://github.com/user-attachments/assets/630900b5-ec79-406f-b918-3c5f7b5a3578"><img src="docs/media/previews/poc3-2-poster.jpg" alt="PoC 3 두 번째 시연 영상" width="100%"></a>
+      <br><a href="https://github.com/user-attachments/assets/630900b5-ec79-406f-b918-3c5f7b5a3578">▶ 영상 보기 · 3분 54초</a>
     </td>
   </tr>
 </table>
 
+### ▶ 영상 바로 재생
+
+썸네일을 클릭하거나, 아래 GitHub 영상 플레이어에서 시연을 재생할 수 있습니다.
+
+#### PoC 1 · 개인정보처리방침 점검
+
+https://github.com/user-attachments/assets/eeb1a1b9-730d-4e80-b93f-15fc885d6644
+
+#### PoC 2 · 개인정보 침해사고 통지 검토
+
+https://github.com/user-attachments/assets/1df1c1f8-e30b-44d4-8f55-625fe2300ad3
+
+#### PoC 3 · Privacy-by-Design (시연 ①)
+
+https://github.com/user-attachments/assets/2ef241dc-5699-47c2-9224-e23bd9da27a0
+
+#### PoC 3 · Privacy-by-Design (시연 ②)
+
+https://github.com/user-attachments/assets/630900b5-ec79-406f-b918-3c5f7b5a3578
 
 <!-- PIPA-DEMO-END -->
 
