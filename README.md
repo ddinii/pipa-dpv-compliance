@@ -117,19 +117,19 @@ PoC 1·2·3의 실제 작동 화면입니다. **이 페이지에서 바로 재�
 
 <!-- PIPA-DEMO-START -->
 
-### PoC 1 · 개인정보처리방침 점검 (3분 20초)
+### PoC 1 · 개인정보처리방침 점검
 
 https://github.com/user-attachments/assets/eeb1a1b9-730d-4e80-b93f-15fc885d6644
 
-### PoC 2 · 개인정보 침해사고 통지 검토 (2분 14초)
+### PoC 2 · 개인정보 침해사고 통지 검토
 
 https://github.com/user-attachments/assets/1df1c1f8-e30b-44d4-8f55-625fe2300ad3
 
-### PoC 3 · Privacy-by-Design 시연 ① (3분 57초)
+### PoC 3 · Privacy-by-Design 시연 ①
 
 https://github.com/user-attachments/assets/2ef241dc-5699-47c2-9224-e23bd9da27a0
 
-### PoC 3 · Privacy-by-Design 시연 ② (3분 54초)
+### PoC 3 · Privacy-by-Design 시연 ②
 
 https://github.com/user-attachments/assets/630900b5-ec79-406f-b918-3c5f7b5a3578
 
