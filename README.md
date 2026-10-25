@@ -113,6 +113,38 @@ PoC 3 · 개발·설계정보 ──── 구조화 입력 → Fact 생성 ─�
 
 ## 🎬 시연 영상
 
+PoC 1·2·3의 실제 작동 화면입니다. 아래 미리보기 이미지를 누르면 각 시연 영상을 볼 수 있습니다.
+
+<!-- PIPA-DEMO-START -->
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>PoC 1 · 개인정보처리방침 점검</strong><br>
+      <a href="docs/media/poc1-demo.mp4"><img src="docs/media/previews/poc1-poster.jpg" alt="PoC 1 개인정보처리방침 점검 시연 미리보기" width="100%"></a>
+      <br><a href="docs/media/poc1-demo.mp4">▶ 영상 보기 · 3분 20초</a>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>PoC 2 · 개인정보 침해사고 통지 검토</strong><br>
+      <a href="docs/media/poc2-demo.mp4"><img src="docs/media/previews/poc2-poster.jpg" alt="PoC 2 개인정보 침해사고 통지 검토 시연 미리보기" width="100%"></a>
+      <br><a href="docs/media/poc2-demo.mp4">▶ 영상 보기 · 2분 14초</a>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <strong>PoC 3 · Privacy-by-Design (시연 ①)</strong><br>
+      <a href="docs/media/poc3-1-demo.mp4"><img src="docs/media/previews/poc3-1-poster.jpg" alt="PoC 3 첫 번째 시연 영상 미리보기" width="100%"></a>
+      <br><a href="docs/media/poc3-1-demo.mp4">▶ 영상 보기 · 3분 57초</a>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <strong>PoC 3 · Privacy-by-Design (시연 ②)</strong><br>
+      <a href="docs/media/poc3-2-demo.mp4"><img src="docs/media/previews/poc3-2-poster.jpg" alt="PoC 3 두 번째 시연 영상 미리보기" width="100%"></a>
+      <br><a href="docs/media/poc3-2-demo.mp4">▶ 영상 보기 · 3분 54초</a>
+    </td>
+  </tr>
+</table>
+
+
+<!-- PIPA-DEMO-END -->
 
 ## 🛠️ 기술 스택
 
