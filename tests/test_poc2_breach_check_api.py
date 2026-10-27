@@ -12,7 +12,7 @@ EXAMPLES = BASE.parent / "examples"
 
 client = TestClient(app)
 
-POC2_RULE_IDS = {"P2-R01", "P2-R02", "P2-R03", "P2-R08"}
+POC2_RULE_IDS = {"P2-R01", "P2-R02", "P2-R03", "P2-R08", "P2-R09"}
 
 
 def load_synthetic_breach_fixture() -> dict:
@@ -37,7 +37,7 @@ def test_breach_check_response_poc_is_poc2():
     assert response.json()["poc"] == "PoC2"
 
 
-def test_breach_check_returns_exactly_the_4_frozen_poc2_rule_ids():
+def test_breach_check_returns_all_5_poc2_rule_ids():
     response = client.post(
         "/api/v1/compliance/breach-check", json=load_synthetic_breach_fixture()
     )
@@ -45,7 +45,7 @@ def test_breach_check_returns_exactly_the_4_frozen_poc2_rule_ids():
     body = response.json()
     rule_ids = {result["rule_id"] for result in body["results"]}
     assert rule_ids == POC2_RULE_IDS
-    assert len(body["results"]) == 4
+    assert len(body["results"]) == 5
 
 
 def test_breach_check_preserves_rule_result_status_and_applicability_semantics():

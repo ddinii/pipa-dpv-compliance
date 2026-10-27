@@ -106,6 +106,7 @@ VARIANTS: list[Variant] = [
         description="통지문에서 유출등 시점 기재를 삭제한다. F2-08이 absent가 된다.",
         target_rule="P2-R03",
         expected_status="RED",
+        also_moves={"P2-R09": "YELLOW"},
         notice_edits=(("유출이 발생한 시점은 2026년 9월 5일 14시 30분입니다.\n", ""),),
         restate={"F2-08:breach-notice": ("absent", "1. 유출등이 발생한 시점")},
     ),
@@ -156,7 +157,7 @@ VARIANTS: list[Variant] = [
         expected_status="N/A",
         # 통지문이 없으면 P2-R03도 판정 대상이 없다(N/A). P2-R01은 "사고는 있으나
         # 통지문이 없음"을 RED로 드러낸다. 통지 의무 판정이 아니다 (engine 문구 참고).
-        also_moves={"P2-R01": "RED", "P2-R03": "N/A"},
+        also_moves={"P2-R01": "RED", "P2-R03": "N/A", "P2-R09": "N/A"},
         no_notice=True,
     ),
 ]

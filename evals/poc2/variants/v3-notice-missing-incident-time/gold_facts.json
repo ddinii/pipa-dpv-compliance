@@ -9,7 +9,9 @@
     "description": "통지문에서 유출등 시점 기재를 삭제한다. F2-08이 absent가 된다.",
     "target_rule": "P2-R03",
     "expected_status": "RED",
-    "also_moves": {},
+    "also_moves": {
+      "P2-R09": "YELLOW"
+    },
     "changed_facts": [
       "F2-08"
     ]
@@ -18,7 +20,8 @@
     "P2-R01": "GREEN",
     "P2-R02": "GREEN",
     "P2-R03": "RED",
-    "P2-R08": "GREEN"
+    "P2-R08": "GREEN",
+    "P2-R09": "YELLOW"
   },
   "facts": [
     {
