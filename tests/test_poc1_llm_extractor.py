@@ -386,7 +386,7 @@ def test_unknown_is_preserved_and_never_collapsed(gold: dict, policy: str):
 
 
 def test_gold_shaped_extraction_reproduces_sc_p01(gold: dict, policy: str):
-    """TST-005 E2E: 원문 -> Fact -> Ontology -> 6 Rule.
+    """TST-005 E2E: 원문 -> Fact -> Ontology -> 7 Rule.
 
     run_policy_check에 이 추출기를 주입하면 SC-P01 Freeze 기대값이 나온다.
     """

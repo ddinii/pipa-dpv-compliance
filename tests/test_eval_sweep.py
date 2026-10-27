@@ -41,7 +41,7 @@ def test_every_case_carries_a_document_and_expected_statuses():
     for case in load_poc1_cases():
         assert case.document.strip()
         assert set(case.expected_rule_status) == {
-            "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07"
+            "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07", "P1-R08"
         }
 
 
@@ -57,7 +57,7 @@ def test_perfect_prediction_scores_full_agreement():
     score = RuleScore()
     for case in load_poc1_cases():
         score.add(case.name, case.expected_rule_status, case.expected_rule_status)
-    assert score.total == 42
+    assert score.total == 49
     assert score.agreement == 1.0
     assert score.false_greens == []
 
@@ -65,7 +65,7 @@ def test_perfect_prediction_scores_full_agreement():
 def test_predicting_green_everywhere_is_caught_as_dangerous():
     """무용한 추출기의 기준선.
 
-    전부 GREEN이라고 우겨도 일치율은 0.69가 나온다. 그래서 일치율만 보면 안 되고
+    전부 GREEN이라고 우겨도 일치율은 약 0.73이 나온다. 그래서 일치율만 보면 안 되고
     위험 오판율(gold가 GREEN이 아닌데 GREEN으로 예측)을 같이 봐야 한다.
     """
     score = RuleScore()
@@ -77,7 +77,7 @@ def test_predicting_green_everywhere_is_caught_as_dangerous():
         )
     assert 0.6 < score.agreement < 0.75
     assert len(score.false_greens) == 13
-    assert score.false_green_rate > 0.3
+    assert score.false_green_rate > 0.25
 
 
 def test_missing_prediction_is_a_mismatch_not_a_pass():

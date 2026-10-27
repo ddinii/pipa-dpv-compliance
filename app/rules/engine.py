@@ -10,6 +10,7 @@ from rdflib.term import Node
 
 from app.mapping.fact_schema import validate_facts
 from app.rules.metadata import load_rule_metadata
+from app.rules.rights_coverage import RIGHTS_CHECKS, LEGACY_RIGHT_IRI_ALIASES, recognized_rights
 from app.rules.models import (
     Applicability,
     Evidence,
@@ -67,7 +68,7 @@ def _as_bool(value: Node) -> bool | None:
 
 
 class P0RuleEngine:
-    """Deterministic evaluator for the 18 frozen P0 rules and approved v1.1 extensions.
+    """Deterministic evaluator for the 18 frozen P0 rules and approved extensions.
 
     The engine consumes RDF facts that use ``PIPA_Ontology_v1.0.ttl``. It does
     not modify or extend the ontology. Rule metadata (including legal basis) is
@@ -85,6 +86,7 @@ class P0RuleEngine:
             "P1-R04": self._p1_r04,
             "P1-R06": self._p1_r06,
             "P1-R07": self._p1_r07,
+            "P1-R08": self._p1_r08,
             "P2-R01": self._p2_r01,
             "P2-R02": self._p2_r02,
             "P2-R03": self._p2_r03,
@@ -451,9 +453,9 @@ class P0RuleEngine:
 
             result.evidence = self._dedupe_evidence([*result.evidence, *contract_evidence])
 
-            if rule_id == "P2-R09":
-                # Cross-document consistency is uncheckable with missing timestamps;
-                # unlike mandatory-field rules, absence does not prove a mismatch.
+            if rule_id in {"P2-R09", "P1-R08"}:
+                # Comparison and selected-rights inventory are both review rules.
+                # An unknown/absent input does not prove a legal violation.
                 result.status = RuleStatus.YELLOW
                 result.uncertain_facts = sorted(
                     set(result.uncertain_facts)
@@ -461,8 +463,12 @@ class P0RuleEngine:
                     | {f"fact:{item}:absent" for item in absent_types}
                     | {f"fact:{item}:missing_envelope" for item in missing_types}
                 )
-                result.reason = "시점 비교에 필요한 Fact가 불명확하거나 누락되어 일치 여부를 확인할 수 없습니다."
-                result.recommendation = "사고 기록과 통지문의 발생시점을 모두 확인하세요."
+                if rule_id == "P2-R09":
+                    result.reason = "시점 비교에 필요한 Fact가 불명확하거나 누락되어 일치 여부를 확인할 수 없습니다."
+                    result.recommendation = "사고 기록과 통지문의 발생시점을 모두 확인하세요."
+                else:
+                    result.reason = "F1-11 권리 목록 Fact가 불명확하거나 누락되어 완전성 점검을 확정할 수 없습니다."
+                    result.recommendation = "처리방침의 권리 목록을 원문 근거와 함께 확인하세요."
             elif absent_types:
                 result.status = RuleStatus.RED
                 result.applicability = (
@@ -1105,6 +1111,68 @@ class P0RuleEngine:
                         recommendation="모든 권리에 구체적인 행사 방법·절차를 연결하세요.",
                     )
                 )
+        return results
+
+    def _p1_r08(self, graph: Graph) -> list[InstanceRuleResult]:
+        """Check five selected rights against F1-11; never assert legal breach."""
+        subjects = self._instances(graph, PIPA.DataSubject)
+        if not subjects:
+            return [InstanceRuleResult(
+                instance_id="__document__",
+                status=RuleStatus.YELLOW,
+                applicability=Applicability.TRUE,
+                uncertain_facts=["F1-11"],
+                evidence=[self._absence_evidence("__document__", "hasRight", "F1-11 권리 목록을 확인할 수 없음")],
+                reason="권리 목록 Fact가 없어 선정한 권리 기재 여부를 확인할 수 없습니다.",
+                recommendation="정보주체의 권리 안내 문구를 확인하세요.",
+            )]
+
+        results = []
+        for subject in subjects:
+            rights = self._objects(graph, subject, PIPA.hasRight)
+            evidence = self._assertion_evidence(graph, subject, PIPA.hasRight)
+            recognized: set[str] = set()
+            matched: list[str] = []
+            ambiguous: list[str] = []
+            for right in rights:
+                labels = [str(label).strip() for label in graph.objects(right, RDFS.label) if str(label).strip()]
+                # Imported legacy Protege graph identifies rights as RightAccess, etc.
+                # Ignore opaque mapper-generated right_<hash> URI identifiers.
+                if not labels and _local_name(right) in LEGACY_RIGHT_IRI_ALIASES:
+                    labels = [LEGACY_RIGHT_IRI_ALIASES[_local_name(right)]]
+                if not labels:
+                    ambiguous.append(self._fact_key(right, "rdfs:label"))
+                    continue
+                for label in labels:
+                    identified = recognized_rights(label)
+                    if identified:
+                        recognized.update(identified)
+                        matched.append(self._fact_key(subject, PIPA.hasRight))
+                    else:
+                        # Extra rights are not missing; ambiguous names should
+                        # not force a false GREEN if a required right is absent.
+                        ambiguous.append(f"right:unrecognized:{label}")
+            missing = [name for name in RIGHTS_CHECKS if name not in recognized]
+            if not rights:
+                evidence.append(self._absence_evidence(subject, "hasRight", "권리 목록을 찾을 수 없음"))
+            evidence.extend(self._absence_evidence(subject, "hasRight", f"점검항목 미확인: {name}") for name in missing)
+            # Unknown extra names are allowed if the five selected rights are present.
+            results.append(InstanceRuleResult(
+                instance_id=str(subject),
+                status=RuleStatus.YELLOW if missing else RuleStatus.GREEN,
+                applicability=Applicability.TRUE,
+                matched_facts=sorted(set(matched)),
+                uncertain_facts=[f"right:{name}" for name in missing] + (ambiguous if missing else []),
+                evidence=self._dedupe_evidence(evidence),
+                reason=(
+                    "선정한 5개 정보주체 권리가 모두 기재되어 있습니다 (전체 법정권리 완전성은 별도 검토)."
+                    if not missing else "점검 대상 정보주체 권리 중 원문에서 확인되지 않은 항목: " + ", ".join(missing)
+                ),
+                recommendation=(
+                    "추가 법정 권리(전송요구·자동화된 결정 관련 권리 등)의 적용 여부는 별도로 검토하세요."
+                    if not missing else "확인되지 않은 권리의 기재 여부와 적용 조건을 담당자가 검토하세요."
+                ),
+            ))
         return results
 
     # ------------------------------------------------------------------
