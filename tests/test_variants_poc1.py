@@ -62,7 +62,7 @@ def test_variant_only_moves_its_target_rule(name: str):
     gold, _ = load(name)
     base_status = {
         "P1-R01": "GREEN", "P1-R02": "YELLOW", "P1-R03": "GREEN",
-        "P1-R04": "GREEN", "P1-R06": "GREEN", "P1-R07": "GREEN",
+        "P1-R04": "GREEN", "P1-R06": "GREEN", "P1-R07": "GREEN", "P1-R08": "GREEN",
     }
     target = gold["variant"]["target_rule"]
     for rule_id, status in gold["expected_rule_status"].items():

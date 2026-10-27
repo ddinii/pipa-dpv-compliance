@@ -129,5 +129,5 @@ def test_service_still_accepts_an_injected_extractor():
         extractor=MockPoC1Extractor(),
     )
     assert {item.rule_id for item in results} == {
-        "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07"
+        "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07", "P1-R08"
     }

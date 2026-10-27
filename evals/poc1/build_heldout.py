@@ -172,6 +172,7 @@ def build_h1(document: str) -> dict:
             "P1-R04": "GREEN",
             "P1-R06": "GREEN",
             "P1-R07": "GREEN",
+            "P1-R08": "YELLOW",
         },
         "facts": facts,
     }
@@ -265,6 +266,7 @@ def build_h2(document: str) -> dict:
             "P1-R04": "GREEN",
             "P1-R06": "YELLOW",  # 결제 대행 수탁자명을 특정할 수 없다 (정정: 처음엔 RED)
             "P1-R07": "GREEN",
+            "P1-R08": "GREEN",
         },
         "facts": facts,
     }
@@ -314,6 +316,7 @@ def build_h3(document: str) -> dict:
             "P1-R04": "GREEN",
             "P1-R06": "N/A",   # "외부에 위탁하지 않습니다"
             "P1-R07": "GREEN",
+            "P1-R08": "YELLOW",
         },
         # 부재는 Fact가 아니라 presence metadata다 (35개 Fact에 더하지 않는다)
         "system_metadata": [
@@ -375,6 +378,7 @@ def build_h4(document: str) -> dict:
             "P1-R04": "GREEN",
             "P1-R06": "YELLOW",  # 위탁 언급 없음. 부재 선언도 아니다
             "P1-R07": "GREEN",
+            "P1-R08": "YELLOW",
         },
         "facts": facts,
     }

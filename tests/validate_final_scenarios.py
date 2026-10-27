@@ -75,7 +75,7 @@ def check_p01(graph, errors):
             "국외이전에 미국 destinationCountry가 연결됨", errors)
     require(len(instances(graph, PIPA.EntrustedProcessing)) == 4,
             "수탁자별 처리위탁 활동 4개가 분리됨", errors)
-    print("  EXPECTED P1-R01 GREEN / P1-R02 YELLOW / P1-R03 GREEN / P1-R04 GREEN / P1-R06 GREEN / P1-R07 GREEN")
+    print("  EXPECTED P1-R01 GREEN / P1-R02 YELLOW / P1-R03 GREEN / P1-R04 GREEN / P1-R06 GREEN / P1-R07 GREEN / P1-R08 GREEN")
 
 
 def item_names(graph, subjects):
