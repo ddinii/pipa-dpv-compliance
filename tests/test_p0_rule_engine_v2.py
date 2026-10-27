@@ -49,11 +49,11 @@ def test_frozen_ontology_file_is_not_modified_by_rule_engine():
     assert "triggersNotificationObligation" not in ontology
 
 
-def test_all_18_frozen_rule_ids_are_loaded():
+def test_all_18_frozen_rule_ids_plus_p2_r09_are_loaded():
     engine = P0RuleEngine()
     assert set(engine.metadata) == {
         "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07",
-        "P2-R01", "P2-R02", "P2-R03", "P2-R08",
+        "P2-R01", "P2-R02", "P2-R03", "P2-R08", "P2-R09",
         "P3-R01", "P3-R02", "P3-R03", "P3-R04", "P3-R05", "P3-R06", "P3-R08", "P3-R11",
     }
 
@@ -70,6 +70,7 @@ def test_rule_fact_coverage_matches_frozen_fact_dictionary():
         "P2-R02": ("F2-02", "F2-04"),
         "P2-R03": ("F2-08", "F2-09"),
         "P2-R08": ("F2-01", "F2-10"),
+        "P2-R09": ("F2-05", "F2-08"),
         "P3-R01": ("F3-01", "F3-02"),
         "P3-R02": ("F3-02", "F3-03", "F3-04"),
         "P3-R03": ("F3-02", "F3-03", "F3-05"),
@@ -103,6 +104,7 @@ def test_sc_p02_expected_freeze_results():
         "P2-R02": "GREEN",
         "P2-R03": "GREEN",
         "P2-R08": "GREEN",
+        "P2-R09": "GREEN",
     }
     p2_r01 = next(item for item in results if item.rule_id == "P2-R01")
     assert p2_r01.status.value == "GREEN"

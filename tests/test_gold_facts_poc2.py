@@ -39,6 +39,7 @@ RULE_FACT_COVERAGE = {
     "P2-R02": {"F2-02", "F2-04"},
     "P2-R03": {"F2-08", "F2-09"},
     "P2-R08": {"F2-01", "F2-10"},
+    "P2-R09": {"F2-05", "F2-08"},
 }
 
 NOTICE_SUBJECT = "breach-notice"

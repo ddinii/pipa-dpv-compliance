@@ -11,7 +11,8 @@
     "expected_status": "N/A",
     "also_moves": {
       "P2-R01": "RED",
-      "P2-R03": "N/A"
+      "P2-R03": "N/A",
+      "P2-R09": "N/A"
     },
     "changed_facts": [
       "F2-03",
@@ -25,7 +26,8 @@
     "P2-R01": "RED",
     "P2-R02": "N/A",
     "P2-R03": "N/A",
-    "P2-R08": "GREEN"
+    "P2-R08": "GREEN",
+    "P2-R09": "N/A"
   },
   "facts": [
     {

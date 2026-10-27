@@ -41,6 +41,7 @@ COVERAGE = {
     "P2-R02": {"F2-02", "F2-04"},
     "P2-R03": {"F2-08", "F2-09"},
     "P2-R08": {"F2-01", "F2-10"},
+    "P2-R09": {"F2-05", "F2-08"},
     "P3-R01": {"F3-01", "F3-02"},
     "P3-R02": {"F3-02", "F3-03", "F3-04"},
     "P3-R03": {"F3-02", "F3-03", "F3-05"},
@@ -68,7 +69,7 @@ ENVELOPE_FIELDS = {
 # --- 기능명세서 9장 최소 Compliance API ------------------------------------
 ENDPOINTS = {
     "API-001": ("/api/v1/compliance/policy-check", "examples/poc1_synthetic_policy_fixture.json", "PoC1", 6),
-    "API-002": ("/api/v1/compliance/breach-check", "examples/poc2_synthetic_breach_fixture.json", "PoC2", 4),
+    "API-002": ("/api/v1/compliance/breach-check", "examples/poc2_synthetic_breach_fixture.json", "PoC2", 5),
     "API-003": ("/api/v1/compliance/design-check", "examples/SC-D01_form.json", "PoC3", 8),
 }
 
@@ -119,14 +120,14 @@ def test_system_metadata_is_never_an_ontology_property(fact_id: str):
 # --- 기능명세서 ----------------------------------------------------------
 
 
-def test_rule_set_loader_splits_six_four_eight():
-    """COM-005: PoC에 따라 P01 6개 / P02 4개 / D01 8개를 로드한다."""
+def test_rule_set_loader_splits_six_five_eight():
+    """COM-005: PoC에 따라 P01 6개 / P02 5개 / D01 8개를 로드한다."""
     engine = P0RuleEngine()
     counts = {
         poc: len([r for r, m in engine.metadata.items() if m.poc.lower() == poc])
         for poc in ("poc1", "poc2", "poc3")
     }
-    assert counts == {"poc1": 6, "poc2": 4, "poc3": 8}
+    assert counts == {"poc1": 6, "poc2": 5, "poc3": 8}
 
 
 def test_response_model_matches_the_nine_one_envelope():
