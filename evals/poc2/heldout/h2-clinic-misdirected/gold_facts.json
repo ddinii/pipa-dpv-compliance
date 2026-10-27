@@ -12,7 +12,8 @@
     "P2-R01": "GREEN",
     "P2-R02": "GREEN",
     "P2-R03": "RED",
-    "P2-R08": "YELLOW"
+    "P2-R08": "YELLOW",
+    "P2-R09": "GREEN"
   },
   "facts": [
     {

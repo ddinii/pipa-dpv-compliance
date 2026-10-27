@@ -149,6 +149,7 @@ def build_h1(incident: str, notice: str) -> dict:
             "P2-R02": "RED",    # 배송지 주소가 통지문에 없다
             "P2-R03": "GREEN",
             "P2-R08": "GREEN",
+            "P2-R09": "YELLOW",  # 통지문은 날짜만 기재, 실제 시각과 불일치
         },
         "facts": facts,
     }
@@ -202,6 +203,7 @@ def build_h2(incident: str, notice: str) -> dict:
             "P2-R02": "GREEN",
             "P2-R03": "RED",    # 통지문에 경위가 없다
             "P2-R08": "YELLOW",  # 4역할 중 2개만 확인
+            "P2-R09": "GREEN",  # 사고 기록과 통지문 기재 시각이 일치
         },
         "facts": facts,
     }
@@ -246,6 +248,7 @@ def build_h3(incident: str, notice: str | None) -> dict:
             "P2-R02": "N/A",
             "P2-R03": "N/A",
             "P2-R08": "YELLOW",  # 4역할 중 2개
+            "P2-R09": "N/A",  # 통지문이 명시적으로 없음
         },
         "system_metadata": [{
             "field": "activity_presence",

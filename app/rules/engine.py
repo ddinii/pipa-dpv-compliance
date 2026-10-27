@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
@@ -66,7 +67,7 @@ def _as_bool(value: Node) -> bool | None:
 
 
 class P0RuleEngine:
-    """Deterministic evaluator for the frozen 18 P0 rules.
+    """Deterministic evaluator for the 18 frozen P0 rules and approved v1.1 extensions.
 
     The engine consumes RDF facts that use ``PIPA_Ontology_v1.0.ttl``. It does
     not modify or extend the ontology. Rule metadata (including legal basis) is
@@ -88,6 +89,7 @@ class P0RuleEngine:
             "P2-R02": self._p2_r02,
             "P2-R03": self._p2_r03,
             "P2-R08": self._p2_r08,
+            "P2-R09": self._p2_r09,
             "P3-R01": self._p3_r01,
             "P3-R02": self._p3_r02,
             "P3-R03": self._p3_r03,
@@ -449,7 +451,19 @@ class P0RuleEngine:
 
             result.evidence = self._dedupe_evidence([*result.evidence, *contract_evidence])
 
-            if absent_types:
+            if rule_id == "P2-R09":
+                # Cross-document consistency is uncheckable with missing timestamps;
+                # unlike mandatory-field rules, absence does not prove a mismatch.
+                result.status = RuleStatus.YELLOW
+                result.uncertain_facts = sorted(
+                    set(result.uncertain_facts)
+                    | {f"fact:{item}:unknown" for item in unknown_types}
+                    | {f"fact:{item}:absent" for item in absent_types}
+                    | {f"fact:{item}:missing_envelope" for item in missing_types}
+                )
+                result.reason = "시점 비교에 필요한 Fact가 불명확하거나 누락되어 일치 여부를 확인할 수 없습니다."
+                result.recommendation = "사고 기록과 통지문의 발생시점을 모두 확인하세요."
+            elif absent_types:
                 result.status = RuleStatus.RED
                 result.applicability = (
                     result.applicability
@@ -1369,6 +1383,91 @@ class P0RuleEngine:
                         recommendation="통지문에 유출등 시점과 경위를 구체적으로 명시하세요.",
                     )
                 )
+        return results
+
+    def _p2_r09(self, graph: Graph) -> list[InstanceRuleResult]:
+        """Compare recorded and notice-stated event times for each linked notice.
+
+        Neither side may be inferred from the other. An incomplete/ambiguous
+        comparison is YELLOW, never a legal noncompliance determination.
+        """
+        incidents = self._instances(graph, PIPA.DataBreachIncident)
+        if not incidents:
+            return self._conditional_no_targets(graph, META.dataBreachIncidentState, "DataBreachIncident")
+
+        def instant(value: Node) -> datetime | None:
+            try:
+                parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    return None  # timezone cannot safely be inferred at Rule time
+                return parsed.astimezone(timezone.utc)
+            except ValueError:
+                return None
+
+        results: list[InstanceRuleResult] = []
+        for incident in incidents:
+            notices = self._nonempty_values(graph, incident, PIPA.hasNotificationNotice)
+            if not notices:
+                if self._explicit_state(graph, META.notificationNoticeState) == "confirmed_false":
+                    results.append(InstanceRuleResult(
+                        instance_id=str(incident),
+                        status=RuleStatus.NOT_APPLICABLE,
+                        applicability=Applicability.FALSE,
+                        reason="통지문이 명시적으로 없으므로 두 문서 간 시점 비교 대상이 아닙니다.",
+                        recommendation="통지문 작성 여부를 확인하세요.",
+                    ))
+                else:
+                    results.append(InstanceRuleResult(
+                        instance_id=str(incident),
+                        status=RuleStatus.YELLOW,
+                        applicability=Applicability.UNKNOWN,
+                        uncertain_facts=[self._fact_key(incident, PIPA.hasNotificationNotice)],
+                        evidence=[self._absence_evidence(incident, "hasNotificationNotice", "비교할 통지문 확인 불가")],
+                        reason="연결된 통지문이 확인되지 않아 시점을 비교할 수 없습니다.",
+                        recommendation="사고에 대응하는 통지문을 연결하세요.",
+                    ))
+                continue
+
+            actual_times = self._nonempty_values(graph, incident, PIPA.incidentDate)
+            for notice in notices:
+                stated_times = self._nonempty_values(graph, notice, PIPA.noticeIncidentTime)
+                evidence = self._dedupe_evidence([
+                    *self._assertion_evidence(graph, incident, PIPA.incidentDate),
+                    *self._assertion_evidence(graph, incident, PIPA.hasNotificationNotice),
+                    *self._assertion_evidence(graph, notice, PIPA.noticeIncidentTime),
+                ])
+                keys = [
+                    self._fact_key(incident, PIPA.incidentDate),
+                    self._fact_key(notice, PIPA.noticeIncidentTime),
+                ]
+                actual = instant(actual_times[0]) if len(actual_times) == 1 else None
+                stated = instant(stated_times[0]) if len(stated_times) == 1 else None
+                if actual is None or stated is None:
+                    results.append(InstanceRuleResult(
+                        instance_id=str(notice), status=RuleStatus.YELLOW,
+                        applicability=Applicability.TRUE,
+                        uncertain_facts=keys,
+                        evidence=evidence + [self._absence_evidence(notice, "incidentDate/noticeIncidentTime", "시점 누락·중복·형식/시간대 확인 필요")],
+                        reason="실제 사고 시점 또는 통지문 기재시점이 불명확하여 비교할 수 없습니다.",
+                        recommendation="두 문서의 사고 발생시점을 ISO 8601 시간대 포함 형식으로 확인하세요.",
+                    ))
+                elif actual == stated:
+                    results.append(InstanceRuleResult(
+                        instance_id=str(notice), status=RuleStatus.GREEN,
+                        applicability=Applicability.TRUE,
+                        matched_facts=keys, evidence=evidence,
+                        reason="통지문 기재시점이 실제 사고 발생시점과 일치합니다.",
+                        recommendation="두 시점의 근거를 유지하세요.",
+                    ))
+                else:
+                    results.append(InstanceRuleResult(
+                        instance_id=str(notice), status=RuleStatus.YELLOW,
+                        applicability=Applicability.TRUE,
+                        matched_facts=keys, uncertain_facts=["incident_time_mismatch"],
+                        evidence=evidence,
+                        reason="통지문 기재시점과 실제 사고 발생시점이 다릅니다.",
+                        recommendation="사고 기록과 통지문의 원문을 대조해 불일치 원인을 확인하세요.",
+                    ))
         return results
 
     def _p2_r08(self, graph: Graph) -> list[InstanceRuleResult]:

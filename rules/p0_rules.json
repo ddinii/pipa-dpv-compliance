@@ -1,6 +1,6 @@
 {
   "ontology_version": "1.0",
-  "rule_version": "1.0",
+  "rule_version": "1.1",
   "fact_schema_version": "1.0",
   "rules": [
     {
@@ -277,6 +277,34 @@
       ],
       "notes": [
         "measure_role is frozen to exactly four v1 values: data_subject_guidance, controller_response, remedy_procedure, post_incident_mitigation."
+      ]
+    },
+    {
+      "rule_id": "P2-R09",
+      "poc": "PoC2",
+      "title": "사고 기록과 통지문 기재 사고 시점 일치",
+      "rule_version": "1.1",
+      "applicability": "사고와 연결된 통지문이 있으면 두 시점 비교; 명시적 통지문 부재는 N/A",
+      "legal_basis": [
+        "개인정보 보호법 제34조제1항제2호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제34조제1항제2호"
+      ],
+      "ontology_terms": [
+        "DataBreachIncident",
+        "incidentDate",
+        "hasNotificationNotice",
+        "NotificationNotice",
+        "noticeIncidentTime"
+      ],
+      "required_fact_ids": [
+        "F2-05",
+        "F2-08"
+      ],
+      "notes": [
+        "v1.1 addition. This is a factual consistency check, not a legal deadline or compliance determination.",
+        "Compare actual incidentDate and notice-stated notice_incident_time without substituting either value."
       ]
     },
     {
