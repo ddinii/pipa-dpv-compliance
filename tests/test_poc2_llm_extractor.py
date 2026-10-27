@@ -376,8 +376,8 @@ def test_incident_without_readable_text_fails_loudly():
 # --- handoff 6장: 주입 지점 ----------------------------------------------
 
 
-def test_injected_extractor_runs_the_four_poc2_rules():
-    """TST-006 E2E: 사고/통지 분리 -> 4 Rule."""
+def test_injected_extractor_runs_the_five_poc2_rules():
+    """TST-006 E2E: 사고/통지 분리 -> 5 Rule."""
     extractor = LlmPoc2Extractor(StubMessages([incident_response(), notice_response()]))
     results = run_breach_check(
         {
@@ -389,7 +389,7 @@ def test_injected_extractor_runs_the_four_poc2_rules():
         extractor=extractor,
     )
     statuses = {item.rule_id: item.status.value for item in results}
-    assert set(statuses) == {"P2-R01", "P2-R02", "P2-R03", "P2-R08"}
+    assert set(statuses) == {"P2-R01", "P2-R02", "P2-R03", "P2-R08", "P2-R09"}
     # 통지문이 전화번호를 빠뜨렸으므로 P2-R02는 GREEN일 수 없다
     assert statuses["P2-R02"] != "GREEN"
     # 나머지는 통지문이 모두 갖춰져 있으므로 확인된다

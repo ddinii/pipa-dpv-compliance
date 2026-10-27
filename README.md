@@ -62,9 +62,9 @@
 | 구분 | Fact | Rule |
 | --- | ---: | ---: |
 | PoC 1 | 12개 | 6개 |
-| PoC 2 | 10개 | 4개 |
+| PoC 2 | 10개 | 5개 |
 | PoC 3 | 13개 | 8개 |
-| **합계** | **35개** | **18개** |
+| **합계** | **35개** | **19개** |
 
 - **PIPA 온톨로지**: 클래스 37개, 객체속성 23개, 데이터속성 17개, 법조문 개체 24개
 - **구현 방식**: DPV 참고 및 국내 개인정보 보호법 규율 구조 반영, OWL 2·RDF 활용
@@ -144,7 +144,7 @@ https://github.com/user-attachments/assets/630900b5-ec79-406f-b918-3c5f7b5a3578
 | LLM | Anthropic Claude API | PoC 1·2 비정형 문서 Fact·Evidence 추출 |
 | Ontology | OWL 2, RDF, Protégé | PIPA 개념·관계 표현 및 매핑 |
 | Validation | Fact Schema | 입력 형식 및 확인상태 검증 |
-| Rule | Rule Profile, Rule Engine | 검토조건 정의 및 18개 Rule 평가 |
+| Rule | Rule Profile, Rule Engine | 검토조건 정의 및 19개 Rule 평가 |
 | Testing | pytest, frontend build/lint | 백엔드 및 프론트엔드 검증 |
 
 ### 주요 코드 위치
@@ -433,7 +433,7 @@ npm run lint
 
 ### 적용 범위 및 한계
 
-- **적용 범위**: 선정한 세 가지 PoC의 35개 Fact·18개 Rule. 개인정보 보호법 전체의 자동 검토 제외
+- **적용 범위**: 선정한 세 가지 PoC의 35개 Fact·19개 Rule. 개인정보 보호법 전체의 자동 검토 제외
 - **PoC 2**: 신고·통지 의무의 모든 법정 기준(인원·시간 임계값 등) 자동 판정 제외
 - **LLM 추출**: 문서 내용·모델에 따른 품질 차이, 원문 근거 확인 필요
 - **결과 상태**: 법적 위반 여부 확정 판정이나 법적 준수 인증이 아닌 참고정보

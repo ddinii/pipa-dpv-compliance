@@ -191,6 +191,7 @@ EXPECTED_RULE_STATUS = {
     "P2-R02": "GREEN",
     "P2-R03": "GREEN",
     "P2-R08": "GREEN",
+    "P2-R09": "GREEN",
 }
 
 
