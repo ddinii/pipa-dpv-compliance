@@ -22,7 +22,8 @@ from evals.score import datetime_supported_by, value_supported_by
 
 ROOT = Path(__file__).resolve().parents[1]
 HELDOUT = {
-    "poc1": ["h1-fitness-app", "h2-online-academy", "h3-no-sharing", "h4-partial-negation"],
+    "poc1": ["h1-fitness-app", "h2-online-academy", "h3-no-sharing", "h4-partial-negation",
+             "h5-full-disclosure"],
     "poc2": ["h1-shop-hacking", "h2-clinic-misdirected", "h3-academy-no-notice"],
 }
 CASES = [(poc, name) for poc, names in HELDOUT.items() for name in names]

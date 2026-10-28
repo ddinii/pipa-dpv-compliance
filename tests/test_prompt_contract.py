@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GOLD_PATH = ROOT / "evals" / "poc1" / "sc_p01_gold_facts.json"
 
 # Pass 2가 실제로 뽑는 Fact. F1-00(명시적 부재)은 Pass 1이 따로 처리한다.
-EXTRACTABLE_FACT_IDS = {f"F1-{n:02d}" for n in range(1, 13)}
+EXTRACTABLE_FACT_IDS = {f"F1-{n:02d}" for n in range(1, 22)}  # v1.1: F1-13~F1-21
 
 PROMPTS = {
     "PASS1_SYSTEM": PASS1_SYSTEM,
@@ -214,7 +214,8 @@ def test_event_bounded_span_is_an_end_condition_not_an_unknown_period(gold: dict
     assert "서비스 이용기간 동안" in PASS2_SYSTEM
     crossborder = {
         f["fact_id"].split(":")[0]: f["value_state"]
-        for f in gold["facts"] if f["activity_id"] == "act-crossborder-001"
+        for f in gold["facts"]
+        if f["activity_id"] == "act-crossborder-001" and f["fact_id"].startswith(("F1-03", "F1-04"))
     }
     assert crossborder == {"F1-03": "absent", "F1-04": "confirmed"}
 

@@ -35,7 +35,7 @@ def load(name: str) -> tuple[dict, str]:
 
 
 def test_variants_exist():
-    assert len(VARIANT_NAMES) == 6
+    assert len(VARIANT_NAMES) == 9
 
 
 @pytest.mark.parametrize("name", VARIANT_NAMES)
@@ -63,6 +63,7 @@ def test_variant_only_moves_its_target_rule(name: str):
     base_status = {
         "P1-R01": "GREEN", "P1-R02": "YELLOW", "P1-R03": "GREEN",
         "P1-R04": "GREEN", "P1-R06": "GREEN", "P1-R07": "GREEN", "P1-R08": "GREEN",
+        "P1-R09": "RED", "P1-R10": "RED",
     }
     target = gold["variant"]["target_rule"]
     for rule_id, status in gold["expected_rule_status"].items():

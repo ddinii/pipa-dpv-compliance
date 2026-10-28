@@ -303,7 +303,68 @@ def build() -> list[dict]:
             evidence=[ev(RIGHTS_PROCEDURE)],
         ))
 
+    facts += cross_border_facts() + privacy_officer_facts()
     return facts
+
+
+def ev_after(text: str, anchor: str) -> dict:
+    """anchor 뒤에서 처음 나오는 text. 같은 문자열이 앞 조항에도 있을 때 쓴다."""
+    base = POLICY.index(anchor)
+    start = POLICY.index(text, base)
+    return {"text": text, "start_offset": start, "end_offset": start + len(text)}
+
+
+# --- v1.1 F1-13~F1-19 국외 이전 기재 (제28조의8 제2항) -----------------------
+# 제5조는 국가·목적·항목·기간만 적는다. 이전받는 자, 시기·방법, 거부 방법은 문서 어디에도
+# 없다 -> absent -> P1-R09 RED. 제4조의 "클라우드원 주식회사"는 수탁자로 적혔을 뿐 국외
+# 이전받는 자로 적히지 않았으므로 이전받는 자로 채우지 않는다 (추정 금지).
+
+CROSS_BORDER_SECTION = "제5조 (개인정보의 국외 이전)"
+CROSS_BORDER_ITEMS = ["회원 식별정보", "주문정보", "서비스 이용기록"]
+
+
+def cross_border_facts() -> list[dict]:
+    act = "act-crossborder-001"
+    common = dict(subject_id=act, activity_id=act)
+    absent = dict(value=None, value_state="absent", evidence=[ev(CROSS_BORDER_SECTION)])
+    return [
+        fact("F1-13:act-crossborder-001", ontology_class="CrossBorderTransfer",
+             ontology_property="hasDestinationCountry", value="미국(US)",
+             evidence=[ev("미국(US)")], **common),
+        fact("F1-14:act-crossborder-001", ontology_class="CrossBorderTransfer",
+             ontology_property="hasPersonalInformation", value=CROSS_BORDER_ITEMS,
+             evidence=[ev_after(item, CROSS_BORDER_SECTION) for item in CROSS_BORDER_ITEMS], **common),
+        fact("F1-15:act-crossborder-001", ontology_class="CrossBorderTransfer",
+             ontology_property="hasPurpose", value="인프라 운영·데이터 저장·장애복구",
+             evidence=[ev("인프라 운영·데이터 저장·장애복구")], **common),
+        fact("F1-16:act-crossborder-001", ontology_class="CrossBorderTransfer",
+             ontology_property="hasTransferRecipient", **absent, **common,
+             note="이전받는 자 기재 없음. 수탁자(제4조)를 이전받는 자로 추정하지 않는다"),
+        fact("F1-17:act-crossborder-001", ontology_class="OverseasRecipient",
+             ontology_property="hasContact", **absent, **common),
+        fact("F1-18:act-crossborder-001", ontology_class="CrossBorderTransfer",
+             ontology_property="hasTransferTimingAndMethod", **absent, **common),
+        fact("F1-19:act-crossborder-001", ontology_class="CrossBorderTransfer",
+             ontology_property="hasTransferRefusalProcedure", **absent, **common),
+    ]
+
+
+# --- v1.1 F1-20~F1-21 개인정보 보호책임자 기재 (제30조 제1항 제6호) -----------
+# 제8조는 "보호책임자를 지정하고 있습니다"까지만 적고 성명·부서·연락처가 없다 -> absent -> RED.
+# 자리표시자("추후 지정" 등)가 아니라 기재 자체가 없으므로 unknown이 아니다.
+
+OFFICER_SECTION = "제8조 (개인정보 보호책임자)"
+
+
+def privacy_officer_facts() -> list[dict]:
+    common = dict(subject_id="privacy-officer", activity_id=None, value=None,
+                  value_state="absent", evidence=[ev(OFFICER_SECTION)])
+    return [
+        fact("F1-20:privacy-officer", ontology_class="PersonalInformationController",
+             ontology_property="hasPrivacyOfficer", **common),
+        fact("F1-21:privacy-officer", ontology_class="PrivacyOfficer",
+             ontology_property="hasContact", **common),
+    ]
 
 
 def main() -> int:
@@ -321,6 +382,8 @@ def main() -> int:
             "P1-R06": "GREEN",
             "P1-R07": "GREEN",
             "P1-R08": "GREEN",
+            "P1-R09": "RED",   # 이전받는 자·시기·방법·거부 방법 기재 없음
+            "P1-R10": "RED",   # 보호책임자 성명·부서·연락처 기재 없음
         },
         "facts": facts,
     }

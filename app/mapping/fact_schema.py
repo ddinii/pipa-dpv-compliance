@@ -7,6 +7,8 @@ from collections.abc import Iterable, Mapping
 from copy import deepcopy
 from typing import Any
 
+from .mapping_registry import DOCUMENT_SCOPE_FACTS
+
 
 FACT_SCHEMA_VERSION = "fact-1.0"
 VALUE_STATES = {"confirmed", "unknown", "absent"}
@@ -106,7 +108,7 @@ def validate_fact(raw: Mapping[str, Any]) -> dict[str, Any]:
     # Rights facts are global to the data subject. Every other frozen P0 Fact
     # belongs to a processing activity or incident group and must retain that
     # scope explicitly; falling back to subject_id would hide malformed input.
-    if fact_type(identifier) not in {"F1-11", "F1-12"} and not fact["activity_id"]:
+    if fact_type(identifier) not in DOCUMENT_SCOPE_FACTS and not fact["activity_id"]:
         raise FactValidationError(f"{identifier}: activity_id가 필요함")
 
     if fact["value_state"] not in VALUE_STATES:
@@ -148,6 +150,17 @@ def validate_fact(raw: Mapping[str, Any]) -> dict[str, Any]:
             raise FactValidationError(
                 f"{identifier}: F1-12 value는 비어 있지 않은 문자열 또는 "
                 "right/procedure 객체여야 함"
+            )
+
+    # F1-20: 보호책임자 성명 또는 담당 부서 명칭 (제30조 제1항 제6호). 둘 중 하나는 있어야 한다.
+    if base_type == "F1-20" and fact["value_state"] == "confirmed":
+        value = fact["value"]
+        if not (
+            isinstance(value, Mapping)
+            and any(value.get(key) not in (None, "") for key in ("name", "department"))
+        ):
+            raise FactValidationError(
+                f"{identifier}: F1-20 value는 name 또는 department가 있는 객체여야 함"
             )
 
     _validate_evidence(fact["evidence"], identifier)

@@ -14,7 +14,9 @@
     "P1-R04": "GREEN",
     "P1-R06": "GREEN",
     "P1-R07": "GREEN",
-    "P1-R08": "YELLOW"
+    "P1-R08": "YELLOW",
+    "P1-R09": "YELLOW",
+    "P1-R10": "RED"
   },
   "facts": [
     {
@@ -590,6 +592,44 @@
         }
       ],
       "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-20:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasPrivacyOfficer",
+      "value": null,
+      "value_state": "unknown",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "개인정보 보호책임자: 개인정보보호팀장",
+          "start_offset": 1005,
+          "end_offset": 1025
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "직함만 기재. 성명·부서 명칭을 특정할 수 없다"
+    },
+    {
+      "fact_id": "F1-21:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PrivacyOfficer",
+      "ontology_property": "hasContact",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "7. 개인정보 보호책임자",
+          "start_offset": 990,
+          "end_offset": 1003
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "연락처 기재 없음. 근거는 확인한 구간"
     }
   ]
 }

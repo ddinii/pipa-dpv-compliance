@@ -118,6 +118,8 @@ class P0RuleEngine:
             "P1-R06": self._p1_r06,
             "P1-R07": self._p1_r07,
             "P1-R08": self._p1_r08,
+            "P1-R09": self._p1_r09,
+            "P1-R10": self._p1_r10,
             "P2-R01": self._p2_r01,
             "P2-R02": self._p2_r02,
             "P2-R03": self._p2_r03,
@@ -188,6 +190,7 @@ class P0RuleEngine:
             "ThirdPartyProvision": META.thirdPartyProvisionState,
             "EntrustedProcessing": META.entrustedProcessingState,
             "NotificationNotice": META.notificationNoticeState,
+            "CrossBorderTransfer": META.crossBorderTransferState,
         }
         for item in mapping_result.system_metadata:
             if item.get("field") != "activity_presence":
@@ -1202,6 +1205,124 @@ class P0RuleEngine:
                 recommendation=(
                     "추가 법정 권리(전송요구·자동화된 결정 관련 권리 등)의 적용 여부는 별도로 검토하세요."
                     if not missing else "확인되지 않은 권리의 기재 여부와 적용 조건을 담당자가 검토하세요."
+                ),
+            ))
+        return results
+
+    def _p1_r09(self, graph: Graph) -> list[InstanceRuleResult]:
+        """국외 이전 기재 (제28조의8 제2항). 처리행위마다 필수 항목이 있는지 본다.
+
+        그래프에는 confirmed 값만 있다. 여기서 빠진 항목을 RED로 두면, Fact 계약
+        계층이 그 Fact가 unknown이었는지(YELLOW) absent였는지(RED) 다시 가린다.
+        보유·이용 기간은 P1-R02가 이미 판정하므로 보지 않는다.
+        """
+        transfers = self._instances(graph, PIPA.CrossBorderTransfer)
+        if not transfers:
+            return self._conditional_no_targets(graph, META.crossBorderTransferState, "CrossBorderTransfer")
+
+        results = []
+        for transfer in transfers:
+            recipients = self._objects(graph, transfer, PIPA.hasTransferRecipient)
+            purposes = self._objects(graph, transfer, PIPA.hasPurpose)
+            items = self._objects(graph, transfer, PIPA.hasPersonalInformation)
+            checks = {
+                "이전 대상 국가": self._objects(graph, transfer, PIPA.hasDestinationCountry),
+                "이전 개인정보 항목": [i for i in items if self._nonempty_values(graph, i, PIPA.hasItemName)],
+                "이전받는 자의 이용 목적": [
+                    p for p in purposes if self._nonempty_values(graph, p, PIPA.hasPurposeDescription)
+                ],
+                "이전받는 자 성명·명칭": [r for r in recipients if self._nonempty_values(graph, r, PIPA.hasName)],
+                "이전받는 자 연락처": [r for r in recipients if self._nonempty_values(graph, r, PIPA.hasContact)],
+                "이전 시기 및 방법": self._nonempty_values(graph, transfer, PIPA.hasTransferTimingAndMethod),
+                "이전 거부 방법·절차·효과": self._nonempty_values(graph, transfer, PIPA.hasTransferRefusalProcedure),
+            }
+            missing = [name for name, found in checks.items() if not found]
+            evidence = []
+            for predicate in (
+                PIPA.hasDestinationCountry, PIPA.hasPersonalInformation, PIPA.hasPurpose,
+                PIPA.hasTransferRecipient, PIPA.hasTransferTimingAndMethod, PIPA.hasTransferRefusalProcedure,
+            ):
+                evidence += self._assertion_evidence(graph, transfer, predicate)
+            for recipient in recipients:
+                evidence += self._assertion_evidence(graph, recipient, PIPA.hasName)
+                evidence += self._assertion_evidence(graph, recipient, PIPA.hasContact)
+            if missing:
+                evidence += [
+                    self._absence_evidence(transfer, "CrossBorderTransfer", f"기재 미확인: {name}")
+                    for name in missing
+                ]
+            results.append(InstanceRuleResult(
+                instance_id=str(transfer),
+                status=RuleStatus.RED if missing else RuleStatus.GREEN,
+                applicability=Applicability.TRUE,
+                matched_facts=[f"transfer_item:{name}" for name in checks if name not in missing],
+                missing_facts=[f"transfer_item:{name}" for name in missing],
+                evidence=self._dedupe_evidence(evidence),
+                reason=(
+                    "국외 이전 시 알려야 할 사항이 모두 기재되어 있습니다."
+                    if not missing else "국외 이전 기재사항 중 확인되지 않은 항목: " + ", ".join(missing)
+                ),
+                recommendation=(
+                    "보유·이용 기간은 처리·보유기간 규칙(P1-R02)의 결과를 함께 확인하세요."
+                    if not missing else "빠진 국외 이전 기재사항을 처리방침에 명시하세요."
+                ),
+            ))
+        return results
+
+    def _p1_r10(self, graph: Graph) -> list[InstanceRuleResult]:
+        """개인정보 보호책임자·연락처 기재 (제30조 제1항 제6호). 항상 적용된다.
+
+        성명 또는 담당 부서 명칭 중 하나와 연락처가 있어야 한다.
+        """
+        officers = self._instances(graph, PIPA.PrivacyOfficer)
+        if not officers:
+            return [InstanceRuleResult(
+                instance_id="__document__",
+                status=RuleStatus.RED,
+                applicability=Applicability.TRUE,
+                missing_facts=["officer_item:보호책임자 성명 또는 담당 부서", "officer_item:연락처"],
+                evidence=[self._absence_evidence(
+                    "__document__", "hasPrivacyOfficer", "개인정보 보호책임자 기재를 확인하지 못함"
+                )],
+                reason="개인정보 보호책임자(또는 담당 부서)와 연락처가 확인되지 않습니다.",
+                recommendation="보호책임자 성명 또는 담당 부서 명칭과 전화번호 등 연락처를 명시하세요.",
+            )]
+
+        results = []
+        for officer in officers:
+            identity = (
+                self._nonempty_values(graph, officer, PIPA.hasPersonName)
+                + self._nonempty_values(graph, officer, PIPA.hasDepartmentName)
+            )
+            contacts = self._nonempty_values(graph, officer, PIPA.hasContact)
+            missing = []
+            if not identity:
+                missing.append("보호책임자 성명 또는 담당 부서")
+            if not contacts:
+                missing.append("연락처")
+            evidence = []
+            for predicate in (PIPA.hasPersonName, PIPA.hasDepartmentName, PIPA.hasContact):
+                evidence += self._assertion_evidence(graph, officer, predicate)
+            evidence += [
+                self._absence_evidence(officer, "PrivacyOfficer", f"기재 미확인: {name}") for name in missing
+            ]
+            results.append(InstanceRuleResult(
+                instance_id=str(officer),
+                status=RuleStatus.RED if missing else RuleStatus.GREEN,
+                applicability=Applicability.TRUE,
+                matched_facts=[
+                    f"officer_item:{name}"
+                    for name in ("보호책임자 성명 또는 담당 부서", "연락처") if name not in missing
+                ],
+                missing_facts=[f"officer_item:{name}" for name in missing],
+                evidence=self._dedupe_evidence(evidence),
+                reason=(
+                    "개인정보 보호책임자(또는 담당 부서)와 연락처가 기재되어 있습니다."
+                    if not missing else "개인정보 보호책임자 기재사항 중 확인되지 않은 항목: " + ", ".join(missing)
+                ),
+                recommendation=(
+                    "현재 보호책임자 안내를 유지하세요."
+                    if not missing else "보호책임자 성명 또는 담당 부서 명칭과 연락처를 명시하세요."
                 ),
             ))
         return results

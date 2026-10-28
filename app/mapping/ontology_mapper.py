@@ -342,6 +342,67 @@ class OntologyMapper:
         self.graph.add((procedure, PIPA.hasProcedureDescription, Literal(description)))
         self.graph.add((right, PIPA.hasExerciseProcedure, procedure))
 
+    # v1.1 국외 이전 기재 (제28조의8 제2항) -----------------------------------
+
+    def _map_destination_country(self, fact: dict[str, Any]) -> None:
+        activity = self._subject_activity(fact)
+        for item in self._as_items(fact["value"]):
+            name = self._object_name(item, "name", "country")
+            country = self._derived_uri("country", name)
+            self.graph.add((country, RDF.type, PIPA.DestinationCountry))
+            self._add_label(country, name)
+            self.graph.add((activity, PIPA.hasDestinationCountry, country))
+
+    def _transfer_recipient_node(self, activity_id: str) -> URIRef:
+        """국외 이전 처리행위마다 이전받는 자 노드 하나. F1-16(이름)과 F1-17(연락처)이 만난다."""
+        activity = self._ensure_activity(activity_id, "CrossBorderTransfer")
+        recipient = self._derived_uri("overseas-recipient", str(activity))
+        self.graph.add((recipient, RDF.type, PIPA.OverseasRecipient))
+        self.graph.add((activity, PIPA.hasTransferRecipient, recipient))
+        return recipient
+
+    def _map_transfer_recipient(self, fact: dict[str, Any]) -> None:
+        recipient = self._transfer_recipient_node(self._activity_id(fact))
+        name = self._object_name(fact["value"], "name", "recipient")
+        self.graph.add((recipient, PIPA.hasName, Literal(name)))
+
+    def _map_recipient_contact(self, fact: dict[str, Any]) -> None:
+        recipient = self._transfer_recipient_node(self._activity_id(fact))
+        for contact in self._as_items(fact["value"]):
+            self.graph.add((recipient, PIPA.hasContact, Literal(self._object_name(contact, "contact"))))
+
+    def _map_activity_literal(self, fact: dict[str, Any]) -> None:
+        """처리행위에 직접 붙는 문장 값 (F1-18 이전 시기·방법, F1-19 거부 방법·절차·효과)."""
+        activity = self._subject_activity(fact)
+        text = self._object_name(fact["value"], "description", "text")
+        self.graph.add((activity, PIPA[fact["ontology_property"]], Literal(text)))
+
+    # v1.1 개인정보 보호책임자 기재 (제30조 제1항 제6호) ------------------------
+
+    def _privacy_officer_node(self) -> URIRef:
+        controller = self._ensure_controller()
+        officer = self._derived_uri("privacy-officer", str(controller))
+        self.graph.add((officer, RDF.type, PIPA.PrivacyOfficer))
+        self.graph.add((controller, PIPA.hasPrivacyOfficer, officer))
+        return officer
+
+    def _map_privacy_officer(self, fact: dict[str, Any]) -> None:
+        """value = {name, department}. 성명(자연인)은 hasPersonName, 부서는 hasDepartmentName.
+
+        성명은 화면 출력 시 마스킹 대상이라 회사 명칭(hasName)과 다른 속성을 쓴다.
+        """
+        officer = self._privacy_officer_node()
+        value = fact["value"]
+        if value.get("name") not in (None, ""):
+            self.graph.add((officer, PIPA.hasPersonName, Literal(str(value["name"]))))
+        if value.get("department") not in (None, ""):
+            self.graph.add((officer, PIPA.hasDepartmentName, Literal(str(value["department"]))))
+
+    def _map_officer_contact(self, fact: dict[str, Any]) -> None:
+        officer = self._privacy_officer_node()
+        for contact in self._as_items(fact["value"]):
+            self.graph.add((officer, PIPA.hasContact, Literal(self._object_name(contact, "contact"))))
+
     # PoC2 mappings ----------------------------------------------------------
 
     def _incident(self, fact: dict[str, Any]) -> URIRef:

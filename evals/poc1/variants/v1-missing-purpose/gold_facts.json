@@ -16,7 +16,9 @@
     "P1-R04": "GREEN",
     "P1-R06": "GREEN",
     "P1-R07": "GREEN",
-    "P1-R08": "GREEN"
+    "P1-R08": "GREEN",
+    "P1-R09": "RED",
+    "P1-R10": "RED"
   },
   "facts": [
     {
@@ -176,8 +178,8 @@
       "evidence": [
         {
           "text": "고객 상담",
-          "start_offset": 531,
-          "end_offset": 536
+          "start_offset": 577,
+          "end_offset": 582
         }
       ],
       "schema_version": "fact-1.0"
@@ -497,18 +499,18 @@
       "evidence": [
         {
           "text": "주문자·수령인 이름",
-          "start_offset": 379,
-          "end_offset": 389
+          "start_offset": 959,
+          "end_offset": 969
         },
         {
           "text": "휴대전화번호",
-          "start_offset": 303,
-          "end_offset": 309
+          "start_offset": 971,
+          "end_offset": 977
         },
         {
           "text": "배송지 주소",
-          "start_offset": 399,
-          "end_offset": 405
+          "start_offset": 979,
+          "end_offset": 985
         },
         {
           "text": "주문상품 정보",
@@ -820,6 +822,183 @@
           "text": "마이페이지 > 개인정보 관리 또는 개인정보보호 담당부서 이메일",
           "start_offset": 1718,
           "end_offset": 1752
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-13:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasDestinationCountry",
+      "value": "미국(US)",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "미국(US)",
+          "start_offset": 1329,
+          "end_offset": 1335
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-14:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "회원 식별정보",
+        "주문정보",
+        "서비스 이용기록"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회원 식별정보",
+          "start_offset": 1369,
+          "end_offset": 1376
+        },
+        {
+          "text": "주문정보",
+          "start_offset": 1377,
+          "end_offset": 1381
+        },
+        {
+          "text": "서비스 이용기록",
+          "start_offset": 1382,
+          "end_offset": 1390
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-15:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasPurpose",
+      "value": "인프라 운영·데이터 저장·장애복구",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "인프라 운영·데이터 저장·장애복구",
+          "start_offset": 1343,
+          "end_offset": 1361
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-16:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferRecipient",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (개인정보의 국외 이전)",
+          "start_offset": 1256,
+          "end_offset": 1273
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "이전받는 자 기재 없음. 수탁자(제4조)를 이전받는 자로 추정하지 않는다"
+    },
+    {
+      "fact_id": "F1-17:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "OverseasRecipient",
+      "ontology_property": "hasContact",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (개인정보의 국외 이전)",
+          "start_offset": 1256,
+          "end_offset": 1273
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-18:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferTimingAndMethod",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (개인정보의 국외 이전)",
+          "start_offset": 1256,
+          "end_offset": 1273
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-19:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferRefusalProcedure",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (개인정보의 국외 이전)",
+          "start_offset": 1256,
+          "end_offset": 1273
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-20:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasPrivacyOfficer",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제8조 (개인정보 보호책임자)",
+          "start_offset": 1788,
+          "end_offset": 1804
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-21:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PrivacyOfficer",
+      "ontology_property": "hasContact",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제8조 (개인정보 보호책임자)",
+          "start_offset": 1788,
+          "end_offset": 1804
         }
       ],
       "schema_version": "fact-1.0"

@@ -31,6 +31,8 @@ BASE_STATUS = {
     "P1-R06": "GREEN",
     "P1-R07": "GREEN",
     "P1-R08": "GREEN",
+    "P1-R09": "RED",
+    "P1-R10": "RED",
 }
 
 
@@ -46,6 +48,8 @@ class Variant:
     drop: set[str] = field(default_factory=set)
     # fact_id -> (새 value_state, 새 근거 인용)
     restate: dict[str, tuple[str, str]] = field(default_factory=dict)
+    # fact_id -> (새 confirmed value, 근거 인용 목록). 기준에서 absent였던 항목을 채울 때 쓴다.
+    confirm: dict[str, tuple[object, list[str]]] = field(default_factory=dict)
     # 추가할 Fact (envelope 전체). 근거 인용은 변형 문서 기준으로 해석된다.
     add: list[dict] = field(default_factory=list)
     # 정답 activity presence metadata: (activity_type, 부재를 명시한 원문 인용).
@@ -54,6 +58,20 @@ class Variant:
 
 
 CONTROLLER_ABSENCE_EVIDENCE = "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."
+CROSS_BORDER_ABSENCE_EVIDENCE = "회사는 이용자의 개인정보를 국외로 이전하지 않습니다."
+
+# v7·v8에서 채워 넣는 기재 내용. 전부 합성 값이다 (example.com, 0000 번호, 관용 예시 성명).
+TRANSFER_RECIPIENT = "Example Cloud Inc."
+TRANSFER_RECIPIENT_CONTACT = "privacy@example.com"
+TRANSFER_TIMING_METHOD = "서비스 이용 시점에 네트워크를 통해 암호화하여 전송"
+TRANSFER_REFUSAL = (
+    "개인정보 보호책임자에게 이메일로 국외 이전 거부 의사를 알릴 수 있으며, "
+    "거부 시 서비스 이용이 제한될 수 있습니다."
+)
+OFFICER_NAME = "홍길동"
+OFFICER_DEPARTMENT = "개인정보보호팀"
+OFFICER_PHONE = "02-0000-0000"
+OFFICER_EMAIL = "dpo@example.com"
 
 
 VARIANTS: list[Variant] = [
@@ -145,13 +163,81 @@ VARIANTS: list[Variant] = [
             "F1-04:act-provision-001",
         },
     ),
+    Variant(
+        name="v7-complete-cross-border",
+        description="제5조에 이전받는 자·연락처, 이전 시기·방법, 거부 방법·절차·효과를 채운다.",
+        target_rule="P1-R09",
+        expected_status="GREEN",
+        edits=[(
+            "이전 항목: 회원 식별정보·주문정보·서비스 이용기록\n",
+            "이전 항목: 회원 식별정보·주문정보·서비스 이용기록\n"
+            f"이전받는 자: {TRANSFER_RECIPIENT} (연락처: {TRANSFER_RECIPIENT_CONTACT})\n"
+            f"이전 시기 및 방법: {TRANSFER_TIMING_METHOD}\n"
+            f"거부 방법 및 절차: {TRANSFER_REFUSAL}\n",
+        )],
+        confirm={
+            "F1-16:act-crossborder-001": (TRANSFER_RECIPIENT, [TRANSFER_RECIPIENT]),
+            "F1-17:act-crossborder-001": ([TRANSFER_RECIPIENT_CONTACT], [TRANSFER_RECIPIENT_CONTACT]),
+            "F1-18:act-crossborder-001": (TRANSFER_TIMING_METHOD, [TRANSFER_TIMING_METHOD]),
+            "F1-19:act-crossborder-001": (TRANSFER_REFUSAL, [TRANSFER_REFUSAL]),
+        },
+    ),
+    Variant(
+        name="v8-complete-privacy-officer",
+        description="제8조에 보호책임자 성명·부서·연락처를 채운다.",
+        target_rule="P1-R10",
+        expected_status="GREEN",
+        edits=[(
+            "개인정보 보호책임자를 지정하고 있습니다.\n",
+            "개인정보 보호책임자를 지정하고 있습니다.\n"
+            "\n"
+            f"성명: {OFFICER_NAME}\n"
+            f"소속: {OFFICER_DEPARTMENT}\n"
+            f"연락처: {OFFICER_PHONE}, {OFFICER_EMAIL}\n",
+        )],
+        confirm={
+            "F1-20:privacy-officer": (
+                {"name": OFFICER_NAME, "department": OFFICER_DEPARTMENT},
+                [OFFICER_NAME, OFFICER_DEPARTMENT],
+            ),
+            "F1-21:privacy-officer": (
+                [OFFICER_PHONE, OFFICER_EMAIL], [OFFICER_PHONE, OFFICER_EMAIL],
+            ),
+        },
+    ),
+    Variant(
+        name="v9-no-cross-border-transfer",
+        # v6과 같은 규약: 처리행위 유형의 명시적 부재는 presence metadata로 싣고 N/A다.
+        description="국외로 이전하지 않는다고 명시한다. 국외 이전 Fact는 사라지고 부재가 명시된다.",
+        target_rule="P1-R09",
+        expected_status="N/A",
+        presence=[("CrossBorderTransfer", CROSS_BORDER_ABSENCE_EVIDENCE)],
+        edits=[(
+            "회사는 서비스 제공을 위하여 다음과 같이 개인정보를 국외로 이전하고 있습니다.\n"
+            "\n"
+            "이전받는 국가: 미국(US)\n"
+            "이전 목적: 인프라 운영·데이터 저장·장애복구\n"
+            "이전 항목: 회원 식별정보·주문정보·서비스 이용기록\n"
+            "보유 및 이용 기간: 서비스 이용기간 또는 처리 목적 달성 시까지\n",
+            CROSS_BORDER_ABSENCE_EVIDENCE + "\n",
+        )],
+        drop={f"F1-{n:02d}:act-crossborder-001" for n in (3, 4, *range(13, 20))},
+    ),
 ]
 
 
-def locate(document: str, quote: str) -> dict:
-    start = document.find(quote)
-    if start == -1:
+def locate(document: str, quote: str, near: int = 0) -> dict:
+    """quote의 위치. 여러 번 나오면 near(기준 문서 offset)에 가장 가까운 것을 고른다.
+
+    같은 문구가 여러 조항에 나오면("주문정보" 등) 첫 등장이 아니라 원래 가리키던 자리를 찾아야 한다.
+    """
+    starts, start = [], document.find(quote)
+    while start != -1:
+        starts.append(start)
+        start = document.find(quote, start + 1)
+    if not starts:
         raise ValueError(f"변형 문서에서 근거를 찾지 못했습니다: {quote!r}")
+    start = min(starts, key=lambda s: abs(s - near))
     return {"text": quote, "start_offset": start, "end_offset": start + len(quote)}
 
 
@@ -188,8 +274,19 @@ def rebuild_facts(base_facts: list[dict], document: str, variant: Variant) -> li
             facts.append(fact)
             continue
 
+        if fact_id in variant.confirm:
+            value, quotes = variant.confirm[fact_id]
+            fact["value_state"] = "confirmed"
+            fact["value"] = value
+            fact["evidence"] = [locate(document, quote) for quote in quotes]
+            fact["_note"] = f"변형 {variant.name}: {variant.description}"
+            facts.append(fact)
+            continue
+
         try:
-            fact["evidence"] = [locate(document, piece["text"]) for piece in base["evidence"]]
+            fact["evidence"] = [
+                locate(document, piece["text"], piece["start_offset"]) for piece in base["evidence"]
+            ]
         except ValueError as exc:
             raise ValueError(
                 f"{variant.name}: {fact_id}의 근거가 변형 문서에 없는데 drop/restate에 "
