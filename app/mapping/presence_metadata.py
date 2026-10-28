@@ -21,6 +21,7 @@ ACTIVITY_PRESENCE_TYPES = {
     "ThirdPartyProvision",
     "EntrustedProcessing",
     "NotificationNotice",
+    "CrossBorderTransfer",  # v1.1: "국외로 이전하지 않습니다" -> P1-R09 N/A
 }
 
 

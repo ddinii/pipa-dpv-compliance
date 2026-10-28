@@ -14,7 +14,9 @@
     "P1-R04": "GREEN",
     "P1-R06": "YELLOW",
     "P1-R07": "GREEN",
-    "P1-R08": "GREEN"
+    "P1-R08": "GREEN",
+    "P1-R09": "RED",
+    "P1-R10": "RED"
   },
   "facts": [
     {
@@ -450,6 +452,148 @@
       "schema_version": "fact-1.0"
     },
     {
+      "fact_id": "F1-13:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasDestinationCountry",
+      "value": "싱가포르",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "싱가포르",
+          "start_offset": 568,
+          "end_offset": 572
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-14:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "이메일 주소",
+        "수강 이력"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 586,
+          "end_offset": 588
+        },
+        {
+          "text": "이메일 주소",
+          "start_offset": 590,
+          "end_offset": 596
+        },
+        {
+          "text": "수강 이력",
+          "start_offset": 598,
+          "end_offset": 603
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-15:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasPurpose",
+      "value": "학습 데이터를 백업",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "학습 데이터를 백업",
+          "start_offset": 551,
+          "end_offset": 561
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-16:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferRecipient",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (국외 이전)",
+          "start_offset": 535,
+          "end_offset": 546
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "'클라우드 서버'는 이전받는 자가 아니다. 이름을 추정하지 않는다"
+    },
+    {
+      "fact_id": "F1-17:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "OverseasRecipient",
+      "ontology_property": "hasContact",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (국외 이전)",
+          "start_offset": 535,
+          "end_offset": 546
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-18:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferTimingAndMethod",
+      "value": null,
+      "value_state": "unknown",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "클라우드 서버로",
+          "start_offset": 577,
+          "end_offset": 585
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "방법(클라우드 서버로)만 있고 시기가 없다"
+    },
+    {
+      "fact_id": "F1-19:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferRefusalProcedure",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제5조 (국외 이전)",
+          "start_offset": 535,
+          "end_offset": 546
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
       "fact_id": "F1-08:act-destruction-001",
       "subject_id": "act-destruction-001",
       "activity_id": "act-destruction-001",
@@ -588,6 +732,44 @@
         }
       ],
       "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-20:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasPrivacyOfficer",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "에듀브릿지 개인정보 처리방침",
+          "start_offset": 0,
+          "end_offset": 15
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "보호책임자 기재 없음. 근거는 확인한 범위(문서 전체)"
+    },
+    {
+      "fact_id": "F1-21:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PrivacyOfficer",
+      "ontology_property": "hasContact",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "에듀브릿지 개인정보 처리방침",
+          "start_offset": 0,
+          "end_offset": 15
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "연락처 기재 없음. 근거는 확인한 범위(문서 전체)"
     }
   ]
 }

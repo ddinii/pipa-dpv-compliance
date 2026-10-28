@@ -159,6 +159,14 @@ def build_h1(document: str) -> dict:
              value="전자적 파일은 복원할 수 없는 기술적 방법으로 영구 삭제하고, 출력물은 분쇄합니다."),
         *rights(ev, ["개인정보 열람", "정정·삭제", "처리정지"],
                 "앱 내 설정 > 개인정보 메뉴 또는 고객센터 이메일"),
+        # 보호책임자를 직함("팀장")으로만 적었다. 성명도 부서 명칭도 아니므로 특정할 수 없다
+        # -> unknown. 연락처는 아예 없다 -> absent. 국외 이전은 언급 자체가 없다.
+        fact("F1-20", None, "PersonalInformationController", "hasPrivacyOfficer",
+             [ev("개인정보 보호책임자: 개인정보보호팀장")], value_state="unknown",
+             subject_id="privacy-officer", note="직함만 기재. 성명·부서 명칭을 특정할 수 없다"),
+        fact("F1-21", None, "PrivacyOfficer", "hasContact",
+             [ev("7. 개인정보 보호책임자")], value_state="absent",
+             subject_id="privacy-officer", note="연락처 기재 없음. 근거는 확인한 구간"),
     ]
     return {
         "heldout": {
@@ -173,6 +181,8 @@ def build_h1(document: str) -> dict:
             "P1-R06": "GREEN",
             "P1-R07": "GREEN",
             "P1-R08": "YELLOW",
+            "P1-R09": "YELLOW",  # 국외 이전 언급 없음. 부재 선언도 아니다
+            "P1-R10": "RED",     # 연락처 누락 (성명·부서는 특정 불가)
         },
         "facts": facts,
     }
@@ -188,6 +198,8 @@ def build_h2(document: str) -> dict:
     entrust = "회사는 강의 영상 전송과 결제 대행 업무를 외부 전문업체에 맡기고 있습니다."
     streaming = "강의 영상 전송은 주식회사 스트림원이 수행합니다."
     crossborder = "이전된 정보는 이용자가 회원 탈퇴 시 함께 삭제합니다."
+    transfer = ("회사는 학습 데이터를 백업하기 위하여 싱가포르에 있는 클라우드 서버로 "
+                "이름, 이메일 주소, 수강 이력을 이전하며")
     rights_sentence = "처리정지를 요구하거나 동의를 철회할 수 있습니다."
 
     facts = [
@@ -235,6 +247,7 @@ def build_h2(document: str) -> dict:
 
         *retention("act-crossborder-001", "CrossBorderTransfer", ev, end="회원 탈퇴 시",
                    anchor=crossborder, searched=crossborder),
+        *cross_border_h2(ev, transfer),
 
         fact("F1-08", "act-destruction-001", "Destruction", "hasDestructionMethod",
              [ev("복구할 수 없도록 전자적 방법으로 삭제합니다.")],
@@ -253,6 +266,8 @@ def build_h2(document: str) -> dict:
         subject_id="subj-001", suffix="동의를 철회",
     ))
     facts += rights_facts
+    # 제7조 권리 문장에 "보호책임자에게 서면으로"라는 언급만 있다. 성명·부서·연락처는 없다
+    facts += officer_absent(ev, "에듀브릿지 개인정보 처리방침")
 
     return {
         "heldout": {
@@ -267,9 +282,57 @@ def build_h2(document: str) -> dict:
             "P1-R06": "YELLOW",  # 결제 대행 수탁자명을 특정할 수 없다 (정정: 처음엔 RED)
             "P1-R07": "GREEN",
             "P1-R08": "GREEN",
+            "P1-R09": "RED",    # 이전받는 자·연락처·거부 방법 누락
+            "P1-R10": "RED",    # 보호책임자 조항 없음 (권리 행사 문장에 언급만 있다)
         },
         "facts": facts,
     }
+
+
+def cross_border_h2(ev, sentence: str) -> list[dict]:
+    """h2 제5조 한 문장. 국가·항목·목적은 있고, 이전받는 자는 "클라우드 서버"뿐이다.
+
+    서버는 이전받는 자(법인·사람)가 아니므로 F1-16을 채우지 않는다 -> absent.
+    "클라우드 서버로 이전"은 방법의 일부를 말하지만 시기가 없다 -> F1-18 unknown.
+    """
+    act = "act-crossborder-001"
+    items = ["이름", "이메일 주소", "수강 이력"]
+    return [
+        fact("F1-13", act, "CrossBorderTransfer", "hasDestinationCountry",
+             [ev("싱가포르")], value="싱가포르"),
+        fact("F1-14", act, "CrossBorderTransfer", "hasPersonalInformation",
+             # "이름"·"수강 이력"은 제3자 제공 문장에도 있다 -> 이전 문장 안에서 찾는다
+             [ev(item, within=sentence) for item in items],
+             value=items),
+        fact("F1-15", act, "CrossBorderTransfer", "hasPurpose",
+             [ev("학습 데이터를 백업")], value="학습 데이터를 백업"),
+        fact("F1-16", act, "CrossBorderTransfer", "hasTransferRecipient",
+             [ev("제5조 (국외 이전)")], value_state="absent",
+             note="'클라우드 서버'는 이전받는 자가 아니다. 이름을 추정하지 않는다"),
+        fact("F1-17", act, "OverseasRecipient", "hasContact",
+             [ev("제5조 (국외 이전)")], value_state="absent"),
+        fact("F1-18", act, "CrossBorderTransfer", "hasTransferTimingAndMethod",
+             [ev("클라우드 서버로")], value_state="unknown",
+             note="방법(클라우드 서버로)만 있고 시기가 없다"),
+        fact("F1-19", act, "CrossBorderTransfer", "hasTransferRefusalProcedure",
+             [ev("제5조 (국외 이전)")], value_state="absent"),
+    ]
+
+
+def officer_absent(ev, title: str) -> list[dict]:
+    """보호책임자 조항이 문서에 없다. 의무가 항상 적용되므로 Fact를 빼지 않고 absent로 둔다.
+
+    Fact가 아예 없으면 "추출하지 못함"과 구별되지 않아 YELLOW가 된다. 근거는 확인한 범위인
+    문서 전체이고, 그 대표로 문서 제목을 가리킨다.
+    """
+    return [
+        fact("F1-20", None, "PersonalInformationController", "hasPrivacyOfficer",
+             [ev(title)], value_state="absent", subject_id="privacy-officer",
+             note="보호책임자 기재 없음. 근거는 확인한 범위(문서 전체)"),
+        fact("F1-21", None, "PrivacyOfficer", "hasContact",
+             [ev(title)], value_state="absent", subject_id="privacy-officer",
+             note="연락처 기재 없음. 근거는 확인한 범위(문서 전체)"),
+    ]
 
 
 def declared_absence(ev, activity_type: str, quote: str) -> dict:
@@ -303,6 +366,7 @@ def build_h3(document: str) -> dict:
              value="복구할 수 없는 방법으로 즉시 삭제합니다."),
         *rights(ev, ["개인정보 열람", "정정·삭제", "처리정지"],
                 "앱의 설정 > 계정 메뉴에서 직접 하거나 고객지원 이메일로 요청"),
+        *officer_absent(ev, "라이트노트 개인정보 처리방침"),
     ]
     return {
         "heldout": {
@@ -317,6 +381,8 @@ def build_h3(document: str) -> dict:
             "P1-R06": "N/A",   # "외부에 위탁하지 않습니다"
             "P1-R07": "GREEN",
             "P1-R08": "YELLOW",
+            "P1-R09": "YELLOW",  # 국외 이전 언급 없음. 부재 선언이 아니다
+            "P1-R10": "RED",     # 보호책임자 기재가 문서 어디에도 없다 (항상 적용되는 의무)
         },
         # 부재는 Fact가 아니라 presence metadata다 (35개 Fact에 더하지 않는다)
         "system_metadata": [
@@ -365,6 +431,7 @@ def build_h4(document: str) -> dict:
              value="전자적 파일의 경우 복구할 수 없도록 삭제하고, 운송장 출력물은 분쇄합니다."),
         *rights(ev, ["개인정보 열람", "정정", "삭제"], "고객센터 게시판 또는 이메일",
                 anchor=rights_sentence),
+        *officer_absent(ev, "하루택배 개인정보 처리방침"),
     ]
     return {
         "heldout": {
@@ -379,7 +446,83 @@ def build_h4(document: str) -> dict:
             "P1-R06": "YELLOW",  # 위탁 언급 없음. 부재 선언도 아니다
             "P1-R07": "GREEN",
             "P1-R08": "YELLOW",
+            "P1-R09": "YELLOW",  # 국외 이전 언급 없음
+            "P1-R10": "RED",     # 보호책임자 기재 없음
         },
+        "facts": facts,
+    }
+
+
+# --- h5: 국외 이전과 보호책임자를 빠짐없이 적은 문서 -> 둘 다 GREEN -----------
+#
+# 성명·연락처는 모두 합성 값이다 (관용 예시 성명, example.com/.org, 0000 번호).
+# 이전받는 자와 연락처가 표 한 줄에 함께 있어도 F1-16(명칭)과 F1-17(연락처)로 나눈다.
+
+
+def build_h5(document: str) -> dict:
+    ev = locator(document)
+    act = "act-crossborder-001"
+    transfer_items_line = "이전 항목: 이메일 주소, 예약 내역, 접속 로그"
+    items = ["이메일 주소", "예약 내역", "접속 로그"]
+    timing = "예약 확정 시점에 전용 네트워크를 통해 암호화하여 전송"
+    refusal = ("고객센터 이메일로 국외 이전 거부를 요청할 수 있으며, "
+               "거부하는 경우 해외 지점 예약 기능을 이용할 수 없습니다.")
+    facts = [
+        *collection("act-collection-001", ev, heading="숙소 예약",
+                    heading_anchor="숙소 예약: ", purpose="숙소 예약 접수 및 예약 확인 안내"),
+        *retention("act-collection-001", "CollectionAndUse", ev, end="예약 완료 후 3년",
+                   anchor="예약 정보는 예약 완료 후 3년까지 보유합니다.",
+                   searched="제2조 (보유 기간)"),
+        fact("F1-08", "act-destruction-001", "Destruction", "hasDestructionMethod",
+             [ev("복구할 수 없도록 영구 삭제합니다.")], value="복구할 수 없도록 영구 삭제합니다."),
+        fact("F1-13", act, "CrossBorderTransfer", "hasDestinationCountry",
+             [ev("일본")], value="일본"),
+        fact("F1-14", act, "CrossBorderTransfer", "hasPersonalInformation",
+             [ev(item, within=transfer_items_line) for item in items], value=items),
+        fact("F1-15", act, "CrossBorderTransfer", "hasPurpose",
+             [ev("해외 지점 숙소 예약 처리", within="이전받는 자의 이용 목적: 해외 지점 숙소 예약 처리")],
+             value="해외 지점 숙소 예약 처리"),
+        fact("F1-16", act, "CrossBorderTransfer", "hasTransferRecipient",
+             [ev("Example Travel K.K.")], value="Example Travel K.K."),
+        fact("F1-17", act, "OverseasRecipient", "hasContact",
+             [ev("privacy@example.org")], value=["privacy@example.org"]),
+        fact("F1-18", act, "CrossBorderTransfer", "hasTransferTimingAndMethod",
+             [ev(timing)], value=timing),
+        fact("F1-19", act, "CrossBorderTransfer", "hasTransferRefusalProcedure",
+             [ev(refusal)], value=refusal),
+        *retention(act, "CrossBorderTransfer", ev, end="예약 완료 후 3년",
+                   anchor="보유 기간: 예약 완료 후 3년까지", searched="제4조 (개인정보의 국외 이전)"),
+        *rights(ev, ["열람", "정정·삭제", "처리정지"], "고객센터 이메일 또는 서면",
+                anchor="이용자는 개인정보 열람, 정정·삭제, 처리정지를 요구할 수 있습니다."),
+        fact("F1-20", None, "PersonalInformationController", "hasPrivacyOfficer",
+             [ev("홍길동"), ev("정보보호팀")],
+             value={"name": "홍길동", "department": "정보보호팀"}, subject_id="privacy-officer"),
+        fact("F1-21", None, "PrivacyOfficer", "hasContact",
+             [ev("02-0000-0000"), ev("dpo@example.com")],
+             value=["02-0000-0000", "dpo@example.com"], subject_id="privacy-officer"),
+    ]
+    return {
+        "heldout": {
+            "name": "h5-full-disclosure",
+            "description": "국외 이전 기재사항과 보호책임자 성명·부서·연락처를 모두 적은 문서",
+        },
+        "expected_rule_status": {
+            "P1-R01": "GREEN",
+            "P1-R02": "GREEN",
+            "P1-R03": "N/A",
+            "P1-R04": "GREEN",
+            "P1-R06": "N/A",
+            "P1-R07": "GREEN",
+            "P1-R08": "YELLOW",  # 동의 철회가 없다
+            "P1-R09": "GREEN",
+            "P1-R10": "GREEN",
+        },
+        "system_metadata": [
+            declared_absence(ev, "ThirdPartyProvision",
+                             "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다."),
+            declared_absence(ev, "EntrustedProcessing",
+                             "회사는 개인정보 처리업무를 외부에 위탁하지 않습니다."),
+        ],
         "facts": facts,
     }
 
@@ -389,6 +532,7 @@ BUILDERS = {
     "h2-online-academy": build_h2,
     "h3-no-sharing": build_h3,
     "h4-partial-negation": build_h4,
+    "h5-full-disclosure": build_h5,
 }
 
 

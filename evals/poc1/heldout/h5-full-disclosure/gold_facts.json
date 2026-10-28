@@ -1,0 +1,468 @@
+{
+  "source_document_id": "HELDOUT-P01-h5-full-disclosure",
+  "poc": "poc1",
+  "policy_text_file": "policy.txt",
+  "fact_schema_version": "fact-1.0",
+  "heldout": {
+    "name": "h5-full-disclosure",
+    "description": "국외 이전 기재사항과 보호책임자 성명·부서·연락처를 모두 적은 문서"
+  },
+  "expected_rule_status": {
+    "P1-R01": "GREEN",
+    "P1-R02": "GREEN",
+    "P1-R03": "N/A",
+    "P1-R04": "GREEN",
+    "P1-R06": "N/A",
+    "P1-R07": "GREEN",
+    "P1-R08": "YELLOW",
+    "P1-R09": "GREEN",
+    "P1-R10": "GREEN"
+  },
+  "system_metadata": [
+    {
+      "field": "activity_presence",
+      "activity_type": "ThirdPartyProvision",
+      "state": "confirmed_false",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 이용자의 개인정보를 제3자에게 제공하지 않습니다.",
+          "start_offset": 234,
+          "end_offset": 265
+        }
+      ]
+    },
+    {
+      "field": "activity_presence",
+      "activity_type": "EntrustedProcessing",
+      "state": "confirmed_false",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "회사는 개인정보 처리업무를 외부에 위탁하지 않습니다.",
+          "start_offset": 266,
+          "end_offset": 295
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "F1-01:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": null,
+      "value": null,
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "숙소 예약",
+          "start_offset": 104,
+          "end_offset": 109
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-02:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPurpose",
+      "value": "숙소 예약 접수 및 예약 확인 안내",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "숙소 예약 접수 및 예약 확인 안내",
+          "start_offset": 111,
+          "end_offset": 130
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제2조 (보유 기간)",
+          "start_offset": 171,
+          "end_offset": 182
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasRetention",
+      "value": "예약 완료 후 3년",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "예약 완료 후 3년",
+          "start_offset": 191,
+          "end_offset": 201
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-08:act-destruction-001",
+      "subject_id": "act-destruction-001",
+      "activity_id": "act-destruction-001",
+      "ontology_class": "Destruction",
+      "ontology_property": "hasDestructionMethod",
+      "value": "복구할 수 없도록 영구 삭제합니다.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "복구할 수 없도록 영구 삭제합니다.",
+          "start_offset": 679,
+          "end_offset": 698
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-13:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasDestinationCountry",
+      "value": "일본",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "일본",
+          "start_offset": 435,
+          "end_offset": 437
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-14:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이메일 주소",
+        "예약 내역",
+        "접속 로그"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이메일 주소",
+          "start_offset": 445,
+          "end_offset": 451
+        },
+        {
+          "text": "예약 내역",
+          "start_offset": 453,
+          "end_offset": 458
+        },
+        {
+          "text": "접속 로그",
+          "start_offset": 460,
+          "end_offset": 465
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-15:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasPurpose",
+      "value": "해외 지점 숙소 예약 처리",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "해외 지점 숙소 예약 처리",
+          "start_offset": 524,
+          "end_offset": 538
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-16:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferRecipient",
+      "value": "Example Travel K.K.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "Example Travel K.K.",
+          "start_offset": 373,
+          "end_offset": 392
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-17:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "OverseasRecipient",
+      "ontology_property": "hasContact",
+      "value": [
+        "privacy@example.org"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "privacy@example.org",
+          "start_offset": 407,
+          "end_offset": 426
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-18:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferTimingAndMethod",
+      "value": "예약 확정 시점에 전용 네트워크를 통해 암호화하여 전송",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "예약 확정 시점에 전용 네트워크를 통해 암호화하여 전송",
+          "start_offset": 478,
+          "end_offset": 508
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-19:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasTransferRefusalProcedure",
+      "value": "고객센터 이메일로 국외 이전 거부를 요청할 수 있으며, 거부하는 경우 해외 지점 예약 기능을 이용할 수 없습니다.",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 이메일로 국외 이전 거부를 요청할 수 있으며, 거부하는 경우 해외 지점 예약 기능을 이용할 수 없습니다.",
+          "start_offset": 571,
+          "end_offset": 634
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-03:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "PersonalInformationProcessing",
+      "ontology_property": "hasRetention",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "제4조 (개인정보의 국외 이전)",
+          "start_offset": 297,
+          "end_offset": 314
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "숫자 기간 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-04:act-crossborder-001",
+      "subject_id": "act-crossborder-001",
+      "activity_id": "act-crossborder-001",
+      "ontology_class": "CrossBorderTransfer",
+      "ontology_property": "hasRetention",
+      "value": "예약 완료 후 3년",
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "예약 완료 후 3년",
+          "start_offset": 546,
+          "end_offset": 556
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-11:subj-001",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubject",
+      "ontology_property": "hasRight",
+      "value": [
+        "열람",
+        "정정·삭제",
+        "처리정지"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "열람",
+          "start_offset": 709,
+          "end_offset": 711
+        },
+        {
+          "text": "정정·삭제",
+          "start_offset": 713,
+          "end_offset": 718
+        },
+        {
+          "text": "처리정지",
+          "start_offset": 720,
+          "end_offset": 724
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:열람",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "열람",
+        "procedure": "고객센터 이메일 또는 서면"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 이메일 또는 서면",
+          "start_offset": 742,
+          "end_offset": 756
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:정정·삭제",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "정정·삭제",
+        "procedure": "고객센터 이메일 또는 서면"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 이메일 또는 서면",
+          "start_offset": 742,
+          "end_offset": 756
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-12:처리정지",
+      "subject_id": "subj-001",
+      "activity_id": null,
+      "ontology_class": "DataSubjectRight",
+      "ontology_property": "hasExerciseProcedure",
+      "value": {
+        "right": "처리정지",
+        "procedure": "고객센터 이메일 또는 서면"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객센터 이메일 또는 서면",
+          "start_offset": 742,
+          "end_offset": 756
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-20:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasPrivacyOfficer",
+      "value": {
+        "name": "홍길동",
+        "department": "정보보호팀"
+      },
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "홍길동",
+          "start_offset": 792,
+          "end_offset": 795
+        },
+        {
+          "text": "정보보호팀",
+          "start_offset": 800,
+          "end_offset": 805
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-21:privacy-officer",
+      "subject_id": "privacy-officer",
+      "activity_id": null,
+      "ontology_class": "PrivacyOfficer",
+      "ontology_property": "hasContact",
+      "value": [
+        "02-0000-0000",
+        "dpo@example.com"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "02-0000-0000",
+          "start_offset": 811,
+          "end_offset": 823
+        },
+        {
+          "text": "dpo@example.com",
+          "start_offset": 825,
+          "end_offset": 840
+        }
+      ],
+      "schema_version": "fact-1.0"
+    }
+  ]
+}

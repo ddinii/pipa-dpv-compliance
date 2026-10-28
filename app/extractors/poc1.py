@@ -42,8 +42,8 @@ class IdentifiedActivity(BaseModel):
 
 
 # activity presence metadata를 받는 PoC1 유형 (app/mapping/presence_metadata.py).
-# P1-R03과 P1-R06만 "처리행위가 없음"을 N/A로 본다.
-PresenceType = Literal["ThirdPartyProvision", "EntrustedProcessing"]
+# P1-R03, P1-R06, P1-R09(v1.1)만 "처리행위가 없음"을 N/A로 본다.
+PresenceType = Literal["ThirdPartyProvision", "EntrustedProcessing", "CrossBorderTransfer"]
 
 
 class DeclaredAbsence(BaseModel):
@@ -64,8 +64,15 @@ class RightProcedure(BaseModel):
     procedure: str = Field(description="그 권리의 행사절차")
 
 
+class OfficerIdentity(BaseModel):
+    # 두 필드 모두 필수(null 허용)다. 선택 필드로 두면 RightProcedure 값도 이 모델로
+    # 검증을 통과해 버려 union에서 둘을 가를 수 없다.
+    name: str | None = Field(description="보호책임자 성명. 적히지 않았으면 null")
+    department: str | None = Field(description="보호책임자 부서 명칭. 적히지 않았으면 null")
+
+
 # structured outputs는 타입 없는 필드(Any)를 받지 않는다. 3장의 값 타입만 나열한다.
-Poc1Value = str | list[str] | RightProcedure | None
+Poc1Value = str | list[str] | RightProcedure | OfficerIdentity | None
 
 
 # structured outputs의 enum으로 묶는다. 자유 문자열이면 모델이 "F1-12-1"처럼 번호를
@@ -74,7 +81,18 @@ Poc1Value = str | list[str] | RightProcedure | None
 Poc1FactId = Literal[
     "F1-01", "F1-02", "F1-03", "F1-04", "F1-05", "F1-06",
     "F1-07", "F1-08", "F1-09", "F1-10", "F1-11", "F1-12",
+    # v1.1 국외 이전 기재 / 개인정보 보호책임자 기재
+    "F1-13", "F1-14", "F1-15", "F1-16", "F1-17", "F1-18", "F1-19",
+    "F1-20", "F1-21",
 ]
+
+# 처리행위가 아니라 문서에 귀속되는 Fact의 subject (정본 레지스트리의 subject_class와 같다)
+_DOCUMENT_SUBJECTS = {
+    "F1-11": ("subj-001", "DataSubject"),
+    "F1-12": ("subj-001", "DataSubjectRight"),
+    "F1-20": ("privacy-officer", "PersonalInformationController"),
+    "F1-21": ("privacy-officer", "PrivacyOfficer"),
+}
 
 
 class ExtractedFact(BaseModel):
@@ -206,7 +224,7 @@ class PoC1Extractor:
     def extract_rights_facts(self, document: str) -> list[ExtractedFact]:
         parsed: FactList = self._parse(
             self._system_blocks(RIGHTS_SYSTEM, document),
-            "이 처리방침의 정보주체 권리와 행사절차를 추출하십시오.",
+            "이 처리방침의 정보주체 권리와 행사절차, 개인정보 보호책임자를 추출하십시오.",
             FactList,
         )
         return parsed.facts
@@ -397,12 +415,14 @@ class PoC1Extractor:
         if activity is None:
             # 3장: F1-11은 DataSubject.hasRight, F1-12는
             # DataSubjectRight.hasExerciseProcedure다. subject Class가 다르다.
-            if raw.fact_id == "F1-12":
-                return "subj-001", "DataSubjectRight"
-            return "subj-001", "DataSubject"
+            # v1.1 F1-20/F1-21도 문서 단위다 (보호책임자 개체는 매퍼가 만든다).
+            return _DOCUMENT_SUBJECTS.get(raw.fact_id, _DOCUMENT_SUBJECTS["F1-11"])
         if raw.fact_id in {"F1-03", "F1-04"}:
             # 보유 Fact는 상위 클래스로 단언한다 (3장 PersonalInformationProcessing)
             return activity.activity_id, "PersonalInformationProcessing"
+        if raw.fact_id == "F1-17":
+            # 이전받는 자의 연락처. subject는 그 처리행위의 이전받는 자 개체다
+            return activity.activity_id, "OverseasRecipient"
         return activity.activity_id, activity.ontology_class
 
 

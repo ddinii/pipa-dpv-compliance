@@ -7,11 +7,13 @@
 
 <https://w3id.org/pipa-compliance/ontology>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/pipa-compliance/ontology/1.0> ;
-    owl:versionInfo "1.0" ;
+    owl:versionIRI <https://w3id.org/pipa-compliance/ontology/1.1> ;
+    owl:versionInfo "1.1" ;
+    owl:priorVersion <https://w3id.org/pipa-compliance/ontology/1.0> ;
     dct:title "PIPA Compliance Process-Centered Ontology"@en ,
               "개인정보 보호법 준수 지원 처리행위 중심 온톨로지"@ko ;
     dct:created "2026-09-11"^^xsd:date ;
+    dct:modified "2026-10-29"^^xsd:date ;
     rdfs:comment "PoC Freeze 문서의 P0 Rule/Fact와 처리행위 중심 모델링 원칙을 반영한 Protégé 호환 OWL 2 Turtle 온톨로지이다. 법적 판단을 확정하지 않는다."@ko ;
     rdfs:comment "조건부 처리행위 자체의 존재·부재는 core ontology assertion이 아니라 검증된 system metadata로 관리한다. 속성 부재와 활동 부재를 혼동하지 않는다."@ko .
 
@@ -352,6 +354,52 @@ pipa:articleNumber a owl:DatatypeProperty ;
 pipa:provisionIdentifier a owl:DatatypeProperty ;
     rdfs:domain pipa:PIPAArticle ; rdfs:range xsd:string ;
     rdfs:label "provision identifier"@en , "조항 식별자"@ko .
+
+#################################################################
+# v1.1 additions (2026-10-29): 국외 이전 기재·개인정보 보호책임자 기재 Rule
+# 기존 v1.0 용어는 바꾸지 않고 추가만 한다. 파일명은 경로 호환을 위해 유지한다.
+#################################################################
+
+pipa:OverseasRecipient a owl:Class ;
+    rdfs:subClassOf pipa:Actor ;
+    rdfs:label "Overseas Recipient"@en , "국외 이전받는 자"@ko ;
+    rdfs:comment "개인정보 보호법 제28조의8 제2항 제3호의 개인정보를 이전받는 자."@ko .
+
+pipa:PrivacyOfficer a owl:Class ;
+    rdfs:subClassOf pipa:Actor ;
+    rdfs:label "Privacy Officer"@en , "개인정보 보호책임자"@ko ;
+    rdfs:comment "제30조 제1항 제6호의 개인정보 보호책임자 또는 보호업무·고충처리 담당 부서. 성명 또는 부서 명칭 중 하나로 특정된다."@ko .
+
+pipa:hasTransferRecipient a owl:ObjectProperty ;
+    rdfs:domain pipa:CrossBorderTransfer ;
+    rdfs:range pipa:OverseasRecipient ;
+    rdfs:label "has transfer recipient"@en , "이전받는 자"@ko .
+
+pipa:hasPrivacyOfficer a owl:ObjectProperty ;
+    rdfs:domain pipa:PersonalInformationController ;
+    rdfs:range pipa:PrivacyOfficer ;
+    rdfs:label "has privacy officer"@en , "개인정보 보호책임자"@ko .
+
+pipa:hasContact a owl:DatatypeProperty ;
+    rdfs:domain pipa:Actor ; rdfs:range xsd:string ;
+    rdfs:label "has contact"@en , "연락처"@ko .
+
+pipa:hasPersonName a owl:DatatypeProperty ;
+    rdfs:domain pipa:PrivacyOfficer ; rdfs:range xsd:string ;
+    rdfs:label "has person name"@en , "성명"@ko ;
+    rdfs:comment "자연인 성명. hasName(명칭)과 구분해 화면 출력 시 마스킹한다."@ko .
+
+pipa:hasDepartmentName a owl:DatatypeProperty ;
+    rdfs:domain pipa:PrivacyOfficer ; rdfs:range xsd:string ;
+    rdfs:label "has department name"@en , "부서 명칭"@ko .
+
+pipa:hasTransferTimingAndMethod a owl:DatatypeProperty ;
+    rdfs:domain pipa:CrossBorderTransfer ; rdfs:range xsd:string ;
+    rdfs:label "has transfer timing and method"@en , "이전 시기 및 방법"@ko .
+
+pipa:hasTransferRefusalProcedure a owl:DatatypeProperty ;
+    rdfs:domain pipa:CrossBorderTransfer ; rdfs:range xsd:string ;
+    rdfs:label "has transfer refusal procedure"@en , "이전 거부 방법·절차·효과"@ko .
 
 #################################################################
 # Annotation properties for evidence and non-ontology rule metadata

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import pytest
 
+from app.mapping.mapping_registry import DOCUMENT_SCOPE_FACTS
+
 ROOT = Path(__file__).resolve().parents[1]
 EVAL_DIR = ROOT / "evals" / "poc1"
 GOLD_PATH = EVAL_DIR / "sc_p01_gold_facts.json"
@@ -140,10 +142,11 @@ def test_each_poc1_rule_has_its_required_facts(gold: dict, rule_id: str):
 def test_activity_scoped_facts_carry_an_activity_id(gold: dict):
     """3장·8장: 처리행위에 귀속되는 Fact는 activity_id로 묶여야 한다.
 
-    F1-11/F1-12(정보주체 권리)만 처리행위에 속하지 않으므로 null을 허용한다.
+    F1-11/F1-12(정보주체 권리)와 v1.1 F1-20/F1-21(보호책임자)은 처리행위에 속하지
+    않으므로 null을 허용한다.
     """
     for item in gold["facts"]:
-        if fact_type(item) in {"F1-11", "F1-12"}:
+        if fact_type(item) in DOCUMENT_SCOPE_FACTS:
             assert item["activity_id"] is None, item["fact_id"]
         else:
             assert item["activity_id"], item["fact_id"]
@@ -163,11 +166,13 @@ def test_facts_of_one_activity_never_mix_ontology_classes(gold: dict):
             # F1-09/F1-10 모두 처리행위를 subject로 둔다. 수탁자 개체는 매퍼가 만든다.
             assert classes == {"EntrustedProcessing"}, activity_id
         else:
-            # 보유 관련 Fact는 상위 클래스 이름을 쓰므로 함께 허용한다
+            # 보유 관련 Fact는 상위 클래스 이름을 쓰므로 함께 허용한다.
+            # F1-17(이전받는 자 연락처)은 같은 처리행위의 이전받는 자 개체를 subject로 둔다.
             assert classes <= {
                 "CollectionAndUse",
                 "ThirdPartyProvision",
                 "CrossBorderTransfer",
+                "OverseasRecipient",
                 "Destruction",
                 "PersonalInformationProcessing",
             }, (activity_id, classes)

@@ -26,6 +26,18 @@ FACT_SPECS: dict[str, FactSpec] = {
     "F1-10": FactSpec("EntrustedProcessing", None, "entrusted_task_metadata"),
     "F1-11": FactSpec("DataSubject", "hasRight", "rights"),
     "F1-12": FactSpec("DataSubjectRight", "hasExerciseProcedure", "right_procedure"),
+    # v1.1 (2026-10-29) 국외 이전 기재 — 개인정보 보호법 제28조의8 제2항.
+    # 보유·이용 기간(제4호 후단)은 새 번호를 두지 않고 기존 F1-03/F1-04를 쓴다.
+    "F1-13": FactSpec("CrossBorderTransfer", "hasDestinationCountry", "destination_country"),  # 제2호 국가
+    "F1-14": FactSpec("CrossBorderTransfer", "hasPersonalInformation", "personal_information"),  # 제1호
+    "F1-15": FactSpec("CrossBorderTransfer", "hasPurpose", "purpose"),  # 제4호 이용목적
+    "F1-16": FactSpec("CrossBorderTransfer", "hasTransferRecipient", "transfer_recipient"),  # 제3호
+    "F1-17": FactSpec("OverseasRecipient", "hasContact", "recipient_contact"),  # 제3호 연락처
+    "F1-18": FactSpec("CrossBorderTransfer", "hasTransferTimingAndMethod", "activity_literal"),  # 제2호
+    "F1-19": FactSpec("CrossBorderTransfer", "hasTransferRefusalProcedure", "activity_literal"),  # 제5호
+    # v1.1 개인정보 보호책임자 기재 — 제30조 제1항 제6호. 처리행위에 속하지 않는다 (F1-11처럼 문서 단위).
+    "F1-20": FactSpec("PersonalInformationController", "hasPrivacyOfficer", "privacy_officer"),  # 성명 또는 부서
+    "F1-21": FactSpec("PrivacyOfficer", "hasContact", "officer_contact"),  # 연락처
     # PoC2
     "F2-01": FactSpec("DataBreachIncident", None, "class_assertion"),
     "F2-02": FactSpec("DataBreachIncident", "affectsPersonalInformation", "incident_information"),
@@ -56,3 +68,6 @@ FACT_SPECS: dict[str, FactSpec] = {
 
 SYSTEM_METADATA_FACTS = {"F1-10", "F2-08", "F3-13"}
 
+
+# 처리행위에 속하지 않는 문서 단위 Fact. activity_id가 없어도 된다.
+DOCUMENT_SCOPE_FACTS = {"F1-11", "F1-12", "F1-20", "F1-21"}

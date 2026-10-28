@@ -39,6 +39,9 @@ const TERM_LABELS: Record<string, string> = {
   EntrustedProcessor: '수탁자',
   ThirdParty: '제3자',
   DestinationCountry: '이전 대상 국가',
+  OverseasRecipient: '국외 이전받는 자',
+  PersonalInformationController: '개인정보처리자',
+  PrivacyOfficer: '개인정보 보호책임자',
   ResponseMeasure: '사고 대응조치',
   hasPurpose: '처리 목적',
   hasPurposeDescription: '처리 목적 설명',
@@ -56,6 +59,13 @@ const TERM_LABELS: Record<string, string> = {
   triggersDestruction: '파기 계획',
   hasDestructionMethod: '파기 방법',
   hasDestinationCountry: '이전 대상 국가',
+  hasTransferRecipient: '국외 이전받는 자',
+  hasTransferTimingAndMethod: '이전 시기 및 방법',
+  hasTransferRefusalProcedure: '이전 거부 방법·절차·효과',
+  hasPrivacyOfficer: '개인정보 보호책임자',
+  hasPersonName: '성명',
+  hasDepartmentName: '부서 명칭',
+  hasContact: '연락처',
   hasRight: '보장된 정보주체 권리',
   hasExerciseProcedure: '권리 행사절차',
   hasProcedureDescription: '권리 행사방법 설명',
@@ -79,6 +89,7 @@ const TERM_LABELS: Record<string, string> = {
   collectionAndUseState: '수집·이용 존재 여부',
   thirdPartyProvisionState: '제3자 제공 존재 여부',
   entrustedProcessingState: '처리위탁 존재 여부',
+  crossBorderTransferState: '국외 이전 존재 여부',
   dataBreachIncidentState: '개인정보 유출등 사고 존재 여부',
   notificationNoticeState: '정보주체 통지문 존재 여부',
 }
@@ -91,6 +102,8 @@ const RULE_LABELS: Record<string, string> = {
   'P1-R06': '처리위탁 기재',
   'P1-R07': '정보주체 권리행사 방법',
   'P1-R08': '정보주체 권리 목록 누락 점검',
+  'P1-R09': '국외 이전 기재',
+  'P1-R10': '개인정보 보호책임자·연락처 기재',
   'P2-R01': '개인정보 유출등 사고와 통지문 확인',
   'P2-R02': '통지 개인정보 항목 확인',
   'P2-R03': '통지 시점·경위 확인',
@@ -111,6 +124,10 @@ const FACT_LABELS: Record<string, string> = {
   'F1-04': '보유 종료조건', 'F1-05': '제공받는 자', 'F1-06': '제공 개인정보',
   'F1-07': '제3자 제공 목적', 'F1-08': '파기 방법', 'F1-09': '수탁자',
   'F1-10': '위탁업무', 'F1-11': '정보주체 권리', 'F1-12': '권리 행사절차',
+  'F1-13': '이전 대상 국가', 'F1-14': '이전 개인정보 항목', 'F1-15': '이전받는 자의 이용 목적',
+  'F1-16': '이전받는 자 성명·명칭', 'F1-17': '이전받는 자 연락처',
+  'F1-18': '이전 시기 및 방법', 'F1-19': '이전 거부 방법·절차·효과',
+  'F1-20': '보호책임자 성명 또는 담당 부서', 'F1-21': '보호책임자 연락처',
   'F2-01': '개인정보 유출등 사고', 'F2-02': '실제 사고 영향 개인정보',
   'F2-03': '사고와 통지문 연결', 'F2-04': '통지문 기재 개인정보',
   'F2-05': '실제 사고 발생시점', 'F2-06': '사고 인지시점', 'F2-07': '통지시점',
@@ -260,6 +277,9 @@ export function generatedResourceLabel(value: string): string | null {
     [/^purpose_[0-9a-f]{6,}$/, '처리 목적'],
     [/^(third_?party|recipient)_[0-9a-f]{6,}$/, '제공받는 자'],
     [/^processor_[0-9a-f]{6,}$/, '수탁자'],
+    [/^overseas_recipient_[0-9a-f]{6,}$/, '국외 이전받는 자'],
+    [/^privacy_officer_[0-9a-f]{6,}$/, '개인정보 보호책임자'],
+    [/^country_[0-9a-f]{6,}$/, '이전 대상 국가'],
     [/^retention_[0-9a-f]{6,}$/, '보유정보'],
     [/^retention_period_[0-9a-z]{6,}$/, '보유기간'],
     [/^retention_end_[0-9a-f]{6,}$/, '보유 종료조건'],
@@ -312,6 +332,12 @@ export function humanizeFactReference(
   if (unrecognizedRight) return `인식하지 못한 권리 표현 · ${unrecognizedRight[1]}`
   const missingRight = /^right:(.+)$/.exec(value)
   if (missingRight) return `확인되지 않은 정보주체 권리 · ${missingRight[1]}`
+
+  // P1-R09 / P1-R10: 항목 이름은 엔진이 한글로 보낸다
+  const transferItem = /^transfer_item:(.+)$/.exec(value)
+  if (transferItem) return `국외 이전 기재사항 · ${transferItem[1]}`
+  const officerItem = /^officer_item:(.+)$/.exec(value)
+  if (officerItem) return `보호책임자 기재사항 · ${officerItem[1]}`
 
   if (value === 'applicability') return '규칙 적용 대상 여부'
   if (value === 'no_optional_items') return '선택 개인정보 항목 없음'

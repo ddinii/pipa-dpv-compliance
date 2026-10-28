@@ -1,5 +1,5 @@
 {
-  "ontology_version": "1.0",
+  "ontology_version": "1.1",
   "rule_version": "1.1",
   "fact_schema_version": "1.0",
   "rules": [
@@ -199,6 +199,80 @@
         "열람·정정·삭제·처리정지·동의 철회 5개 점검항목만 대조한다 (정정·삭제는 각각 검사).",
         "누락/불확실은 YELLOW(인적 확인). 이 항목들만으로 모든 법정 권리를 검사했다고 판단하지 않는다.",
         "개인정보 전송 요구권(제35조의2), 자동화된 결정 거부·설명 요구권(제37조의2)은 본 Rule의 자동 판정 범위가 아니며 별도 법률 검토 대상이다."
+      ]
+    },
+    {
+      "rule_id": "P1-R09",
+      "poc": "PoC1",
+      "title": "국외 이전 기재",
+      "rule_version": "1.1",
+      "applicability": "CrossBorderTransfer 존재 시 적용; confirmed_false이면 N/A; 존재 여부 불명확하면 YELLOW",
+      "legal_basis": [
+        "개인정보 보호법 제28조의8제2항",
+        "개인정보 보호법 제28조의8제1항제3호가목"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제28조의8제2항",
+        "개인정보 보호법 제28조의8제1항제3호가목"
+      ],
+      "ontology_terms": [
+        "CrossBorderTransfer",
+        "hasDestinationCountry",
+        "hasPersonalInformation",
+        "hasPurpose",
+        "hasTransferRecipient",
+        "OverseasRecipient",
+        "hasName",
+        "hasContact",
+        "hasTransferTimingAndMethod",
+        "hasTransferRefusalProcedure"
+      ],
+      "required_fact_ids": [
+        "F1-13",
+        "F1-14",
+        "F1-15",
+        "F1-16",
+        "F1-17",
+        "F1-18",
+        "F1-19"
+      ],
+      "notes": [
+        "v1.1 확장 Rule (2026-10-29). 온톨로지 v1.1 용어와 Fact F1-13~F1-19를 쓴다.",
+        "항목 단위 판정: 필수 항목이 문서 전체에서 명확히 없으면(absent) RED, 모호하거나 일부만 기재(unknown)면 YELLOW, 모두 확인되면 GREEN.",
+        "보유·이용 기간(제2항 제4호 후단)은 P1-R02가 국외 이전 처리행위에 대해 판정하므로 이 Rule에서 다시 보지 않는다.",
+        "기재 여부만 본다. 국외 이전의 적법성(동의·인증 등 요건 충족)은 판단하지 않는다."
+      ]
+    },
+    {
+      "rule_id": "P1-R10",
+      "poc": "PoC1",
+      "title": "개인정보 보호책임자·연락처 기재",
+      "rule_version": "1.1",
+      "applicability": "항상 (처리방침 필수 기재사항)",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제6호",
+        "개인정보 보호법 제31조"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제6호",
+        "개인정보 보호법 제31조"
+      ],
+      "ontology_terms": [
+        "PersonalInformationController",
+        "hasPrivacyOfficer",
+        "PrivacyOfficer",
+        "hasPersonName",
+        "hasDepartmentName",
+        "hasContact"
+      ],
+      "required_fact_ids": [
+        "F1-20",
+        "F1-21"
+      ],
+      "notes": [
+        "v1.1 확장 Rule (2026-10-29). 온톨로지 v1.1 용어와 Fact F1-20~F1-21을 쓴다.",
+        "보호책임자 성명 또는 담당 부서 명칭 중 하나와 연락처가 모두 확인되면 GREEN. 둘 중 하나가 문서 전체에서 없으면 RED, 모호하면(예: 직함만 기재) YELLOW.",
+        "성명은 화면 출력 시 마스킹한다 (app/privacy/masking.py)."
       ]
     },
     {
