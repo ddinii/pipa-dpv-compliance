@@ -103,3 +103,37 @@ def test_negative_right_statement_is_not_counted():
     names = ["열람 불가", "정정·삭제", "처리정지", "동의 철회"]
     result = P0RuleEngine().evaluate_rule(graph_with_rights(*names), "P1-R08")
     assert result.status.value == "YELLOW"
+
+
+@pytest.mark.parametrize("phrase", ["개인정보 처리의 정지 요구", "처리 중단 요구", "처리 중지 요구"])
+def test_suspension_paraphrases_are_recognized(phrase):
+    """'처리의 정지'는 법령·처리방침에 흔한 표현이다. 놓치면 거짓 YELLOW가 난다."""
+    result = P0RuleEngine().evaluate_rule(
+        graph_with_rights("열람", "정정·삭제", phrase, "동의 철회"), "P1-R08"
+    )
+    assert result.status.value == "GREEN"
+
+
+def test_parenthetical_caveat_does_not_erase_the_right():
+    """괄호 속 단서의 '불가' 한 단어가 권리 전체를 부정으로 만들면 안 된다."""
+    names = [
+        "열람", "정정",
+        "개인정보의 삭제 요구(다른 법령에서 수집 대상으로 명시된 경우 삭제 불가)",
+        "처리정지", "동의 철회",
+    ]
+    result = P0RuleEngine().evaluate_rule(graph_with_rights(*names), "P1-R08")
+    assert result.status.value == "GREEN"
+
+
+def test_right_mentioned_only_inside_a_caveat_is_not_counted():
+    """괄호 안에서만 언급된 권리는 기재된 권리로 세지 않는다."""
+    names = ["열람", "정정 요구 (삭제 불가)", "처리정지", "동의 철회"]
+    result = P0RuleEngine().evaluate_rule(graph_with_rights(*names), "P1-R08")
+    assert result.status.value == "YELLOW"
+    assert "right:삭제" in result.uncertain_facts
+
+
+def test_refusal_is_not_withdrawal():
+    names = ["열람", "정정·삭제", "처리정지", "동의 거부"]
+    result = P0RuleEngine().evaluate_rule(graph_with_rights(*names), "P1-R08")
+    assert "right:동의 철회" in result.uncertain_facts

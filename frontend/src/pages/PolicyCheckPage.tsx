@@ -60,7 +60,7 @@ export function PolicyCheckPage() {
   return (
     <section className="policy-check-page">
       <h2 className="page-title">개인정보 처리방침 준수점검</h2>
-      <p className="page-subtitle">PoC1 — 처리방침 원문에서 Fact를 추출하여 6개 P0 규칙을 검토함.</p>
+      <p className="page-subtitle">PoC1 - 처리방침 원문에서 Fact를 추출하여 6개 P0 규칙을 검토함.</p>
 
       <div className="form-actions form-actions-top">
         <button type="button" className="secondary-button" onClick={loadDemo} disabled={loading}>

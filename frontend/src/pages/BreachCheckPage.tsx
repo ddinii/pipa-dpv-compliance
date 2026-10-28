@@ -83,7 +83,7 @@ export function BreachCheckPage() {
   return (
     <section className="breach-check-page">
       <h2 className="page-title">개인정보 침해사고 통지 요건 검토 지원</h2>
-      <p className="page-subtitle">PoC2 — 사고 사실과 통지문을 분리하여 4개 P0 규칙을 검토함.</p>
+      <p className="page-subtitle">PoC2 - 사고 사실과 통지문을 분리하여 4개 P0 규칙을 검토함.</p>
 
       <div className="form-actions form-actions-top">
         <button type="button" className="secondary-button" onClick={loadDemo} disabled={loading}>
