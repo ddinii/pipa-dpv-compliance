@@ -52,6 +52,37 @@ def _literal_value(value: Node) -> str | bool:
     return str(value)
 
 
+def _same_day_but_one_side_date_only(first: Node, second: Node) -> bool:
+    """두 시점 중 한쪽이 날짜만(그 시간대의 00:00:00) 있고, 그 날짜가 다른 쪽과 같은가.
+
+    Extractor는 날짜만 적힌 원문을 00:00:00으로 채운다 ("2026년 8월 14일" ->
+    2026-08-14T00:00:00+09:00). 그래서 00:00은 "시각 미기재"일 가능성이 높다.
+    실제 자정 사고와 구별할 수는 없으므로 판정을 바꾸지 않고 사유를 정확히 하는 데만 쓴다.
+    """
+
+    def parse(value: Node) -> datetime | None:
+        try:
+            parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo is not None else None
+
+    def date_only(moment: datetime) -> bool:
+        return (moment.hour, moment.minute, moment.second, moment.microsecond) == (0, 0, 0, 0)
+
+    a, b = parse(first), parse(second)
+    if a is None or b is None:
+        return False
+    for day_side, other in ((a, b), (b, a)):
+        if (
+            date_only(day_side)
+            and not date_only(other)
+            and other.astimezone(day_side.tzinfo).date() == day_side.date()
+        ):
+            return True
+    return False
+
+
 def _as_bool(value: Node) -> bool | None:
     if isinstance(value, Literal):
         converted = value.toPython()
@@ -1526,6 +1557,18 @@ class P0RuleEngine:
                         matched_facts=keys, evidence=evidence,
                         reason="통지문 기재시점이 실제 사고 발생시점과 일치합니다.",
                         recommendation="두 시점의 근거를 유지하세요.",
+                    ))
+                elif _same_day_but_one_side_date_only(actual_times[0], stated_times[0]):
+                    # Extractor가 날짜만 적힌 원문을 00:00으로 채운다. 이때 "다르다"고
+                    # 하면 사실과 다르다. 날짜는 같고 시각을 비교할 수 없을 뿐이다.
+                    # 판정은 명세대로 YELLOW(값이 불명확)이고 사유만 정확히 적는다.
+                    results.append(InstanceRuleResult(
+                        instance_id=str(notice), status=RuleStatus.YELLOW,
+                        applicability=Applicability.TRUE,
+                        matched_facts=keys, uncertain_facts=["incident_time_precision"],
+                        evidence=evidence,
+                        reason="날짜는 일치하지만 한쪽 문서에 시각이 없어 시각까지는 비교할 수 없습니다.",
+                        recommendation="통지문과 사고 기록 중 시각이 빠진 쪽의 원문을 확인하세요.",
                     ))
                 else:
                     results.append(InstanceRuleResult(

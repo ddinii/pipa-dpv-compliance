@@ -284,8 +284,8 @@ export function DesignCheckPage() {
 
   return (
     <section className="design-check-page">
-      <h2 className="page-title">Privacy-by-Design 개발지원</h2>
-      <p className="page-subtitle">PoC3 — 구조화된 서비스 설계정보로 8개 P0 규칙을 검토함.</p>
+      <h2 className="page-title">Privacy-by-Design 개발 지원</h2>
+      <p className="page-subtitle">PoC3 - 구조화된 서비스 설계정보로 8개 P0 규칙을 검토함.</p>
 
       <div className="form-actions form-actions-top">
         <button type="button" className="secondary-button" onClick={loadDemo} disabled={loading}>

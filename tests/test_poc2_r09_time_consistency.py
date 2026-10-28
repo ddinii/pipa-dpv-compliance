@@ -36,6 +36,43 @@ def test_different_time_is_yellow_with_both_facts_in_evidence():
     assert any(e.predicate == "noticeIncidentTime" for e in result.evidence)
 
 
+def test_date_only_notice_on_the_same_day_is_yellow_but_not_called_a_mismatch():
+    """통지문이 날짜만 적으면 Extractor가 00:00으로 채운다.
+
+    날짜가 같은데 "시점이 다르다"고 하면 사실과 다르다. 판정은 명세대로 YELLOW
+    (값이 불명확)이고, 사유와 확인 항목만 정확해야 한다.
+    """
+    result = evaluate(make_graph(stated="2026-09-05T00:00:00+09:00"))
+    assert result.status.value == "YELLOW"
+    assert "incident_time_precision" in result.uncertain_facts
+    assert "incident_time_mismatch" not in result.uncertain_facts
+    assert "다릅니다" not in result.instance_results[0].reason
+
+
+def test_date_only_record_on_the_same_day_is_also_precision_not_mismatch():
+    result = evaluate(make_graph(actual="2026-09-05T00:00:00+09:00"))
+    assert "incident_time_precision" in result.uncertain_facts
+
+
+def test_date_only_on_a_different_day_is_still_a_mismatch():
+    result = evaluate(make_graph(stated="2026-09-04T00:00:00+09:00"))
+    assert result.status.value == "YELLOW"
+    assert "incident_time_mismatch" in result.uncertain_facts
+
+
+def test_both_date_only_on_the_same_day_is_green():
+    result = evaluate(make_graph(actual="2026-09-05T00:00:00+09:00",
+                                 stated="2026-09-05T00:00:00+09:00"))
+    assert result.status.value == "GREEN"
+
+
+def test_same_day_check_uses_the_date_only_sides_timezone():
+    """UTC로는 전날(9/4 23:30Z)이지만 KST로는 9/5 08:30 -> 같은 날짜."""
+    result = evaluate(make_graph(actual="2026-09-04T23:30:00Z",
+                                 stated="2026-09-05T00:00:00+09:00"))
+    assert "incident_time_precision" in result.uncertain_facts
+
+
 def test_timezone_equivalent_instant_is_green():
     result = evaluate(make_graph(stated="2026-09-05T05:30:00Z"))
     assert result.status.value == "GREEN"

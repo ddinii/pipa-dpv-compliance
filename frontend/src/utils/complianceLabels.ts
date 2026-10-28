@@ -90,10 +90,12 @@ const RULE_LABELS: Record<string, string> = {
   'P1-R04': '파기 절차·방법 기재',
   'P1-R06': '처리위탁 기재',
   'P1-R07': '정보주체 권리행사 방법',
+  'P1-R08': '정보주체 권리 목록 누락 점검',
   'P2-R01': '개인정보 유출등 사고와 통지문 확인',
   'P2-R02': '통지 개인정보 항목 확인',
   'P2-R03': '통지 시점·경위 확인',
   'P2-R08': '피해 최소화·대응·구제 정보 확인',
+  'P2-R09': '사고 기록과 통지문 기재 사고 시점 일치',
   'P3-R01': '수집·이용 법적 근거 확인',
   'P3-R02': '동의 처리목적 고지 설계',
   'P3-R03': '동의 개인정보 항목 고지 설계',
@@ -305,8 +307,17 @@ export function humanizeFactReference(
     return `${headings[typedMatch[1]]} · ${termLabel(typedMatch[2])}`
   }
 
+  // P1-R08: `right:<권리>` 미확인 권리, `right:unrecognized:<문구>` 인식하지 못한 권리 표현
+  const unrecognizedRight = /^right:unrecognized:(.+)$/.exec(value)
+  if (unrecognizedRight) return `인식하지 못한 권리 표현 · ${unrecognizedRight[1]}`
+  const missingRight = /^right:(.+)$/.exec(value)
+  if (missingRight) return `확인되지 않은 정보주체 권리 · ${missingRight[1]}`
+
   if (value === 'applicability') return '규칙 적용 대상 여부'
   if (value === 'no_optional_items') return '선택 개인정보 항목 없음'
+  // P2-R09
+  if (value === 'incident_time_mismatch') return '사고 기록과 통지문의 사고 시점이 다름'
+  if (value === 'incident_time_precision') return '날짜는 같으나 한쪽에 시각이 없음'
 
   const dotted = /^([A-Za-z][A-Za-z0-9_]*)\.([A-Za-z][A-Za-z0-9_/]*)$/.exec(value)
   if (dotted) {
@@ -340,8 +351,9 @@ export function ruleLabel(ruleId: string): string {
   return RULE_LABELS[ruleId] ?? '개인정보 보호법 준수 검토'
 }
 
+/** 상태 배지는 영어 원문(GREEN/YELLOW/RED/N/A)만 표시한다. */
 export function statusLabel(status: RuleStatus): string {
-  return { GREEN: '충족', YELLOW: '추가 확인', RED: '미충족', 'N/A': '해당 없음' }[status]
+  return status
 }
 
 export function applicabilityLabel(value: Applicability): string {
