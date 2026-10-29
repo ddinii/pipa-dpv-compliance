@@ -608,7 +608,11 @@ class P0RuleEngine:
             + ", ".join(f"{key}={value}" for key, value in sorted(status_counts.items()))
             + f"; 대표 상태={status.value}."
         )
-        recommendations = [r.recommendation for r in instance_results if r.recommendation]
+        # 대표 상태를 만든 인스턴스의 권고를 쓴다. 처리행위별로 상태가 갈리면 첫 인스턴스(GREEN일 수 있음)의
+        # "유지하세요"가 RED 규칙의 권고로 나간다.
+        recommendations = [
+            r.recommendation for r in instance_results if r.recommendation and r.status == status
+        ] or [r.recommendation for r in instance_results if r.recommendation]
         recommendation = recommendations[0] if recommendations else "추가 조치가 필요하지 않습니다."
 
         implementation_notes = list(metadata.notes)

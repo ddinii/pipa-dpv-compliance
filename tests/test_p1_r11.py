@@ -142,3 +142,16 @@ def test_document_scope_absent_still_applies_to_the_document_result():
     contact = {**officer, "fact_id": "F1-21:privacy-officer", "ontology_class": "PrivacyOfficer",
                "ontology_property": "hasContact", "value": ["02-0000-0000"], "value_state": "confirmed"}
     assert set(instance_statuses([officer, contact], "P1-R10").values()) == {"RED"}
+
+
+def test_rule_recommendation_comes_from_the_instance_that_set_the_status():
+    """처리행위별 상태가 갈려도 규칙 권고는 대표 상태(RED) 처리행위의 것이어야 한다."""
+    results = P0RuleEngine().evaluate_mapping_result(facts_to_mapping([
+        items_fact("act-collection-001", ["이름"]),
+        items_fact("act-collection-002", None, "absent"),
+        purpose_fact("act-collection-002"),
+    ]), poc="poc1")
+    result = next(r for r in results if r.rule_id == "P1-R11")
+    red = next(i for i in result.instance_results if i.status.value == "RED")
+    assert result.status.value == "RED"
+    assert result.recommendation == red.recommendation

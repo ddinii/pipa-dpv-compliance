@@ -40,6 +40,8 @@ class InstanceRuleResult:
     evidence: list[Evidence] = field(default_factory=list)
     reason: str = ""
     recommendation: str = ""
+    # 화면 표시용 이름(처리 목적 문장 등). 판정에는 쓰지 않으며 서비스 계층이 채운다.
+    instance_label: str | None = None
 
 
 @dataclass

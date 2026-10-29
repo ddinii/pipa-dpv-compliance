@@ -139,3 +139,15 @@ def test_legacy_endpoints_remain_unaffected():
         },
     )
     assert validate_response.status_code in (200, 422)
+
+
+def test_instance_results_carry_the_purpose_as_display_label():
+    """같은 유형 처리행위를 화면에서 구분하도록 처리 목적 문장을 instance_label로 보낸다."""
+    response = client.post(
+        "/api/v1/compliance/policy-check", json=load_synthetic_policy_fixture()
+    )
+    results = {r["rule_id"]: r for r in response.json()["results"]}
+    collection = results["P1-R01"]["instance_results"][0]
+    assert collection["instance_label"] == "회원 가입 및 서비스 제공(합성 테스트 데이터)"
+    officer = results["P1-R10"]["instance_results"][0]
+    assert officer["instance_label"] is None

@@ -48,7 +48,7 @@ def test_policy_check_response_json_unchanged_shape_and_values():
             assert set(instance.keys()) == {
                 "instance_id", "status", "applicability", "matched_facts",
                 "missing_facts", "uncertain_facts", "evidence", "reason",
-                "recommendation",
+                "recommendation", "instance_label",
             }
 
 
@@ -123,7 +123,7 @@ def test_openapi_rule_result_schema_includes_nested_instance_and_evidence_fields
     assert set(instance_props.keys()) == {
         "instance_id", "status", "applicability", "matched_facts",
         "missing_facts", "uncertain_facts", "evidence", "reason",
-        "recommendation",
+        "recommendation", "instance_label",
     }
 
 
