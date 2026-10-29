@@ -276,6 +276,36 @@
       ]
     },
     {
+      "rule_id": "P1-R11",
+      "poc": "PoC1",
+      "title": "처리하는 개인정보 항목 기재",
+      "rule_version": "1.1",
+      "applicability": "항상 (수집·이용 처리행위별)",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항",
+        "개인정보 보호법 시행령 제31조제1항제1호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항",
+        "개인정보 보호법 시행령 제31조제1항제1호"
+      ],
+      "ontology_terms": [
+        "CollectionAndUse",
+        "hasPersonalInformation",
+        "PersonalInformation",
+        "hasItemName"
+      ],
+      "required_fact_ids": [
+        "F1-22"
+      ],
+      "notes": [
+        "v1.1 확장 Rule (2026-10-29). 온톨로지 기존 용어와 Fact F1-22를 쓴다 (온톨로지 개정 없음).",
+        "수집·이용 처리행위마다 처리하는 개인정보 항목이 하나 이상 기재되어야 GREEN. 문서 전체에서 없으면(absent) RED, 항목을 특정하지 못하는 포괄 표현만 있으면(unknown) YELLOW.",
+        "구체 항목이 하나 이상 있으면 '등'으로 끝나도 기재된 것으로 본다.",
+        "필수·선택 구분이나 수집 최소화의 적정성은 판단하지 않는다. 시행령의 기준값(threshold)은 쓰지 않는다."
+      ]
+    },
+    {
       "rule_id": "P2-R01",
       "poc": "PoC2",
       "title": "유출등 사고 사실·통지문 존재 검토",

@@ -16,7 +16,8 @@
     "P1-R07": "GREEN",
     "P1-R08": "YELLOW",
     "P1-R09": "YELLOW",
-    "P1-R10": "RED"
+    "P1-R10": "RED",
+    "P1-R11": "GREEN"
   },
   "system_metadata": [
     {
@@ -189,6 +190,58 @@
           "text": "회원 탈퇴 시",
           "start_offset": 211,
           "end_offset": 218
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이메일 주소",
+        "비밀번호"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이메일 주소",
+          "start_offset": 112,
+          "end_offset": 118
+        },
+        {
+          "text": "비밀번호",
+          "start_offset": 120,
+          "end_offset": 124
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "메모 내용",
+        "기기 식별값"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "메모 내용",
+          "start_offset": 158,
+          "end_offset": 163
+        },
+        {
+          "text": "기기 식별값",
+          "start_offset": 165,
+          "end_offset": 171
         }
       ],
       "schema_version": "fact-1.0"

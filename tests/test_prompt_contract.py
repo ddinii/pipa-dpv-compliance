@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GOLD_PATH = ROOT / "evals" / "poc1" / "sc_p01_gold_facts.json"
 
 # Pass 2가 실제로 뽑는 Fact. F1-00(명시적 부재)은 Pass 1이 따로 처리한다.
-EXTRACTABLE_FACT_IDS = {f"F1-{n:02d}" for n in range(1, 22)}  # v1.1: F1-13~F1-21
+EXTRACTABLE_FACT_IDS = {f"F1-{n:02d}" for n in range(1, 23)}  # v1.1: F1-13~F1-22
 
 PROMPTS = {
     "PASS1_SYSTEM": PASS1_SYSTEM,

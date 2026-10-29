@@ -16,7 +16,8 @@
     "P1-R07": "GREEN",
     "P1-R08": "YELLOW",
     "P1-R09": "YELLOW",
-    "P1-R10": "RED"
+    "P1-R10": "RED",
+    "P1-R11": "GREEN"
   },
   "facts": [
     {
@@ -238,6 +239,108 @@
       ],
       "schema_version": "fact-1.0",
       "_note": "종료조건 기재 없음. 근거는 확인한 구간"
+    },
+    {
+      "fact_id": "F1-22:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "휴대전화번호",
+        "닉네임",
+        "비밀번호"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "휴대전화번호",
+          "start_offset": 164,
+          "end_offset": 170
+        },
+        {
+          "text": "닉네임",
+          "start_offset": 172,
+          "end_offset": 175
+        },
+        {
+          "text": "비밀번호",
+          "start_offset": 177,
+          "end_offset": 181
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "키",
+        "몸무게",
+        "운동 기록",
+        "걸음 수"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "키",
+          "start_offset": 234,
+          "end_offset": 235
+        },
+        {
+          "text": "몸무게",
+          "start_offset": 237,
+          "end_offset": 240
+        },
+        {
+          "text": "운동 기록",
+          "start_offset": 242,
+          "end_offset": 247
+        },
+        {
+          "text": "걸음 수",
+          "start_offset": 249,
+          "end_offset": 253
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "휴대전화번호",
+        "경품 수령 주소"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 297,
+          "end_offset": 299
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 301,
+          "end_offset": 307
+        },
+        {
+          "text": "경품 수령 주소",
+          "start_offset": 309,
+          "end_offset": 317
+        }
+      ],
+      "schema_version": "fact-1.0"
     },
     {
       "fact_id": "F1-05:act-provision-001",

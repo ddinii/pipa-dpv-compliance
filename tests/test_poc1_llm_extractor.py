@@ -26,7 +26,7 @@ POLICY_PATH = ROOT / "evals" / "poc1" / "sc_p01_policy.txt"
 GOLD_PATH = ROOT / "evals" / "poc1" / "sc_p01_gold_facts.json"
 
 # Fact Dictionary 3장. Extractor가 낼 수 있는 유일한 목록이다.
-ALLOWED_FACT_IDS = {f"F1-{n:02d}" for n in range(1, 22)}  # v1.1: F1-13~F1-21
+ALLOWED_FACT_IDS = {f"F1-{n:02d}" for n in range(1, 23)}  # v1.1: F1-13~F1-22
 GLOBAL_SCOPE = {"F1-11", "F1-12", "F1-20", "F1-21"}
 
 # activity_id 접두사 -> 처리행위 유형 (Pass 1이 돌려줘야 하는 값)

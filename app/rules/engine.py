@@ -120,6 +120,7 @@ class P0RuleEngine:
             "P1-R08": self._p1_r08,
             "P1-R09": self._p1_r09,
             "P1-R10": self._p1_r10,
+            "P1-R11": self._p1_r11,
             "P2-R01": self._p2_r01,
             "P2-R02": self._p2_r02,
             "P2-R03": self._p2_r03,
@@ -1323,6 +1324,55 @@ class P0RuleEngine:
                 recommendation=(
                     "현재 보호책임자 안내를 유지하세요."
                     if not missing else "보호책임자 성명 또는 담당 부서 명칭과 연락처를 명시하세요."
+                ),
+            ))
+        return results
+
+    def _p1_r11(self, graph: Graph) -> list[InstanceRuleResult]:
+        """처리하는 개인정보 항목 기재 (시행령 제31조 제1항 제1호). 수집·이용 처리행위마다 본다.
+
+        P1-R01과 같은 단위다. 항목 이름이 하나라도 있으면 기재된 것으로 본다.
+        unknown(포괄 표현만 있음)과 absent의 구분은 Fact 계약 계층이 한다.
+        """
+        activities = self._instances(graph, PIPA.CollectionAndUse)
+        if not activities:
+            return [InstanceRuleResult(
+                instance_id="__document__",
+                status=RuleStatus.RED,
+                applicability=Applicability.TRUE,
+                missing_facts=["CollectionAndUse.hasPersonalInformation"],
+                evidence=[self._absence_evidence(
+                    "__document__", "CollectionAndUse.hasPersonalInformation", "처리하는 개인정보 항목을 확인하지 못함"
+                )],
+                reason="처리하는 개인정보 항목이 확인되지 않았습니다.",
+                recommendation="수집·이용 처리행위별로 처리하는 개인정보 항목을 명시하세요.",
+            )]
+
+        results = []
+        for activity in activities:
+            items = [
+                item for item in self._objects(graph, activity, PIPA.hasPersonalInformation)
+                if self._nonempty_values(graph, item, PIPA.hasItemName)
+            ]
+            evidence = self._assertion_evidence(graph, activity, PIPA.hasPersonalInformation)
+            for item in items:
+                evidence += self._assertion_evidence(graph, item, PIPA.hasItemName)
+            if not items:
+                evidence.append(self._absence_evidence(activity, "hasPersonalInformation", "처리 항목 기재 미확인"))
+            results.append(InstanceRuleResult(
+                instance_id=str(activity),
+                status=RuleStatus.GREEN if items else RuleStatus.RED,
+                applicability=Applicability.TRUE,
+                matched_facts=[self._fact_key(activity, PIPA.hasPersonalInformation)] if items else [],
+                missing_facts=[] if items else [self._fact_key(activity, PIPA.hasPersonalInformation)],
+                evidence=self._dedupe_evidence(evidence),
+                reason=(
+                    "처리행위별로 처리하는 개인정보 항목이 기재되어 있습니다."
+                    if items else "이 처리행위에서 처리하는 개인정보 항목이 확인되지 않습니다."
+                ),
+                recommendation=(
+                    "현재 항목 기재를 유지하세요."
+                    if items else "이 처리행위에서 처리하는 개인정보 항목을 구체적으로 명시하세요."
                 ),
             ))
         return results

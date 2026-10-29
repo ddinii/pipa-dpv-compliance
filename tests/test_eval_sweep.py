@@ -29,12 +29,13 @@ V6 = "v6-no-third-party-provision"
 
 def test_sweep_covers_the_base_document_and_every_variant():
     cases = load_poc1_cases()
-    assert len(cases) == 10
+    assert len(cases) == 12
     assert cases[0].name == "base"
     assert {case.name for case in cases[1:]} == {
         "v1-missing-purpose", "v2-vague-destruction", "v3-missing-destruction",
         "v4-unknown-processor", "v5-missing-processor", V6,
         "v7-complete-cross-border", "v8-complete-privacy-officer", "v9-no-cross-border-transfer",
+        "v10-missing-collection-items", "v11-vague-collection-items",
     }
 
 
@@ -43,7 +44,7 @@ def test_every_case_carries_a_document_and_expected_statuses():
         assert case.document.strip()
         assert set(case.expected_rule_status) == {
             "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07", "P1-R08",
-            "P1-R09", "P1-R10",
+            "P1-R09", "P1-R10", "P1-R11",
         }
 
 
@@ -59,7 +60,7 @@ def test_perfect_prediction_scores_full_agreement():
     score = RuleScore()
     for case in load_poc1_cases():
         score.add(case.name, case.expected_rule_status, case.expected_rule_status)
-    assert score.total == 90  # 10건 x 9 Rule
+    assert score.total == 120  # 12건 x 10 Rule
     assert score.agreement == 1.0
     assert score.false_greens == []
 
@@ -67,7 +68,7 @@ def test_perfect_prediction_scores_full_agreement():
 def test_predicting_green_everywhere_is_caught_as_dangerous():
     """무용한 추출기의 기준선.
 
-    전부 GREEN이라고 우겨도 일치율은 약 0.62가 나온다 (v1.1 P1-R09/R10 추가 전에는 0.73). 그래서 일치율만 보면 안 되고
+    전부 GREEN이라고 우겨도 일치율은 약 0.65가 나온다 (v1.1 규칙 추가 전에는 0.73). 그래서 일치율만 보면 안 되고
     위험 오판율(gold가 GREEN이 아닌데 GREEN으로 예측)을 같이 봐야 한다.
     """
     score = RuleScore()
@@ -78,7 +79,7 @@ def test_predicting_green_everywhere_is_caught_as_dangerous():
             {rule: "GREEN" for rule in case.expected_rule_status},
         )
     assert 0.6 < score.agreement < 0.75
-    assert len(score.false_greens) == 34
+    assert len(score.false_greens) == 42
     assert score.false_green_rate > 0.25
 
 

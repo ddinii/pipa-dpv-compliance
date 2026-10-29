@@ -33,6 +33,7 @@ BASE_STATUS = {
     "P1-R08": "GREEN",
     "P1-R09": "RED",
     "P1-R10": "RED",
+    "P1-R11": "GREEN",
 }
 
 
@@ -222,6 +223,23 @@ VARIANTS: list[Variant] = [
             CROSS_BORDER_ABSENCE_EVIDENCE + "\n",
         )],
         drop={f"F1-{n:02d}:act-crossborder-001" for n in (3, 4, *range(13, 20))},
+    ),
+    Variant(
+        name="v10-missing-collection-items",
+        description="고객 상담 처리행위의 수집 항목 줄을 삭제한다.",
+        target_rule="P1-R11",
+        expected_status="RED",
+        edits=[("   수집 항목: 고객 상담 기록\n", "")],
+        # v1과 같은 규약: 빼지 않고 absent. 근거는 항목이 있어야 할 처리행위의 제목이다.
+        restate={"F1-22:act-collection-005": ("absent", "5. 고객 상담")},
+    ),
+    Variant(
+        name="v11-vague-collection-items",
+        description="고객 상담의 수집 항목을 항목을 특정하지 않는 포괄 표현으로 바꾼다.",
+        target_rule="P1-R11",
+        expected_status="YELLOW",
+        edits=[("수집 항목: 고객 상담 기록", "수집 항목: 상담 처리에 필요한 정보")],
+        restate={"F1-22:act-collection-005": ("unknown", "수집 항목: 상담 처리에 필요한 정보")},
     ),
 ]
 
