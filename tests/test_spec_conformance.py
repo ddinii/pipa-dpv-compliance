@@ -28,8 +28,9 @@ FACT_IDS = (
     + [f"F2-{n:02d}" for n in range(1, 11)]    # 4장 사고/통지
     + [f"F3-{n:02d}" for n in range(1, 14)]    # 5장 Privacy-by-Design
 )
-# v1.1 확장 (2026-10-29): 국외 이전 기재 F1-13~F1-19, 보호책임자 기재 F1-20~F1-21
-V11_FACT_IDS = [f"F1-{n:02d}" for n in range(13, 22)]
+# v1.1 확장 (2026-10-29): 국외 이전 기재 F1-13~F1-19, 보호책임자 기재 F1-20~F1-21,
+# 처리하는 개인정보 항목 F1-22
+V11_FACT_IDS = [f"F1-{n:02d}" for n in range(13, 23)]
 
 # --- Fact Dictionary 7장 Rule <-> Fact Coverage ---------------------------
 COVERAGE = {
@@ -71,7 +72,7 @@ ENVELOPE_FIELDS = {
 
 # --- 기능명세서 9장 최소 Compliance API ------------------------------------
 ENDPOINTS = {
-    "API-001": ("/api/v1/compliance/policy-check", "examples/poc1_synthetic_policy_fixture.json", "PoC1", 9),
+    "API-001": ("/api/v1/compliance/policy-check", "examples/poc1_synthetic_policy_fixture.json", "PoC1", 10),
     "API-002": ("/api/v1/compliance/breach-check", "examples/poc2_synthetic_breach_fixture.json", "PoC2", 5),
     "API-003": ("/api/v1/compliance/design-check", "examples/SC-D01_form.json", "PoC3", 8),
 }
@@ -90,7 +91,7 @@ def payload(name: str) -> dict:
 
 
 def test_registry_holds_the_thirty_five_frozen_facts_plus_v11():
-    """3·4·5장이 정의하는 동결 Fact 35개(12+10+13)와 v1.1 확장 9개. 그 밖의 번호는 없다."""
+    """3·4·5장이 정의하는 동결 Fact 35개(12+10+13)와 v1.1 확장 10개. 그 밖의 번호는 없다."""
     assert sorted(FACT_SPECS) == sorted(FACT_IDS + V11_FACT_IDS)
     assert len(FACT_IDS) == 35
 
@@ -124,14 +125,14 @@ def test_system_metadata_is_never_an_ontology_property(fact_id: str):
 # --- 기능명세서 ----------------------------------------------------------
 
 
-def test_rule_set_loader_splits_nine_five_eight():
-    """COM-005: PoC에 따라 P01 9개 / P02 5개 / D01 8개를 로드한다 (v1.1 확장 포함)."""
+def test_rule_set_loader_splits_ten_five_eight():
+    """COM-005: PoC에 따라 P01 10개 / P02 5개 / D01 8개를 로드한다 (v1.1 확장 포함)."""
     engine = P0RuleEngine()
     counts = {
         poc: len([r for r, m in engine.metadata.items() if m.poc.lower() == poc])
         for poc in ("poc1", "poc2", "poc3")
     }
-    assert counts == {"poc1": 9, "poc2": 5, "poc3": 8}
+    assert counts == {"poc1": 10, "poc2": 5, "poc3": 8}
 
 
 def test_response_model_matches_the_nine_one_envelope():

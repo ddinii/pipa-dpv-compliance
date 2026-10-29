@@ -73,6 +73,12 @@ def collection(act, ev, *, heading, heading_anchor=None, purpose, purpose_anchor
     ]
 
 
+def collected_items(act, ev, names, anchor):
+    """F1-22 처리하는 개인정보 항목 (v1.1). 같은 항목명이 여러 조에 나오므로 anchor 안에서 찾는다."""
+    return fact("F1-22", act, "CollectionAndUse", "hasPersonalInformation",
+                [ev(name, within=anchor) for name in names], value=list(names))
+
+
 def retention(act, ontology_class, ev, *, period=None, end=None, anchor=None, searched):
     """F1-03(숫자 기간)과 F1-04(종료조건). 적히지 않은 쪽은 absent로, 찾아본 구간을 근거로 둔다."""
     items = []
@@ -124,6 +130,12 @@ def build_h1(document: str) -> dict:
                    period="수집일로부터 2년", searched=searched),
         # 경품 이벤트는 2절에 없고, 일반 보유 문장도 없다 -> 둘 다 absent
         *retention("act-collection-003", "CollectionAndUse", ev, searched=searched),
+        collected_items("act-collection-001", ev, ["휴대전화번호", "닉네임", "비밀번호"],
+              " - 항목: 휴대전화번호, 닉네임, 비밀번호"),
+        collected_items("act-collection-002", ev, ["키", "몸무게", "운동 기록", "걸음 수"],
+              " - 항목: 키, 몸무게, 운동 기록, 걸음 수"),
+        collected_items("act-collection-003", ev, ["이름", "휴대전화번호", "경품 수령 주소"],
+              " - 항목: 이름, 휴대전화번호, 경품 수령 주소"),
     ]
 
     # 제공 2건은 항목이 겹친다(이름, 휴대전화번호). 2번의 "걸음 수"가 1번으로 새면 혼합이다.
@@ -183,6 +195,7 @@ def build_h1(document: str) -> dict:
             "P1-R08": "YELLOW",
             "P1-R09": "YELLOW",  # 국외 이전 언급 없음. 부재 선언도 아니다
             "P1-R10": "RED",     # 연락처 누락 (성명·부서는 특정 불가)
+            "P1-R11": "GREEN",  # 목적별 처리 항목 기재
         },
         "facts": facts,
     }
@@ -216,6 +229,13 @@ def build_h2(document: str) -> dict:
                    searched=searched),
         *retention("act-collection-003", "CollectionAndUse", ev, end="수신 동의를 철회할 때",
                    searched=searched),
+        # 서술형: 목적 문장 안에 항목이 함께 있다
+        collected_items("act-collection-001", ev, ["이름", "이메일 주소", "수강 이력"],
+              "관리하기 위하여 이름, 이메일 주소, 수강 이력을 처리합니다."),
+        collected_items("act-collection-002", ev, ["결제수단 정보", "결제 내역"],
+              "결제수단 정보와 결제 내역을 처리하며"),
+        collected_items("act-collection-003", ev, ["이메일 주소"],
+              "신규 강좌 안내 메일을 보내기 위하여 이메일 주소를 이용합니다."),
 
         # 제공 목적이 없다 -> F1-07 absent -> P1-R03 RED. 보유 정보도 없다 -> P1-R02 YELLOW
         fact("F1-05", "act-provision-001", "ThirdPartyProvision", "hasRecipient",
@@ -284,6 +304,7 @@ def build_h2(document: str) -> dict:
             "P1-R08": "GREEN",
             "P1-R09": "RED",    # 이전받는 자·연락처·거부 방법 누락
             "P1-R10": "RED",    # 보호책임자 조항 없음 (권리 행사 문장에 언급만 있다)
+            "P1-R11": "GREEN",  # 목적별 처리 항목 기재
         },
         "facts": facts,
     }
@@ -361,6 +382,10 @@ def build_h3(document: str) -> dict:
                    anchor=retention_sentence, searched="2. 보유 기간"),
         *retention("act-collection-002", "CollectionAndUse", ev, end="회원 탈퇴 시",
                    anchor=retention_sentence, searched="2. 보유 기간"),
+        collected_items("act-collection-001", ev, ["이메일 주소", "비밀번호"],
+              "로그인 및 계정 식별을 위하여 이메일 주소와 비밀번호를 처리합니다."),
+        collected_items("act-collection-002", ev, ["메모 내용", "기기 식별값"],
+              "기기 간 메모 동기화를 위하여 메모 내용과 기기 식별값을 처리합니다."),
         fact("F1-08", "act-destruction-001", "Destruction", "hasDestructionMethod",
              [ev("복구할 수 없는 방법으로 즉시 삭제합니다.")],
              value="복구할 수 없는 방법으로 즉시 삭제합니다."),
@@ -383,6 +408,7 @@ def build_h3(document: str) -> dict:
             "P1-R08": "YELLOW",
             "P1-R09": "YELLOW",  # 국외 이전 언급 없음. 부재 선언이 아니다
             "P1-R10": "RED",     # 보호책임자 기재가 문서 어디에도 없다 (항상 적용되는 의무)
+            "P1-R11": "GREEN",  # 목적별 처리 항목 기재
         },
         # 부재는 Fact가 아니라 presence metadata다 (35개 Fact에 더하지 않는다)
         "system_metadata": [
@@ -413,6 +439,8 @@ def build_h4(document: str) -> dict:
                     purpose="집하 및 배송"),
         *retention("act-collection-001", "CollectionAndUse", ev, end="배송 완료 시",
                    searched="제2조 (보유 기간)"),
+        collected_items("act-collection-001", ev, ["이름", "연락처", "주소"],
+              "보내는 분과 받는 분의 이름, 연락처, 주소를 처리합니다."),
         fact("F1-05", "act-provision-001", "ThirdPartyProvision", "hasRecipient",
              [ev("지역 배송 협력 대리점")], value="지역 배송 협력 대리점"),
         fact("F1-06", "act-provision-001", "ThirdPartyProvision", "hasPersonalInformation",
@@ -448,6 +476,7 @@ def build_h4(document: str) -> dict:
             "P1-R08": "YELLOW",
             "P1-R09": "YELLOW",  # 국외 이전 언급 없음
             "P1-R10": "RED",     # 보호책임자 기재 없음
+            "P1-R11": "GREEN",  # 목적별 처리 항목 기재
         },
         "facts": facts,
     }
@@ -473,6 +502,8 @@ def build_h5(document: str) -> dict:
         *retention("act-collection-001", "CollectionAndUse", ev, end="예약 완료 후 3년",
                    anchor="예약 정보는 예약 완료 후 3년까지 보유합니다.",
                    searched="제2조 (보유 기간)"),
+        collected_items("act-collection-001", ev, ["이름", "이메일 주소", "휴대전화번호", "예약 내역"],
+              "이름, 이메일 주소, 휴대전화번호, 예약 내역을 처리합니다."),
         fact("F1-08", "act-destruction-001", "Destruction", "hasDestructionMethod",
              [ev("복구할 수 없도록 영구 삭제합니다.")], value="복구할 수 없도록 영구 삭제합니다."),
         fact("F1-13", act, "CrossBorderTransfer", "hasDestinationCountry",
@@ -516,6 +547,7 @@ def build_h5(document: str) -> dict:
             "P1-R08": "YELLOW",  # 동의 철회가 없다
             "P1-R09": "GREEN",
             "P1-R10": "GREEN",
+            "P1-R11": "GREEN",  # 목적별 처리 항목 기재
         },
         "system_metadata": [
             declared_absence(ev, "ThirdPartyProvision",

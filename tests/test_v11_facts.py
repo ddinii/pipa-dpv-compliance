@@ -15,7 +15,7 @@ from app.mapping.mapping_registry import DOCUMENT_SCOPE_FACTS, FACT_SPECS
 
 ROOT = Path(__file__).resolve().parents[1]
 ONTOLOGY = (ROOT / "ontology" / "PIPA_Ontology_v1.0.ttl").read_text(encoding="utf-8")
-V11 = [f"F1-{n}" for n in range(13, 22)]
+V11 = [f"F1-{n}" for n in range(13, 23)]
 
 
 def defined(term: str) -> bool:
@@ -34,7 +34,7 @@ def fact(fact_id, cls, prop, value, *, activity="act-crossborder-001", state="co
 
 def test_v11_facts_are_registered_after_the_frozen_35():
     assert set(V11) <= set(FACT_SPECS)
-    assert len(FACT_SPECS) == 44
+    assert len(FACT_SPECS) == 45
 
 
 @pytest.mark.parametrize("fact_id", V11)

@@ -16,7 +16,8 @@
     "P1-R07": "GREEN",
     "P1-R08": "YELLOW",
     "P1-R09": "GREEN",
-    "P1-R10": "GREEN"
+    "P1-R10": "GREEN",
+    "P1-R11": "GREEN"
   },
   "system_metadata": [
     {
@@ -116,6 +117,44 @@
           "text": "예약 완료 후 3년",
           "start_offset": 191,
           "end_offset": 201
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "이메일 주소",
+        "휴대전화번호",
+        "예약 내역"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 136,
+          "end_offset": 138
+        },
+        {
+          "text": "이메일 주소",
+          "start_offset": 140,
+          "end_offset": 146
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 148,
+          "end_offset": 154
+        },
+        {
+          "text": "예약 내역",
+          "start_offset": 156,
+          "end_offset": 161
         }
       ],
       "schema_version": "fact-1.0"

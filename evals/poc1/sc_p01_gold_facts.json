@@ -12,7 +12,8 @@
     "P1-R07": "GREEN",
     "P1-R08": "GREEN",
     "P1-R09": "RED",
-    "P1-R10": "RED"
+    "P1-R10": "RED",
+    "P1-R11": "GREEN"
   },
   "facts": [
     {
@@ -992,6 +993,196 @@
           "text": "제8조 (개인정보 보호책임자)",
           "start_offset": 1816,
           "end_offset": 1832
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-001",
+      "subject_id": "act-collection-001",
+      "activity_id": "act-collection-001",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "이름",
+        "이메일 주소",
+        "휴대전화번호",
+        "비밀번호",
+        "생년월일"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "이름",
+          "start_offset": 291,
+          "end_offset": 293
+        },
+        {
+          "text": "이메일 주소",
+          "start_offset": 295,
+          "end_offset": 301
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 303,
+          "end_offset": 309
+        },
+        {
+          "text": "비밀번호",
+          "start_offset": 311,
+          "end_offset": 315
+        },
+        {
+          "text": "생년월일",
+          "start_offset": 317,
+          "end_offset": 321
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-002",
+      "subject_id": "act-collection-002",
+      "activity_id": "act-collection-002",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "주문자·수령인 이름",
+        "휴대전화번호",
+        "배송지 주소",
+        "이메일 주소",
+        "주문정보"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "주문자·수령인 이름",
+          "start_offset": 379,
+          "end_offset": 389
+        },
+        {
+          "text": "휴대전화번호",
+          "start_offset": 391,
+          "end_offset": 397
+        },
+        {
+          "text": "배송지 주소",
+          "start_offset": 399,
+          "end_offset": 405
+        },
+        {
+          "text": "이메일 주소",
+          "start_offset": 407,
+          "end_offset": 413
+        },
+        {
+          "text": "주문정보",
+          "start_offset": 415,
+          "end_offset": 419
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-003",
+      "subject_id": "act-collection-003",
+      "activity_id": "act-collection-003",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "결제수단",
+        "승인",
+        "금액",
+        "환불정보"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "결제수단",
+          "start_offset": 466,
+          "end_offset": 470
+        },
+        {
+          "text": "승인",
+          "start_offset": 471,
+          "end_offset": 473
+        },
+        {
+          "text": "금액",
+          "start_offset": 474,
+          "end_offset": 476
+        },
+        {
+          "text": "환불정보",
+          "start_offset": 477,
+          "end_offset": 481
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-004",
+      "subject_id": "act-collection-004",
+      "activity_id": "act-collection-004",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "IP 주소",
+        "접속일시",
+        "이용기록",
+        "기기정보",
+        "쿠키"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "IP 주소",
+          "start_offset": 531,
+          "end_offset": 536
+        },
+        {
+          "text": "접속일시",
+          "start_offset": 537,
+          "end_offset": 541
+        },
+        {
+          "text": "이용기록",
+          "start_offset": 542,
+          "end_offset": 546
+        },
+        {
+          "text": "기기정보",
+          "start_offset": 547,
+          "end_offset": 551
+        },
+        {
+          "text": "쿠키",
+          "start_offset": 552,
+          "end_offset": 554
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-22:act-collection-005",
+      "subject_id": "act-collection-005",
+      "activity_id": "act-collection-005",
+      "ontology_class": "CollectionAndUse",
+      "ontology_property": "hasPersonalInformation",
+      "value": [
+        "고객 상담 기록"
+      ],
+      "value_state": "confirmed",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "고객 상담 기록",
+          "start_offset": 605,
+          "end_offset": 613
         }
       ],
       "schema_version": "fact-1.0"

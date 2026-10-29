@@ -303,7 +303,41 @@ def build() -> list[dict]:
             evidence=[ev(RIGHTS_PROCEDURE)],
         ))
 
-    facts += cross_border_facts() + privacy_officer_facts()
+    facts += cross_border_facts() + privacy_officer_facts() + collection_item_facts()
+    return facts
+
+
+# --- v1.1 F1-22 처리하는 개인정보 항목 (시행령 제31조 제1항 제1호) -----------
+# 제1조는 목적마다 "수집 항목:" 줄을 둔다 -> 다섯 처리행위 모두 confirmed -> P1-R11 GREEN.
+# 쉼표로 나열한 줄은 쉼표로만 나눈다("주문자·수령인 이름"은 한 항목, F1-06과 같은 규칙).
+# 가운뎃점으로만 나열한 줄은 가운뎃점으로 나눈다(F1-14와 같은 규칙). "(선택)" 표시는 값에서 뺀다.
+
+
+def split_items(line: str) -> list[str]:
+    parts = line.split(", ") if ", " in line else line.split("·")
+    return [part.replace("(선택)", "").strip() for part in parts]
+
+
+def collection_item_facts() -> list[dict]:
+    facts = []
+    for activity_id, _, _ in COLLECTION_ACTIVITIES:
+        heading = "수집 항목: "
+        # 처리행위 순서대로 n번째 "수집 항목:" 줄
+        index = [a for a, _, _ in COLLECTION_ACTIVITIES].index(activity_id)
+        start = -1
+        for _ in range(index + 1):
+            start = POLICY.index(heading, start + 1)
+        line = POLICY[start:POLICY.index("\n", start)]
+        items = split_items(line[len(heading):])
+        facts.append(fact(
+            f"F1-22:{activity_id}",
+            subject_id=activity_id,
+            activity_id=activity_id,
+            ontology_class="CollectionAndUse",
+            ontology_property="hasPersonalInformation",
+            value=items,
+            evidence=[ev_after(item, line) for item in items],
+        ))
     return facts
 
 
@@ -384,6 +418,7 @@ def main() -> int:
             "P1-R08": "GREEN",
             "P1-R09": "RED",   # 이전받는 자·시기·방법·거부 방법 기재 없음
             "P1-R10": "RED",   # 보호책임자 성명·부서·연락처 기재 없음
+            "P1-R11": "GREEN",  # 다섯 목적 모두 수집 항목 기재
         },
         "facts": facts,
     }

@@ -49,11 +49,11 @@ def test_frozen_ontology_file_is_not_modified_by_rule_engine():
     assert "triggersNotificationObligation" not in ontology
 
 
-def test_all_18_frozen_rule_ids_plus_four_extensions_are_loaded():
+def test_all_18_frozen_rule_ids_plus_five_extensions_are_loaded():
     engine = P0RuleEngine()
     assert set(engine.metadata) == {
         "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07", "P1-R08",
-        "P1-R09", "P1-R10",
+        "P1-R09", "P1-R10", "P1-R11",
         "P2-R01", "P2-R02", "P2-R03", "P2-R08", "P2-R09",
         "P3-R01", "P3-R02", "P3-R03", "P3-R04", "P3-R05", "P3-R06", "P3-R08", "P3-R11",
     }
@@ -70,6 +70,7 @@ def test_rule_fact_coverage_matches_frozen_fact_dictionary():
         "P1-R08": ("F1-11",),
         "P1-R09": ("F1-13", "F1-14", "F1-15", "F1-16", "F1-17", "F1-18", "F1-19"),
         "P1-R10": ("F1-20", "F1-21"),
+        "P1-R11": ("F1-22",),
         "P2-R01": ("F2-01", "F2-02", "F2-03"),
         "P2-R02": ("F2-02", "F2-04"),
         "P2-R03": ("F2-08", "F2-09"),
@@ -101,6 +102,7 @@ def test_sc_p01_expected_freeze_results():
         "P1-R08": "GREEN",
         "P1-R09": "RED",  # 이전받는 자·시기·방법·거부 방법 없음
         "P1-R10": "RED",  # 보호책임자 성명·연락처 없음
+        "P1-R11": "GREEN",  # 목적별 수집 항목 기재
     }
 
 

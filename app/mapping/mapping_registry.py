@@ -38,6 +38,8 @@ FACT_SPECS: dict[str, FactSpec] = {
     # v1.1 개인정보 보호책임자 기재 — 제30조 제1항 제6호. 처리행위에 속하지 않는다 (F1-11처럼 문서 단위).
     "F1-20": FactSpec("PersonalInformationController", "hasPrivacyOfficer", "privacy_officer"),  # 성명 또는 부서
     "F1-21": FactSpec("PrivacyOfficer", "hasContact", "officer_contact"),  # 연락처
+    # v1.1 처리하는 개인정보 항목 기재 (시행령 제31조 제1항 제1호). 온톨로지 기존 용어를 쓴다
+    "F1-22": FactSpec("CollectionAndUse", "hasPersonalInformation", "personal_information"),
     # PoC2
     "F2-01": FactSpec("DataBreachIncident", None, "class_assertion"),
     "F2-02": FactSpec("DataBreachIncident", "affectsPersonalInformation", "incident_information"),
