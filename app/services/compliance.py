@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from rdflib import Graph, URIRef
+
 from app.builders.poc3_fact_builder import Poc3FormError, build_poc3_facts
 from app.extractors.base import ExtractionResult, Poc1Extractor, Poc2Extractor
 from app.extractors.selection import default_poc1_extractor, default_poc2_extractor
 from app.mapping.fact_schema import FactValidationError
-from app.mapping.ontology_mapper import OntologyMapper
+from app.mapping.ontology_mapper import PIPA, OntologyMapper
 from app.mapping.presence_metadata import activity_presence_metadata
 from app.rules.engine import P0RuleEngine
 from app.rules.models import RuleResult
@@ -22,6 +24,25 @@ class ComplianceInputError(ValueError):
 # 기본값은 mock이라 과금 없이 서버가 뜬다. 실제 LLM은 PIPA_EXTRACTOR=llm으로 켠다.
 _default_poc1_extractor = default_poc1_extractor()
 _default_poc2_extractor = default_poc2_extractor()
+
+
+def _with_instance_labels(results: list[RuleResult], graph: Graph) -> list[RuleResult]:
+    """처리행위별 결과에 처리 목적 문장을 이름으로 붙인다.
+
+    instance_id만으로는 같은 유형의 처리행위(예: 수집·이용 5건)를 화면에서 구분할 수 없다.
+    판정과 무관한 표시용 값이므로 엔진이 아니라 여기서 그래프를 읽어 채운다.
+    목적이 없는 인스턴스(문서 단위, 사고 등)는 None으로 둔다.
+    """
+    for result in results:
+        for instance in result.instance_results:
+            descriptions = sorted(
+                str(description)
+                for purpose in graph.objects(URIRef(instance.instance_id), PIPA.hasPurpose)
+                for description in graph.objects(purpose, PIPA.hasPurposeDescription)
+                if str(description).strip()
+            )
+            instance.instance_label = descriptions[0] if descriptions else None
+    return results
 
 
 def _split_extractor_output(
@@ -109,7 +130,9 @@ def run_design_check(form: dict[str, Any]) -> list[RuleResult]:
         raise ComplianceInputError(str(exc)) from exc
 
     engine = P0RuleEngine()
-    return engine.evaluate_mapping_result(mapping_result, poc="PoC3")
+    return _with_instance_labels(
+        engine.evaluate_mapping_result(mapping_result, poc="PoC3"), mapping_result.graph
+    )
 
 
 def run_policy_check(
@@ -166,7 +189,9 @@ def run_policy_check(
         raise ComplianceInputError(str(exc)) from exc
 
     engine = P0RuleEngine()
-    return engine.evaluate_mapping_result(mapping_result, poc="PoC1")
+    return _with_instance_labels(
+        engine.evaluate_mapping_result(mapping_result, poc="PoC1"), mapping_result.graph
+    )
 
 
 def run_breach_check(
@@ -234,4 +259,6 @@ def run_breach_check(
         raise ComplianceInputError(str(exc)) from exc
 
     engine = P0RuleEngine()
-    return engine.evaluate_mapping_result(mapping_result, poc="PoC2")
+    return _with_instance_labels(
+        engine.evaluate_mapping_result(mapping_result, poc="PoC2"), mapping_result.graph
+    )

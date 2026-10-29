@@ -28,6 +28,8 @@ export interface InstanceRuleResult {
   evidence: Evidence[]
   reason: string
   recommendation: string
+  /** 화면 표시용 처리행위 이름(처리 목적 문장). 없으면 null. */
+  instance_label?: string | null
 }
 
 export interface RuleResult {

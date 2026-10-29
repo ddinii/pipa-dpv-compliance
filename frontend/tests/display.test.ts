@@ -202,3 +202,23 @@ test('destruction activity IDs and PoC3 legal basis types are shown in Korean', 
   assert.equal(humanizeDisplayValue('LegalObligation'), '법적 의무')
   assert.equal(humanizeDisplayValue('LegitimateInterest'), '정당한 이익 검토')
 })
+
+test('instance_label (처리 목적) distinguishes activities of the same type', () => {
+  const instance = (id: string, label: string | null) => ({
+    instance_id: `https://example.org/pipa-instance/a1/${id}`, instance_label: label,
+    matched_facts: [], missing_facts: [], uncertain_facts: [], evidence: [],
+  })
+  assert.equal(instanceLabel(instance('act-collection-005', '고객 상담')), '수집·이용 처리행위 · 고객 상담')
+  assert.equal(instanceLabel(instance('act-collection-005', null)), '수집·이용 처리행위')
+  assert.equal(
+    instanceLabel(instance('act-collection-001', '가'.repeat(45))),
+    `수집·이용 처리행위 · ${'가'.repeat(40)}…`,
+  )
+  // PoC3는 등록된 처리행위 이름이 이미 구분되므로 목적을 덧붙이지 않는다
+  assert.equal(instanceLabel(instance('AccountCollection', '회원 식별')), '계정 정보 수집')
+  const aliases = instanceActivityAliases([instance('act-collection-005', '고객 상담')])
+  assert.equal(
+    humanizeFactReference('rdf:act-collection-005:hasPersonalInformation', aliases),
+    '고객 상담 — 수집·이용 처리행위 · 처리 개인정보',
+  )
+})

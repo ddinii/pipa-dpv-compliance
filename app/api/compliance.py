@@ -43,6 +43,8 @@ class InstanceRuleResultResponse(BaseModel):
     evidence: list[EvidenceResponse] = []
     reason: str = ""
     recommendation: str = ""
+    # 화면 표시용 처리행위 이름(처리 목적 문장). 없으면 null. 판정에는 쓰지 않는다.
+    instance_label: str | None = None
 
 
 class RuleResultResponse(BaseModel):
@@ -84,7 +86,7 @@ class ComplianceResponse(BaseModel):
 
 # 사람이 읽는 문장 필드만 마스킹한다. rule_id, instance_id, subject, fact key 같은
 # 식별자는 화면이 결과를 서로 연결하는 데 쓰므로 바꾸지 않는다.
-_TEXT_FIELDS = ("reason", "recommendation")
+_TEXT_FIELDS = ("reason", "recommendation", "instance_label")
 _EVIDENCE_TEXT_FIELDS = ("value", "source_text", "note")
 # 자연인 성명을 담는 property (v1.1 보호책임자 성명). 회사 명칭(hasName)은 가리지 않는다.
 _PERSON_NAME_PREDICATES = ("hasPersonName",)

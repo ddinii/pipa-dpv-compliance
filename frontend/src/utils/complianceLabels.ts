@@ -230,6 +230,18 @@ interface InstanceLike {
   missing_facts: string[]
   uncertain_facts: string[]
   evidence: Array<{ subject: string | null; value: string | boolean | null }>
+  instance_label?: string | null
+}
+
+const INSTANCE_LABEL_MAX = 40
+
+/** 처리 목적 문장(instance_label)을 붙여 같은 유형의 처리행위를 구분한다. 긴 문장은 줄인다. */
+function withPurposeLabel(base: string, instance: InstanceLike): string {
+  const purpose = instance.instance_label?.trim()
+  // PoC3 처리행위는 등록된 한글 이름이 이미 서로 다르므로 목적을 덧붙이지 않는다.
+  if (!purpose || ACTIVITY_LABELS[localName(instance.instance_id)]) return base
+  const short = purpose.length > INSTANCE_LABEL_MAX ? `${purpose.slice(0, INSTANCE_LABEL_MAX)}…` : purpose
+  return `${base} · ${short}`
 }
 
 function instanceActivityId(instance: InstanceLike): string | null {
@@ -248,7 +260,7 @@ function instanceActivityId(instance: InstanceLike): string | null {
 
 /** 해시 기반 인스턴스 ID(보유 종료조건 등)를 같은 인스턴스의 파기 객체로부터 처리행위별로 구분한다. */
 export function instanceLabel(instance: InstanceLike): string {
-  const base = termLabel(instance.instance_id)
+  const base = withPurposeLabel(termLabel(instance.instance_id), instance)
   const activityId = instanceActivityId(instance)
   return activityId ? `${activityLabel(activityId)} — ${base}` : base
 }
@@ -258,7 +270,12 @@ export function instanceActivityAliases(instances: InstanceLike[]): Record<strin
   const aliases: Record<string, string> = {}
   for (const instance of instances) {
     const activityId = instanceActivityId(instance)
-    if (activityId) aliases[localName(instance.instance_id)] = activityLabel(activityId)
+    if (activityId) {
+      aliases[localName(instance.instance_id)] = activityLabel(activityId)
+      continue
+    }
+    const purpose = withPurposeLabel('', instance).replace(/^ · /, '')
+    if (purpose) aliases[localName(instance.instance_id)] = purpose
   }
   return aliases
 }
