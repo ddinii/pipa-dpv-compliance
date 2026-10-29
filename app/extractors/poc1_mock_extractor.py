@@ -6,7 +6,9 @@ implementation, and not a legal reasoning component.
 
 It ignores the content of ``policy_text`` entirely (no keyword parsing of
 arbitrary policy text) and always returns the same fixed, structured
-synthetic scenario covering F1-01 through F1-12. Its only purpose is to
+synthetic scenario covering F1-01 through F1-12, plus the v1.1
+cross-border transfer (F1-13..F1-19), privacy officer (F1-20/F1-21) and
+collection item (F1-22) Facts. Its only purpose is to
 validate the HTTP -> extractor boundary -> OntologyMapper -> P0RuleEngine
 pipeline end-to-end before a real LLM extractor is integrated. See
 docs/context/backend/EXTRACTOR_INTEGRATION.md and EXTRACTOR_DECISIONS.md.
@@ -48,7 +50,7 @@ def _fact(
 class MockPoC1Extractor:
     """Deterministic synthetic-data PoC1 extractor integration test double.
 
-    ``extract()`` always returns the same fixed F1-01..F1-12 scenario
+    ``extract()`` always returns the same fixed F1-01..F1-12 (+ F1-13..F1-22) scenario
     regardless of ``policy_text`` content. Facts are scoped per invocation by
     the ``OntologyMapper`` instance namespace (bound to ``analysis_id``), so
     the fixed subject/activity identifiers below do not collide across
@@ -175,5 +177,118 @@ class MockPoC1Extractor:
                 ontology_property="hasExerciseProcedure",
                 value={"right": "열람", "procedure": "마이페이지 또는 고객센터를 통해 신청(합성 테스트 데이터)"},
                 field_path="rights.procedure",
+            ),
+            # v1.1 cross-border transfer (F1-13..F1-19). The activity also
+            # carries its own retention (F1-03/F1-04) because P1-R02 checks
+            # every processing activity.
+            _fact(
+                "F1-03-002",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasRetention",
+                value="이전 목적 달성 시까지(합성 테스트 데이터)",
+                field_path="cross_border_transfer.retention_period",
+            ),
+            _fact(
+                "F1-04-002",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasRetention",
+                value="회원 탈퇴",
+                field_path="cross_border_transfer.retention_end",
+            ),
+            _fact(
+                "F1-13-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasDestinationCountry",
+                value="미국(US)",
+                field_path="cross_border_transfer.country",
+            ),
+            _fact(
+                "F1-14-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasPersonalInformation",
+                value=["회원 식별정보", "서비스 이용기록"],
+                field_path="cross_border_transfer.items",
+            ),
+            _fact(
+                "F1-15-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasPurpose",
+                value="클라우드 서버 보관(합성 테스트 데이터)",
+                field_path="cross_border_transfer.purpose",
+            ),
+            _fact(
+                "F1-16-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasTransferRecipient",
+                value="Example Cloud Inc.",
+                field_path="cross_border_transfer.recipient",
+            ),
+            _fact(
+                "F1-17-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="OverseasRecipient",
+                ontology_property="hasContact",
+                value=["privacy@example.com"],
+                field_path="cross_border_transfer.recipient_contact",
+            ),
+            _fact(
+                "F1-18-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasTransferTimingAndMethod",
+                value="서비스 이용 시점에 네트워크로 전송(합성 테스트 데이터)",
+                field_path="cross_border_transfer.timing_and_method",
+            ),
+            _fact(
+                "F1-19-001",
+                subject_id="crossborder",
+                activity_id="crossborder",
+                ontology_class="CrossBorderTransfer",
+                ontology_property="hasTransferRefusalProcedure",
+                value="보호책임자에게 이메일로 거부 의사를 알릴 수 있음(합성 테스트 데이터)",
+                field_path="cross_border_transfer.refusal_procedure",
+            ),
+            # v1.1 Facts. F1-20/F1-21 are document-scope like F1-11/F1-12.
+            # The officer name and contact are synthetic values.
+            _fact(
+                "F1-20-001",
+                subject_id="privacy-officer",
+                activity_id=None,
+                ontology_class="PersonalInformationController",
+                ontology_property="hasPrivacyOfficer",
+                value={"name": "홍길동", "department": "개인정보보호팀"},
+                field_path="privacy_officer.identity",
+            ),
+            _fact(
+                "F1-21-001",
+                subject_id="privacy-officer",
+                activity_id=None,
+                ontology_class="PrivacyOfficer",
+                ontology_property="hasContact",
+                value=["02-0000-0000", "privacy@example.com"],
+                field_path="privacy_officer.contact",
+            ),
+            _fact(
+                "F1-22-001",
+                subject_id="collect",
+                activity_id="collect",
+                ontology_class="CollectionAndUse",
+                ontology_property="hasPersonalInformation",
+                value=["이름", "이메일 주소", "휴대전화번호"],
+                field_path="collection.items",
             ),
         ]

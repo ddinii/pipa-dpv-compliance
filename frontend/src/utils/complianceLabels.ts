@@ -17,6 +17,9 @@ const TERM_LABELS: Record<string, string> = {
   retention: '개인정보 보유 활동',
   destruction: '개인정보 파기 활동',
   crossBorderTransfer: '개인정보 국외이전 활동',
+  crossborder: '국외 이전 처리행위',
+  'privacy-officer': '개인정보 보호책임자',
+  __document__: '문서 전체',
   CollectionAndUse: '개인정보 수집·이용',
   PersonalInformationProcessing: '개인정보 처리',
   ThirdPartyProvision: '제3자 제공',
@@ -31,6 +34,10 @@ const TERM_LABELS: Record<string, string> = {
   NotificationNotice: '정보주체 통지문',
   ConsentRequest: '동의요청',
   Consent: '동의',
+  // PoC3 법적 근거 유형. 입력 화면(DesignCheckPage)의 선택지 이름과 같게 둔다.
+  Contract: '계약 이행',
+  LegalObligation: '법적 의무',
+  LegitimateInterest: '정당한 이익 검토',
   PersonalInformation: '개인정보',
   LegalBasis: '법적 근거',
   ProcessingPurpose: '처리 목적',
@@ -291,8 +298,10 @@ export function generatedResourceLabel(value: string): string | null {
     [/^(response_?measure|measure)_[0-9a-f]{6,}$/, '사고 대응조치'],
     [/^f2_10_\d+_measure_\d+$/, '사고 대응조치'],
     [/^(act_)?collect(ion)?_\d+$/, '수집·이용 처리행위'],
-    [/^(act_)?destroy(uction)?_\d+$/, '파기 처리행위'],
+    [/^(act_)?destr(oy|uction)_\d+$/, '파기 처리행위'],
     [/^(act_)?entrust(ment)?_\d+$/, '처리위탁 활동'],
+    [/^(act_)?(third_?party_?)?provision_\d+$/, '제3자 제공 처리행위'],
+    [/^(act_)?cross_?border(_?transfer)?_\d+$/, '국외 이전 처리행위'],
     [/^breach_?notice(?:_[0-9a-z]+)?$/, '정보주체 통지문'],
   ]
   return patterns.find(([pattern]) => pattern.test(normalized))?.[1] ?? null
@@ -391,6 +400,12 @@ export function applicabilityLabel(value: Applicability): string {
 const P2_R03_RECHECK_RECOMMENDATION =
   '필수 Fact의 value_state를 confirmed 또는 명시적 absent로 확정한 뒤 다시 평가하세요.'
 
+/** 마지막 글자에 받침이 있으면 '이', 없으면 '가'. 한글이 아니면 '가'. */
+function withSubjectParticle(word: string): string {
+  const code = word.charCodeAt(word.length - 1) - 0xac00
+  return code >= 0 && code < 11172 && code % 28 !== 0 ? '이' : '가'
+}
+
 export function humanizeNarrative(value: string, ruleId?: string): string {
   // 같은 문장이 여러 규칙에 쓰이므로 P2-R03(통지 시점·경위)에서만 사고시점 문맥으로 바꾼다.
   if (ruleId === 'P2-R03') {
@@ -462,7 +477,22 @@ export function humanizeNarrative(value: string, ruleId?: string): string {
     ['deniesServiceOnOptionalRefusal을 true/false로', '선택정보 거부 시 서비스 제한 여부를 예 또는 아니오로'],
     ['서비스 제공 거부가 false로 명시', "서비스 제공 거부가 '아니오'로 명시"],
   ]
-  let result = value
+  // 처리행위 부재 판정 문장(`{클래스}가 없다고 …`, `{클래스}의 존재/부재를 …`)은 조사까지 맞춰 바꾼다.
+  const activityClassLabels: Record<string, string> = {
+    ThirdPartyProvision: '제3자 제공',
+    EntrustedProcessing: '개인정보 처리위탁',
+    CrossBorderTransfer: '개인정보 국외 이전',
+    NotificationNotice: '정보주체 통지문',
+  }
+  let result = value.replace(
+    /\b(ThirdPartyProvision|EntrustedProcessing|CrossBorderTransfer|NotificationNotice)(가 없다고|의 존재\/부재를)/g,
+    (_, cls: string, tail: string) => {
+      const label = activityClassLabels[cls]
+      return tail.startsWith('가')
+        ? `${label}${withSubjectParticle(label)} 없다고`
+        : `${label}의 존재 여부를`
+    },
+  )
   for (const [from, to] of phrases) {
     result = typeof from === 'string' ? result.replaceAll(from, to) : result.replace(from, to)
   }

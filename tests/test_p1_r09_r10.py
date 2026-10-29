@@ -120,3 +120,14 @@ def test_p1_r10_yellow_when_only_a_title_is_written():
 def test_p1_r10_unextracted_is_yellow_not_red():
     """Fact가 아예 없으면 '기재 없음'이 아니라 '추출 안 됨'이다. UNKNOWN과 ABSENT를 섞지 않는다."""
     assert status(transfer_facts(), "P1-R10") == "YELLOW"
+
+
+def test_r09_evidence_shows_values_not_hashed_node_links():
+    """항목·목적·이전받는 자 노드 연결(해시 ID)이 아니라 화면에서 읽히는 값을 근거로 낸다."""
+    results = P0RuleEngine().evaluate_mapping_result(facts_to_mapping(transfer_facts()), poc="poc1")
+    result = next(r for r in results if r.rule_id == "P1-R09")
+    evidence = result.instance_results[0].evidence
+    predicates = {str(e.predicate).rsplit("#", 1)[-1].rsplit("/", 1)[-1] for e in evidence}
+    assert not predicates & {"hasPersonalInformation", "hasPurpose", "hasTransferRecipient"}
+    values = {str(e.value) for e in evidence}
+    assert {"이메일 주소", "예약 내역", "해외 지점 예약 처리", "Example Travel K.K."} <= values

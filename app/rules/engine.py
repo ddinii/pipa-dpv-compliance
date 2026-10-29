@@ -398,87 +398,35 @@ class P0RuleEngine:
           combination is explicitly absent
         * confirmed false remains a confirmed value; it is never rewritten as
           unknown/absent.
+        * unknown/absent are applied per instance: a Fact whose activity_id
+          names an evaluated instance affects that instance only; other Facts
+          (document scope or unattributable) affect every instance.  A missing
+          envelope is judged over the whole document.
 
         N/A instance results are preserved because applicability has already
         been established independently by the rule handler.
         """
         required = self.metadata[rule_id].required_fact_ids
-        states_by_type: dict[str, set[str]] = {fact_type: set() for fact_type in required}
-        ids_by_type: dict[str, list[str]] = {fact_type: [] for fact_type in required}
+        required_facts = [fact for fact in facts if fact.get("fact_type") in required]
 
-        for fact in facts:
-            fact_type = fact.get("fact_type")
-            if fact_type not in states_by_type:
-                continue
-            states_by_type[fact_type].add(str(fact.get("value_state")))
-            ids_by_type[fact_type].append(str(fact.get("fact_id")))
+        # A Fact whose activity_id names one of this rule's instances belongs
+        # to that instance only.  Document-scope Facts and Facts that cannot
+        # be attributed to an evaluated instance still apply to every
+        # instance.  Without this, one activity's absent Fact turned every
+        # activity of the rule RED.
+        instance_keys = {_local_name(result.instance_id) for result in instance_results}
 
-        missing_types = [fact_type for fact_type in required if not states_by_type[fact_type]]
-        unknown_types = [
-            fact_type
-            for fact_type in required
-            if "unknown" in states_by_type[fact_type]
-        ]
-        absent_types = [
-            fact_type
-            for fact_type in required
-            if "absent" in states_by_type[fact_type]
-        ]
+        def facts_for(instance_id: str) -> list[Mapping[str, Any]]:
+            key = _local_name(instance_id)
+            return [
+                fact for fact in required_facts
+                if fact.get("activity_id") not in instance_keys or fact.get("activity_id") == key
+            ]
 
-        # P1-R02 is explicitly ``retention period OR identifiable end
-        # condition`` in the frozen rule matrix.  F1-03 and F1-04 are both
-        # consumed so that the extractor must state what it found, but one
-        # confirmed alternative is sufficient.  If neither is confirmed and
-        # one side remains UNKNOWN, the rule is unresolved rather than RED.
-        if rule_id == "P1-R02":
-            alternatives = {"F1-03", "F1-04"}
-            confirmed_alternative = any(
-                "confirmed" in states_by_type[fact_type]
-                for fact_type in alternatives
-            )
-            unknown_alternative = any(
-                "unknown" in states_by_type[fact_type]
-                for fact_type in alternatives
-            )
-            if confirmed_alternative:
-                unknown_types = [item for item in unknown_types if item not in alternatives]
-                absent_types = [item for item in absent_types if item not in alternatives]
-            elif unknown_alternative:
-                # An UNKNOWN alternative can still satisfy the OR branch once
-                # resolved, so explicit absence of the other branch is not a
-                # conclusive RED.
-                absent_types = [item for item in absent_types if item not in alternatives]
-
-        if not (missing_types or unknown_types or absent_types):
-            return instance_results
-
-        contract_evidence: list[Evidence] = []
-        for fact_type in missing_types:
-            contract_evidence.append(
-                Evidence(
-                    evidence_type="fact_contract",
-                    predicate=fact_type,
-                    note="required Fact envelope missing",
-                )
-            )
-        for fact_type in unknown_types:
-            contract_evidence.append(
-                Evidence(
-                    evidence_type="fact_contract",
-                    predicate=fact_type,
-                    value="unknown",
-                    note=f"Fact IDs: {', '.join(ids_by_type[fact_type])}",
-                )
-            )
-        for fact_type in absent_types:
-            contract_evidence.append(
-                Evidence(
-                    evidence_type="fact_contract",
-                    predicate=fact_type,
-                    value="absent",
-                    note=f"Fact IDs: {', '.join(ids_by_type[fact_type])}",
-                )
-            )
+        # A missing envelope is a document-level contract gap: it is judged
+        # over every Fact, not per instance.
+        present_types = {fact.get("fact_type") for fact in required_facts}
+        missing_types = [fact_type for fact_type in required if fact_type not in present_types]
 
         rewritten: list[InstanceRuleResult] = []
         for result in instance_results:
@@ -486,6 +434,30 @@ class P0RuleEngine:
                 rewritten.append(result)
                 continue
 
+            unknown_types, absent_types, ids_by_state = self._contract_states(
+                rule_id, required, facts_for(result.instance_id)
+            )
+            if not (missing_types or unknown_types or absent_types):
+                rewritten.append(result)
+                continue
+
+            contract_evidence = [
+                Evidence(
+                    evidence_type="fact_contract",
+                    predicate=fact_type,
+                    note="required Fact envelope missing",
+                )
+                for fact_type in missing_types
+            ] + [
+                Evidence(
+                    evidence_type="fact_contract",
+                    predicate=fact_type,
+                    value=state,
+                    note=f"Fact IDs: {', '.join(ids_by_state[(fact_type, state)])}",
+                )
+                for state, types in (("unknown", unknown_types), ("absent", absent_types))
+                for fact_type in types
+            ]
             result.evidence = self._dedupe_evidence([*result.evidence, *contract_evidence])
 
             if rule_id in {"P2-R09", "P1-R08"}:
@@ -542,6 +514,50 @@ class P0RuleEngine:
             rewritten.append(result)
 
         return rewritten
+
+    @staticmethod
+    def _contract_states(
+        rule_id: str,
+        required: Iterable[str],
+        facts: list[Mapping[str, Any]],
+    ) -> tuple[list[str], list[str], dict[tuple[str, str], list[str]]]:
+        """Return (unknown_types, absent_types, Fact IDs by (type, state)) for one instance."""
+        states_by_type: dict[str, set[str]] = {fact_type: set() for fact_type in required}
+        ids_by_state: dict[tuple[str, str], list[str]] = {}
+        for fact in facts:
+            fact_type = str(fact.get("fact_type"))
+            state = str(fact.get("value_state"))
+            states_by_type[fact_type].add(state)
+            ids_by_state.setdefault((fact_type, state), []).append(str(fact.get("fact_id")))
+
+        unknown_types = [t for t in states_by_type if "unknown" in states_by_type[t]]
+        absent_types = [t for t in states_by_type if "absent" in states_by_type[t]]
+
+        # P1-R02 is explicitly ``retention period OR identifiable end
+        # condition`` in the frozen rule matrix.  F1-03 and F1-04 are both
+        # consumed so that the extractor must state what it found, but one
+        # confirmed alternative is sufficient.  If neither is confirmed and
+        # one side remains UNKNOWN, the rule is unresolved rather than RED.
+        if rule_id == "P1-R02":
+            alternatives = {"F1-03", "F1-04"}
+            confirmed_alternative = any(
+                "confirmed" in states_by_type[fact_type]
+                for fact_type in alternatives
+            )
+            unknown_alternative = any(
+                "unknown" in states_by_type[fact_type]
+                for fact_type in alternatives
+            )
+            if confirmed_alternative:
+                unknown_types = [item for item in unknown_types if item not in alternatives]
+                absent_types = [item for item in absent_types if item not in alternatives]
+            elif unknown_alternative:
+                # An UNKNOWN alternative can still satisfy the OR branch once
+                # resolved, so explicit absence of the other branch is not a
+                # conclusive RED.
+                absent_types = [item for item in absent_types if item not in alternatives]
+
+        return unknown_types, absent_types, ids_by_state
 
     @staticmethod
     def _status_for_instances(instance_results: list[InstanceRuleResult]) -> RuleStatus:
@@ -1238,12 +1254,16 @@ class P0RuleEngine:
                 "이전 거부 방법·절차·효과": self._nonempty_values(graph, transfer, PIPA.hasTransferRefusalProcedure),
             }
             missing = [name for name, found in checks.items() if not found]
+            # 항목·목적·이전받는 자 노드로의 연결은 해시 ID뿐이라 근거로 읽히지 않는다. 노드의 값을 낸다.
             evidence = []
             for predicate in (
-                PIPA.hasDestinationCountry, PIPA.hasPersonalInformation, PIPA.hasPurpose,
-                PIPA.hasTransferRecipient, PIPA.hasTransferTimingAndMethod, PIPA.hasTransferRefusalProcedure,
+                PIPA.hasDestinationCountry, PIPA.hasTransferTimingAndMethod, PIPA.hasTransferRefusalProcedure,
             ):
                 evidence += self._assertion_evidence(graph, transfer, predicate)
+            for item in items:
+                evidence += self._assertion_evidence(graph, item, PIPA.hasItemName)
+            for purpose in purposes:
+                evidence += self._assertion_evidence(graph, purpose, PIPA.hasPurposeDescription)
             for recipient in recipients:
                 evidence += self._assertion_evidence(graph, recipient, PIPA.hasName)
                 evidence += self._assertion_evidence(graph, recipient, PIPA.hasContact)
@@ -1354,7 +1374,8 @@ class P0RuleEngine:
                 item for item in self._objects(graph, activity, PIPA.hasPersonalInformation)
                 if self._nonempty_values(graph, item, PIPA.hasItemName)
             ]
-            evidence = self._assertion_evidence(graph, activity, PIPA.hasPersonalInformation)
+            # 처리행위→항목 노드 연결은 해시 ID뿐이라 근거로 읽히지 않는다. 항목명만 근거로 낸다.
+            evidence = []
             for item in items:
                 evidence += self._assertion_evidence(graph, item, PIPA.hasItemName)
             if not items:
