@@ -173,3 +173,32 @@ test('RED-without-missing notice appears only for PoC3 RED with empty missing_fa
   assert.equal(redWithoutMissingNotice('P1-R01', 'RED', []), null)
   assert.equal(redWithoutMissingNotice('P2-R03', 'RED', []), null)
 })
+
+test('PoC1 v1.1 instance targets get Korean labels instead of raw IDs', () => {
+  assert.equal(termLabel('https://example.org/pipa-instance/a1/act-crossborder-001'), '국외 이전 처리행위')
+  assert.equal(termLabel('https://example.org/pipa-instance/a1/act-provision-001'), '제3자 제공 처리행위')
+  assert.equal(termLabel('crossborder'), '국외 이전 처리행위')
+  assert.equal(termLabel('__document__'), '문서 전체')
+  assert.equal(humanizeFactIdsNote('Fact IDs: F1-20:privacy-officer'), '관련 검토 항목: 개인정보 보호책임자')
+  assert.equal(humanizeFactIdsNote('Fact IDs: F1-16:act-crossborder-001'), '관련 검토 항목: 국외 이전 처리행위')
+})
+
+test('activity absence sentences use Korean class names with the right particle', () => {
+  assert.equal(humanizeNarrative('CrossBorderTransfer가 없다고 명시적으로 확인되었습니다.'),
+    '개인정보 국외 이전이 없다고 명시적으로 확인되었습니다.')
+  assert.equal(humanizeNarrative('ThirdPartyProvision가 없다고 명시적으로 확인되었습니다.'),
+    '제3자 제공이 없다고 명시적으로 확인되었습니다.')
+  assert.equal(humanizeNarrative('NotificationNotice가 없다고 명시적으로 확인되었습니다.'),
+    '정보주체 통지문이 없다고 명시적으로 확인되었습니다.')
+  assert.equal(humanizeNarrative('CrossBorderTransfer의 존재/부재를 확정할 수 없습니다.'),
+    '개인정보 국외 이전의 존재 여부를 확정할 수 없습니다.')
+})
+
+test('destruction activity IDs and PoC3 legal basis types are shown in Korean', () => {
+  assert.equal(termLabel('https://example.org/pipa-instance/a1/act-destruction-001'), '파기 처리행위')
+  assert.equal(termLabel('act-destroy-001'), '파기 처리행위')
+  assert.equal(humanizeFactReference('rdf:act-destruction-001:hasDestructionMethod'), '파기 처리행위 · 파기 방법')
+  assert.equal(humanizeDisplayValue('Contract'), '계약 이행')
+  assert.equal(humanizeDisplayValue('LegalObligation'), '법적 의무')
+  assert.equal(humanizeDisplayValue('LegitimateInterest'), '정당한 이익 검토')
+})

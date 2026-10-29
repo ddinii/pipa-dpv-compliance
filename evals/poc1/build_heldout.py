@@ -187,7 +187,7 @@ def build_h1(document: str) -> dict:
         },
         "expected_rule_status": {
             "P1-R01": "GREEN",
-            "P1-R02": "YELLOW",  # 경품 이벤트에 보유 정보가 없다
+            "P1-R02": "RED",  # 경품 이벤트에 보유기간·종료조건이 모두 없다 (처리행위별 판정)
             "P1-R03": "GREEN",
             "P1-R04": "GREEN",
             "P1-R06": "GREEN",
@@ -237,7 +237,7 @@ def build_h2(document: str) -> dict:
         collected_items("act-collection-003", ev, ["이메일 주소"],
               "신규 강좌 안내 메일을 보내기 위하여 이메일 주소를 이용합니다."),
 
-        # 제공 목적이 없다 -> F1-07 absent -> P1-R03 RED. 보유 정보도 없다 -> P1-R02 YELLOW
+        # 제공 목적이 없다 -> F1-07 absent -> P1-R03 RED. 보유 정보도 없다 -> P1-R02 RED
         fact("F1-05", "act-provision-001", "ThirdPartyProvision", "hasRecipient",
              [ev("한국직무교육협회")], value="한국직무교육협회"),
         fact("F1-06", "act-provision-001", "ThirdPartyProvision", "hasPersonalInformation",
@@ -296,7 +296,7 @@ def build_h2(document: str) -> dict:
         },
         "expected_rule_status": {
             "P1-R01": "GREEN",
-            "P1-R02": "YELLOW",  # 제3자 제공에 보유 정보가 없다
+            "P1-R02": "RED",  # 제3자 제공에 보유기간·종료조건이 모두 없다 (처리행위별 판정)
             "P1-R03": "RED",    # 제공 목적 누락
             "P1-R04": "GREEN",
             "P1-R06": "YELLOW",  # 결제 대행 수탁자명을 특정할 수 없다 (정정: 처음엔 RED)

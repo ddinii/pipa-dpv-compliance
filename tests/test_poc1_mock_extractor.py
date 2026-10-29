@@ -19,9 +19,21 @@ EXPECTED_FACT_IDS = {
     "F1-10-001",
     "F1-11-001",
     "F1-12-001",
+    "F1-03-002",
+    "F1-04-002",
+    "F1-13-001",
+    "F1-14-001",
+    "F1-15-001",
+    "F1-16-001",
+    "F1-17-001",
+    "F1-18-001",
+    "F1-19-001",
+    "F1-20-001",
+    "F1-21-001",
+    "F1-22-001",
 }
 
-GLOBAL_SCOPE_FACT_IDS = {"F1-11-001", "F1-12-001"}
+GLOBAL_SCOPE_FACT_IDS = {"F1-11-001", "F1-12-001", "F1-20-001", "F1-21-001"}
 
 
 def _extract() -> list[dict]:
@@ -34,7 +46,7 @@ def _extract() -> list[dict]:
 
 
 class MockPoC1ExtractorTests(unittest.TestCase):
-    def test_emits_exactly_the_twelve_frozen_f1_fact_ids(self):
+    def test_emits_the_frozen_twelve_plus_v11_fact_ids(self):
         facts = _extract()
         fact_ids = {fact["fact_id"] for fact in facts}
         self.assertEqual(fact_ids, EXPECTED_FACT_IDS)
@@ -60,7 +72,7 @@ class MockPoC1ExtractorTests(unittest.TestCase):
         for fact in _extract():
             self.assertIn(fact["source_type"], {"policy_text", "derived"})
 
-    def test_f1_11_and_f1_12_are_exempt_from_activity_id(self):
+    def test_document_scope_facts_are_exempt_from_activity_id(self):
         facts = {fact["fact_id"]: fact for fact in _extract()}
         for fact_id in GLOBAL_SCOPE_FACT_IDS:
             self.assertIsNone(facts[fact_id]["activity_id"])
