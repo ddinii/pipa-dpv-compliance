@@ -73,6 +73,11 @@ const TERM_LABELS: Record<string, string> = {
   hasPersonName: '성명',
   hasDepartmentName: '부서 명칭',
   hasContact: '연락처',
+  hasAutomaticCollectionDevice: '자동수집장치 사용',
+  hasAutomaticCollectionOperation: '자동수집장치 설치·운영',
+  hasAutomaticCollectionOptOutMethod: '자동수집장치 거부 방법',
+  hasDamageReportDepartment: '피해 신고 접수 담당부서',
+  hasDamageReportContact: '피해 신고 접수 연락처',
   hasRight: '보장된 정보주체 권리',
   hasExerciseProcedure: '권리 행사절차',
   hasProcedureDescription: '권리 행사방법 설명',
@@ -112,11 +117,13 @@ const RULE_LABELS: Record<string, string> = {
   'P1-R09': '국외 이전 기재',
   'P1-R10': '개인정보 보호책임자·연락처 기재',
   'P1-R11': '처리하는 개인정보 항목 기재',
+  'P1-R12': '자동수집장치 설치·운영 및 거부 방법',
   'P2-R01': '개인정보 유출등 사고와 통지문 확인',
   'P2-R02': '통지 개인정보 항목 확인',
   'P2-R03': '통지 시점·경위 확인',
   'P2-R08': '피해 최소화·대응·구제 정보 확인',
   'P2-R09': '사고 기록과 통지문 기재 사고 시점 일치',
+  'P2-R10': '피해 신고 접수 담당부서·연락처',
   'P3-R01': '수집·이용 법적 근거 확인',
   'P3-R02': '동의 처리목적 고지 설계',
   'P3-R03': '동의 개인정보 항목 고지 설계',
@@ -137,11 +144,14 @@ const FACT_LABELS: Record<string, string> = {
   'F1-18': '이전 시기 및 방법', 'F1-19': '이전 거부 방법·절차·효과',
   'F1-20': '보호책임자 성명 또는 담당 부서', 'F1-21': '보호책임자 연락처',
   'F1-22': '처리하는 개인정보 항목',
+  'F1-23': '자동수집장치 사용', 'F1-24': '설치·운영 내용',
+  'F1-25': '자동수집장치 거부 방법',
   'F2-01': '개인정보 유출등 사고', 'F2-02': '실제 사고 영향 개인정보',
   'F2-03': '사고와 통지문 연결', 'F2-04': '통지문 기재 개인정보',
   'F2-05': '실제 사고 발생시점', 'F2-06': '사고 인지시점', 'F2-07': '통지시점',
   'F2-08': '통지문 기재 사고시점', 'F2-09': '통지문 기재 사고경위',
-  'F2-10': '사고 대응조치', 'F3-01': '수집·이용 활동', 'F3-02': '처리 법적 근거',
+  'F2-10': '사고 대응조치', 'F2-11': '피해 접수 담당부서',
+  'F2-12': '피해 접수 연락처', 'F3-01': '수집·이용 활동', 'F3-02': '처리 법적 근거',
   'F3-03': '동의요청 설계', 'F3-04': '처리 목적', 'F3-05': '처리 개인정보',
   'F3-06': '보유·파기 계획', 'F3-07': '필수 항목 여부', 'F3-08': '수집 필요성',
   'F3-09': '선택정보 거부 시 서비스 제한 여부', 'F3-10': '보유 종료조건',
@@ -364,6 +374,11 @@ export function humanizeFactReference(
   // P1-R09 / P1-R10: 항목 이름은 엔진이 한글로 보낸다
   const transferItem = /^transfer_item:(.+)$/.exec(value)
   if (transferItem) return `국외 이전 기재사항 · ${transferItem[1]}`
+  const automaticItem = /^automatic_collection:(.+)$/.exec(value)
+  if (automaticItem) return `자동수집장치 기재사항 · ${automaticItem[1]}`
+  if (value === 'automatic_collection_device_presence') return '자동수집장치 사용 여부'
+  const reportItem = /^damage_report:(.+)$/.exec(value)
+  if (reportItem) return `피해 신고 접수 정보 · ${reportItem[1]}`
   const officerItem = /^officer_item:(.+)$/.exec(value)
   if (officerItem) return `보호책임자 기재사항 · ${officerItem[1]}`
 
