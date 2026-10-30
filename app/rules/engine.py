@@ -121,11 +121,13 @@ class P0RuleEngine:
             "P1-R09": self._p1_r09,
             "P1-R10": self._p1_r10,
             "P1-R11": self._p1_r11,
+            "P1-R12": self._p1_r12,
             "P2-R01": self._p2_r01,
             "P2-R02": self._p2_r02,
             "P2-R03": self._p2_r03,
             "P2-R08": self._p2_r08,
             "P2-R09": self._p2_r09,
+            "P2-R10": self._p2_r10,
             "P3-R01": self._p3_r01,
             "P3-R02": self._p3_r02,
             "P3-R03": self._p3_r03,
@@ -460,7 +462,18 @@ class P0RuleEngine:
             ]
             result.evidence = self._dedupe_evidence([*result.evidence, *contract_evidence])
 
-            if rule_id in {"P2-R09", "P1-R08"}:
+            if rule_id == "P1-R12" and (
+                "F1-23" in missing_types
+                or "F1-23" in unknown_types
+                or "F1-23" in absent_types
+            ):
+                result.status = RuleStatus.YELLOW
+                result.applicability = Applicability.UNKNOWN
+                result.uncertain_facts = sorted(set(result.uncertain_facts) | {"automatic_collection_device_presence"})
+                result.missing_facts = []
+                result.reason = "자동수집장치 사용 여부가 확인되지 않아 기재 의무 적용 여부를 판단할 수 없습니다."
+                result.recommendation = "장치 사용 여부와 처리방침의 설치·운영·거부 조항을 확인하세요."
+            elif rule_id in {"P2-R09", "P1-R08"}:
                 # Comparison and selected-rights inventory are both review rules.
                 # An unknown/absent input does not prove a legal violation.
                 result.status = RuleStatus.YELLOW
@@ -1402,6 +1415,55 @@ class P0RuleEngine:
             ))
         return results
 
+    def _p1_r12(self, graph: Graph) -> list[InstanceRuleResult]:
+        """자동수집장치 조건부 기재. 장치 사용 여부는 문서 전체에서 확인."""
+        controllers = self._instances(graph, PIPA.PersonalInformationController)
+        device = [str(v).strip() for node in controllers for v in
+                  self._nonempty_values(graph, node, PIPA.hasAutomaticCollectionDevice)]
+        operations = [str(v).strip() for node in controllers for v in
+                      self._nonempty_values(graph, node, PIPA.hasAutomaticCollectionOperation)]
+        optouts = [str(v).strip() for node in controllers for v in
+                   self._nonempty_values(graph, node, PIPA.hasAutomaticCollectionOptOutMethod)]
+        evidence = self._dedupe_evidence([
+            ev for node in controllers for prop in (
+                PIPA.hasAutomaticCollectionDevice, PIPA.hasAutomaticCollectionOperation,
+                PIPA.hasAutomaticCollectionOptOutMethod,
+            ) for ev in self._assertion_evidence(graph, node, prop)
+        ])
+        if device and all(x in {"미사용", "사용하지 않음", "설치하지 않음"} for x in device):
+            return [InstanceRuleResult(
+                instance_id="__document__", status=RuleStatus.NOT_APPLICABLE,
+                applicability=Applicability.FALSE, evidence=evidence,
+                reason="자동수집장치를 사용하지 않는다고 명시되어 적용 대상이 아닙니다.",
+                recommendation="장치 사용 여부가 변경되면 처리방침 기재를 갱신하세요.",
+            )]
+        if not device or any(x in {"미사용", "사용하지 않음", "설치하지 않음"} for x in device):
+            return [InstanceRuleResult(
+                instance_id="__document__", status=RuleStatus.YELLOW,
+                applicability=Applicability.UNKNOWN, evidence=evidence,
+                uncertain_facts=["automatic_collection_device_presence"],
+                reason="자동수집장치 사용 여부가 확인되지 않거나 기재가 서로 충돌합니다.",
+                recommendation="장치의 사용 또는 미사용 여부를 원문에서 확인하세요.",
+            )]
+        missing = []
+        if not operations:
+            missing.append("설치·운영 내용")
+        if not optouts:
+            missing.append("거부 방법")
+        return [InstanceRuleResult(
+            instance_id="__document__", applicability=Applicability.TRUE,
+            status=RuleStatus.RED if missing else RuleStatus.GREEN,
+            matched_facts=["automatic_collection:device"] +
+                (["automatic_collection:operation"] if operations else []) +
+                (["automatic_collection:opt_out"] if optouts else []),
+            missing_facts=[f"automatic_collection:{name}" for name in missing],
+            evidence=evidence,
+            reason="자동수집장치 설치·운영 및 거부 방법이 모두 기재되어 있습니다." if not missing
+                   else "자동수집장치 사용이 확인되나 다음 기재가 없습니다: " + ", ".join(missing),
+            recommendation="현재 기재를 유지하세요." if not missing else
+                           "장치 설치·운영 내용 및 실제 거부 방법을 처리방침에 기재하세요.",
+        )]
+
     # ------------------------------------------------------------------
     # PoC2
     # ------------------------------------------------------------------
@@ -1859,6 +1921,48 @@ class P0RuleEngine:
                         recommendation="제34조제1항제3·4호 및 제3항에 대응하는 정보를 역할별로 명시하세요.",
                     )
                 )
+        return results
+
+    def _p2_r10(self, graph: Graph) -> list[InstanceRuleResult]:
+        """통지문에 적힌 피해 신고 접수 담당부서와 연락처만 검사."""
+        incidents = self._instances(graph, PIPA.DataBreachIncident)
+        if not incidents:
+            return self._conditional_no_targets(graph, META.dataBreachIncidentState, "DataBreachIncident")
+        results = []
+        for incident in incidents:
+            notices = self._nonempty_values(graph, incident, PIPA.hasNotificationNotice)
+            if not notices:
+                explicitly_missing = self._explicit_state(graph, META.notificationNoticeState) == "confirmed_false"
+                results.append(InstanceRuleResult(
+                    instance_id=str(incident),
+                    status=RuleStatus.NOT_APPLICABLE if explicitly_missing else RuleStatus.YELLOW,
+                    applicability=Applicability.FALSE if explicitly_missing else Applicability.UNKNOWN,
+                    reason="통지문이 없어 기재사항 점검 대상이 아닙니다." if explicitly_missing
+                           else "연결된 통지문을 확인할 수 없습니다.",
+                    recommendation="통지문 작성 여부를 확인하세요.",
+                ))
+                continue
+            for notice in notices:
+                predicates = (
+                    (PIPA.hasDamageReportDepartment, "담당부서"),
+                    (PIPA.hasDamageReportContact, "연락처"),
+                )
+                missing = [label for prop, label in predicates if not self._nonempty_values(graph, notice, prop)]
+                evidence = self._dedupe_evidence([
+                    *self._assertion_evidence(graph, incident, PIPA.hasNotificationNotice),
+                    *(ev for prop, _ in predicates for ev in self._assertion_evidence(graph, notice, prop)),
+                ])
+                results.append(InstanceRuleResult(
+                    instance_id=str(notice), applicability=Applicability.TRUE,
+                    status=RuleStatus.RED if missing else RuleStatus.GREEN,
+                    matched_facts=[f"damage_report:{label}" for _, label in predicates if label not in missing],
+                    missing_facts=[f"damage_report:{label}" for label in missing],
+                    evidence=evidence + [self._absence_evidence(notice, "damage_report", name) for name in missing],
+                    reason="피해 신고 접수 담당부서와 연락처가 통지문에 기재되어 있습니다." if not missing
+                           else "통지문에서 확인되지 않은 피해 신고 접수 정보: " + ", ".join(missing),
+                    recommendation="현행 통지문 기재를 유지하세요." if not missing else
+                                   "피해 신고 등을 접수할 담당부서 명칭과 연락처를 통지문에 명시하세요.",
+                ))
         return results
 
     # ------------------------------------------------------------------

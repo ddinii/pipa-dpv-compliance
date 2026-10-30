@@ -1,6 +1,6 @@
 {
-  "ontology_version": "1.1",
-  "rule_version": "1.1",
+  "ontology_version": "1.2",
+  "rule_version": "1.2",
   "fact_schema_version": "1.0",
   "rules": [
     {
@@ -306,6 +306,35 @@
       ]
     },
     {
+      "rule_id": "P1-R12",
+      "poc": "PoC1",
+      "title": "자동수집장치 설치·운영 및 거부 방법 기재",
+      "rule_version": "1.2",
+      "applicability": "자동수집장치 사용 확인 시 적용. 명시적 미사용은 N/A; 사용 여부 불명확은 YELLOW",
+      "legal_basis": [
+        "개인정보 보호법 제30조제1항제7호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제30조제1항제7호"
+      ],
+      "ontology_terms": [
+        "PersonalInformationController",
+        "hasAutomaticCollectionDevice",
+        "hasAutomaticCollectionOperation",
+        "hasAutomaticCollectionOptOutMethod"
+      ],
+      "required_fact_ids": [
+        "F1-23",
+        "F1-24",
+        "F1-25"
+      ],
+      "notes": [
+        "F1-23은 자동수집장치 사용을 나타내는 장치명(예: 쿠키) 또는 명시적 부재 값 미사용. 단순 언급 없음은 absent로 기록하되 적용 여부 불명확(YELLOW).",
+        "사용이 확인되면 설치·운영 설명(F1-24)과 실제 거부 방법(F1-25)이 모두 필요하다. 없는 항목은 RED, 모호한 항목은 YELLOW.",
+        "명시적 미사용 때만 N/A. 브라우저 설정을 통한 거부 방법은 실제 실행 안내가 필요하며, 법 위반의 확정 판단은 하지 않는다."
+      ]
+    },
+    {
       "rule_id": "P2-R01",
       "poc": "PoC2",
       "title": "유출등 사고 사실·통지문 존재 검토",
@@ -443,6 +472,35 @@
       "notes": [
         "v1.1 addition. This is a factual consistency check, not a legal deadline or compliance determination.",
         "Compare actual incidentDate and notice-stated notice_incident_time without substituting either value."
+      ]
+    },
+    {
+      "rule_id": "P2-R10",
+      "poc": "PoC2",
+      "title": "피해 신고 접수 담당부서·연락처 기재",
+      "rule_version": "1.2",
+      "applicability": "연결된 유출등 통지문이 존재할 때 적용. 통지문 명시적 부재는 N/A",
+      "legal_basis": [
+        "개인정보 보호법 제34조제1항제5호"
+      ],
+      "source_spec_legal_basis": [
+        "개인정보 보호법 제34조제1항제5호"
+      ],
+      "ontology_terms": [
+        "DataBreachIncident",
+        "hasNotificationNotice",
+        "NotificationNotice",
+        "hasDamageReportDepartment",
+        "hasDamageReportContact"
+      ],
+      "required_fact_ids": [
+        "F2-11",
+        "F2-12"
+      ],
+      "notes": [
+        "피해 신고 등 접수를 위한 담당부서 명칭과 연결된 실질적 연락처를 각각 확인한다.",
+        "사고 기록의 대응 조치(F2-10)나 일반적인 고객센터 정보로 통지문 기재를 추정하지 않는다.",
+        "신고 접수 창구의 실효성이나 운영 여부는 판단하지 않는다."
       ]
     },
     {

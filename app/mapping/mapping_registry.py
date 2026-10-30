@@ -40,6 +40,10 @@ FACT_SPECS: dict[str, FactSpec] = {
     "F1-21": FactSpec("PrivacyOfficer", "hasContact", "officer_contact"),  # 연락처
     # v1.1 처리하는 개인정보 항목 기재 (시행령 제31조 제1항 제1호). 온톨로지 기존 용어를 쓴다
     "F1-22": FactSpec("CollectionAndUse", "hasPersonalInformation", "personal_information"),
+    # v1.2 자동수집장치 기재: 문서 범위 조건부 점검.
+    "F1-23": FactSpec("PersonalInformationController", "hasAutomaticCollectionDevice", "controller_literal"),
+    "F1-24": FactSpec("PersonalInformationController", "hasAutomaticCollectionOperation", "controller_literal"),
+    "F1-25": FactSpec("PersonalInformationController", "hasAutomaticCollectionOptOutMethod", "controller_literal"),
     # PoC2
     "F2-01": FactSpec("DataBreachIncident", None, "class_assertion"),
     "F2-02": FactSpec("DataBreachIncident", "affectsPersonalInformation", "incident_information"),
@@ -51,6 +55,8 @@ FACT_SPECS: dict[str, FactSpec] = {
     "F2-08": FactSpec("NotificationNotice", None, "notice_incident_time_metadata"),
     "F2-09": FactSpec("NotificationNotice", "hasIncidentCircumstances", "string_literal"),
     "F2-10": FactSpec("DataBreachIncident", "hasResponseMeasure", "response_measures"),
+    "F2-11": FactSpec("NotificationNotice", "hasDamageReportDepartment", "notice_literal"),
+    "F2-12": FactSpec("NotificationNotice", "hasDamageReportContact", "notice_literal"),
     # PoC3
     "F3-01": FactSpec("CollectionAndUse", None, "class_assertion"),
     "F3-02": FactSpec("CollectionAndUse", "hasLegalBasis", "legal_basis"),
@@ -72,4 +78,4 @@ SYSTEM_METADATA_FACTS = {"F1-10", "F2-08", "F3-13"}
 
 
 # 처리행위에 속하지 않는 문서 단위 Fact. activity_id가 없어도 된다.
-DOCUMENT_SCOPE_FACTS = {"F1-11", "F1-12", "F1-20", "F1-21"}
+DOCUMENT_SCOPE_FACTS = {"F1-11", "F1-12", "F1-20", "F1-21", "F1-23", "F1-24", "F1-25"}

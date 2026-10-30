@@ -403,6 +403,17 @@ class OntologyMapper:
         for contact in self._as_items(fact["value"]):
             self.graph.add((officer, PIPA.hasContact, Literal(self._object_name(contact, "contact"))))
 
+    # v1.2 문서 단위 자동수집장치 점검
+    def _map_controller_literal(self, fact: dict[str, Any]) -> None:
+        controller = self._ensure_controller()
+        predicate = PIPA[local_name(fact["ontology_property"])]
+        self.graph.add((controller, predicate, Literal(str(fact["value"]))))
+
+    def _map_notice_literal(self, fact: dict[str, Any]) -> None:
+        notice = self._notice(fact)
+        predicate = PIPA[local_name(fact["ontology_property"])]
+        self.graph.add((notice, predicate, Literal(str(fact["value"]))))
+
     # PoC2 mappings ----------------------------------------------------------
 
     def _incident(self, fact: dict[str, Any]) -> URIRef:
