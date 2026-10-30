@@ -418,7 +418,7 @@ class FactOntologyMappingTests(unittest.TestCase):
         properties = set(ontology.subjects(RDF.type, OWL.ObjectProperty))
         properties.update(ontology.subjects(RDF.type, OWL.DatatypeProperty))
         properties.update(ontology.subjects(RDF.type, OWL.AnnotationProperty))
-        self.assertEqual(45, len(FACT_SPECS))  # 동결 35 + v1.1 10
+        self.assertEqual(50, len(FACT_SPECS))  # 동결 35 + v1.1 10 + 신규 5
         mapper = OntologyMapper("contract", controller_id="controller")
         for fact_type, spec in FACT_SPECS.items():
             self.assertIn(PIPA[spec.subject_class], classes, fact_type)

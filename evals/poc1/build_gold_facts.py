@@ -303,7 +303,7 @@ def build() -> list[dict]:
             evidence=[ev(RIGHTS_PROCEDURE)],
         ))
 
-    facts += cross_border_facts() + privacy_officer_facts() + collection_item_facts()
+    facts += cross_border_facts() + privacy_officer_facts() + collection_item_facts() + auto_collection_facts()
     return facts
 
 
@@ -419,6 +419,7 @@ def main() -> int:
             "P1-R09": "RED",   # 이전받는 자·시기·방법·거부 방법 기재 없음
             "P1-R10": "RED",   # 보호책임자 성명·부서·연락처 기재 없음
             "P1-R11": "GREEN",  # 다섯 목적 모두 수집 항목 기재
+            "P1-R12": "RED",  # 쿠키가 있는데 설치·운영/거부 방법 안내 없음
         },
         "facts": facts,
     }
@@ -431,5 +432,24 @@ def main() -> int:
     return 0
 
 
+# v1.2 F1-23~25: 자동수집장치는 쿠키 언급으로 사용만 확인.
+# 설치·운영 설명과 거부 방법은 원문에 없으므로 문서 근거를 붙인 absent.
+def auto_collection_facts() -> list[dict]:
+    cookie_line = "수집 항목: IP 주소·접속일시·이용기록·기기정보·쿠키"
+    scope = {"subject_id": "automatic-collection", "activity_id": None,
+             "ontology_class": "PersonalInformationController"}
+    return [
+        fact("F1-23:automatic-collection", evidence=[ev("쿠키")],
+             ontology_property="hasAutomaticCollectionDevice", value="쿠키", **scope),
+        fact("F1-24:automatic-collection", evidence=[ev(cookie_line)],
+             ontology_property="hasAutomaticCollectionOperation",
+             value_state="absent", **scope),
+        fact("F1-25:automatic-collection", evidence=[ev(cookie_line)],
+             ontology_property="hasAutomaticCollectionOptOutMethod",
+             value_state="absent", **scope),
+    ]
+
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

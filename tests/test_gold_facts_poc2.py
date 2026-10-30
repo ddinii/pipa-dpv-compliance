@@ -40,6 +40,7 @@ RULE_FACT_COVERAGE = {
     "P2-R03": {"F2-08", "F2-09"},
     "P2-R08": {"F2-01", "F2-10"},
     "P2-R09": {"F2-05", "F2-08"},
+    "P2-R10": {"F2-11", "F2-12"},
 }
 
 NOTICE_SUBJECT = "breach-notice"
@@ -81,7 +82,7 @@ def test_gold_passes_the_canonical_validator(gold: dict):
 
 def test_all_ten_poc2_fact_ids_are_present(gold: dict):
     present = {fact_type(item["fact_id"]) for item in gold["facts"]}
-    assert present == {f"F2-{n:02d}" for n in range(1, 11)}
+    assert present == {f"F2-{n:02d}" for n in range(1, 13)}
 
 
 @pytest.mark.parametrize("rule_id", sorted(RULE_FACT_COVERAGE))

@@ -34,6 +34,7 @@ BASE_STATUS = {
     "P1-R09": "RED",
     "P1-R10": "RED",
     "P1-R11": "GREEN",
+    "P1-R12": "RED",
 }
 
 

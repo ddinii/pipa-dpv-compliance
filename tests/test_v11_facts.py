@@ -34,7 +34,7 @@ def fact(fact_id, cls, prop, value, *, activity="act-crossborder-001", state="co
 
 def test_v11_facts_are_registered_after_the_frozen_35():
     assert set(V11) <= set(FACT_SPECS)
-    assert len(FACT_SPECS) == 45
+    assert len(FACT_SPECS) == 50
 
 
 @pytest.mark.parametrize("fact_id", V11)
@@ -46,9 +46,9 @@ def test_every_v11_fact_uses_terms_that_exist_in_the_ontology(fact_id: str):
 
 
 def test_ontology_and_profile_report_version_1_1():
-    assert 'owl:versionInfo "1.1"' in ONTOLOGY
+    assert 'owl:versionInfo "1.2"' in ONTOLOGY
     profile = json.loads((ROOT / "rules" / "p0_rules.json").read_text(encoding="utf-8"))
-    assert profile["ontology_version"] == "1.1"
+    assert profile["ontology_version"] == "1.2"
 
 
 def test_officer_facts_are_document_scope():

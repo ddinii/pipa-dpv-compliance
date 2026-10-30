@@ -17,7 +17,8 @@
     "P1-R08": "YELLOW",
     "P1-R09": "GREEN",
     "P1-R10": "GREEN",
-    "P1-R11": "GREEN"
+    "P1-R11": "GREEN",
+    "P1-R12": "YELLOW"
   },
   "system_metadata": [
     {
@@ -499,6 +500,60 @@
           "text": "dpo@example.com",
           "start_offset": 825,
           "end_offset": 840
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-23:automatic-collection",
+      "subject_id": "automatic-collection",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasAutomaticCollectionDevice",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "예시스테이 개인정보 처리방침",
+          "start_offset": 0,
+          "end_offset": 15
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-24:automatic-collection",
+      "subject_id": "automatic-collection",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasAutomaticCollectionOperation",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "예시스테이 개인정보 처리방침",
+          "start_offset": 0,
+          "end_offset": 15
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F1-25:automatic-collection",
+      "subject_id": "automatic-collection",
+      "activity_id": null,
+      "ontology_class": "PersonalInformationController",
+      "ontology_property": "hasAutomaticCollectionOptOutMethod",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "policy_text",
+      "evidence": [
+        {
+          "text": "예시스테이 개인정보 처리방침",
+          "start_offset": 0,
+          "end_offset": 15
         }
       ],
       "schema_version": "fact-1.0"

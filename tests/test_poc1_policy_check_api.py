@@ -14,7 +14,7 @@ client = TestClient(app)
 
 POC1_RULE_IDS = {
     "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07", "P1-R08",
-    "P1-R09", "P1-R10", "P1-R11",
+    "P1-R09", "P1-R10", "P1-R11", "P1-R12",
 }
 
 
@@ -40,7 +40,7 @@ def test_policy_check_response_poc_is_poc1():
     assert response.json()["poc"] == "PoC1"
 
 
-def test_policy_check_returns_exactly_the_10_poc1_rule_ids():
+def test_policy_check_returns_exactly_the_11_poc1_rule_ids():
     response = client.post(
         "/api/v1/compliance/policy-check", json=load_synthetic_policy_fixture()
     )
@@ -48,7 +48,7 @@ def test_policy_check_returns_exactly_the_10_poc1_rule_ids():
     body = response.json()
     rule_ids = {result["rule_id"] for result in body["results"]}
     assert rule_ids == POC1_RULE_IDS
-    assert len(body["results"]) == 10
+    assert len(body["results"]) == 11
 
 
 def test_policy_check_preserves_rule_result_status_and_applicability_semantics():

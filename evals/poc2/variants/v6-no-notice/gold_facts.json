@@ -12,14 +12,17 @@
     "also_moves": {
       "P2-R01": "RED",
       "P2-R03": "N/A",
-      "P2-R09": "N/A"
+      "P2-R09": "N/A",
+      "P2-R10": "N/A"
     },
     "changed_facts": [
       "F2-03",
       "F2-04",
       "F2-07",
       "F2-08",
-      "F2-09"
+      "F2-09",
+      "F2-11",
+      "F2-12"
     ]
   },
   "expected_rule_status": {
@@ -27,7 +30,8 @@
     "P2-R02": "N/A",
     "P2-R03": "N/A",
     "P2-R08": "GREEN",
-    "P2-R09": "N/A"
+    "P2-R09": "N/A",
+    "P2-R10": "N/A"
   },
   "facts": [
     {
@@ -229,6 +233,38 @@
       "activity_id": "breach-incident",
       "ontology_class": "NotificationNotice",
       "ontology_property": "hasIncidentCircumstances",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-11:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasDamageReportDepartment",
+      "value": null,
+      "value_state": "absent",
+      "source_type": "derived",
+      "evidence": [
+        {
+          "field_path": "notification"
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-12:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasDamageReportContact",
       "value": null,
       "value_state": "absent",
       "source_type": "derived",
