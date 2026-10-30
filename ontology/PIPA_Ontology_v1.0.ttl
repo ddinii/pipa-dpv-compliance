@@ -8,7 +8,7 @@
 <https://w3id.org/pipa-compliance/ontology>
     a owl:Ontology ;
     owl:versionIRI <https://w3id.org/pipa-compliance/ontology/1.1> ;
-    owl:versionInfo "1.1" ;
+    owl:versionInfo "1.2" ;
     owl:priorVersion <https://w3id.org/pipa-compliance/ontology/1.0> ;
     dct:title "PIPA Compliance Process-Centered Ontology"@en ,
               "개인정보 보호법 준수 지원 처리행위 중심 온톨로지"@ko ;
@@ -462,3 +462,22 @@ pipa:PIPA_Art34_Para3 a pipa:PIPAArticle ; pipa:articleNumber 34 ; pipa:provisio
 pipa:PIPA_Art35 a pipa:PIPAArticle ; pipa:articleNumber 35 ; pipa:provisionIdentifier "제35조" ; rdfs:label "개인정보 보호법 제35조"@ko .
 pipa:PIPA_Art36 a pipa:PIPAArticle ; pipa:articleNumber 36 ; pipa:provisionIdentifier "제36조" ; rdfs:label "개인정보 보호법 제36조"@ko .
 pipa:PIPA_Art37 a pipa:PIPAArticle ; pipa:articleNumber 37 ; pipa:provisionIdentifier "제37조" ; rdfs:label "개인정보 보호법 제37조"@ko .
+
+#################################################################
+# v1.2 additions (2026-10-30): 자동수집장치 기재 / 피해 신고 접수 창구
+#################################################################
+pipa:hasAutomaticCollectionDevice a owl:DatatypeProperty ;
+    rdfs:domain pipa:PersonalInformationController ; rdfs:range xsd:string ;
+    rdfs:label "자동수집장치 사용 여부 및 장치명"@ko .
+pipa:hasAutomaticCollectionOperation a owl:DatatypeProperty ;
+    rdfs:domain pipa:PersonalInformationController ; rdfs:range xsd:string ;
+    rdfs:label "자동수집장치 설치 및 운영 내용"@ko .
+pipa:hasAutomaticCollectionOptOutMethod a owl:DatatypeProperty ;
+    rdfs:domain pipa:PersonalInformationController ; rdfs:range xsd:string ;
+    rdfs:label "자동수집장치 거부 방법"@ko .
+pipa:hasDamageReportDepartment a owl:DatatypeProperty ;
+    rdfs:domain pipa:NotificationNotice ; rdfs:range xsd:string ;
+    rdfs:label "피해 신고 접수 담당부서"@ko .
+pipa:hasDamageReportContact a owl:DatatypeProperty ;
+    rdfs:domain pipa:NotificationNotice ; rdfs:range xsd:string ;
+    rdfs:label "피해 신고 접수 연락처"@ko .

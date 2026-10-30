@@ -20,7 +20,7 @@ SOURCE_TYPES = {
     "derived",
 }
 POC2_INCIDENT_FACTS = {"F2-01", "F2-02", "F2-05", "F2-06"}
-POC2_NOTICE_FACTS = {"F2-03", "F2-04", "F2-07", "F2-08", "F2-09", "F2-10"}
+POC2_NOTICE_FACTS = {"F2-03", "F2-04", "F2-07", "F2-08", "F2-09", "F2-10", "F2-11", "F2-12"}
 PIPA_NAMESPACE = "https://w3id.org/pipa-compliance/ontology#"
 FACT_TYPE_PATTERN = re.compile(r"^(F[123]-\d{2})(?:[-_:].+)?$")
 

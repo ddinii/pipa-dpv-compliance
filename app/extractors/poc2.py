@@ -74,6 +74,8 @@ NOTICE_ABSENCE_SHAPE: dict[str, tuple[str, str, str | None]] = {
     "F2-07": (INCIDENT_ID, "DataBreachIncident", "notificationDate"),
     "F2-08": (NOTICE_ID, "NotificationNotice", None),
     "F2-09": (NOTICE_ID, "NotificationNotice", "hasIncidentCircumstances"),
+    "F2-11": (NOTICE_ID, "NotificationNotice", "hasDamageReportDepartment"),
+    "F2-12": (NOTICE_ID, "NotificationNotice", "hasDamageReportContact"),
 }
 
 # Fact ID -> (subject_id, ontology_class). Fact Dictionary 4장 매핑의 출발 Class다.
@@ -87,6 +89,8 @@ FACT_SUBJECT: dict[str, tuple[str, str]] = {
     "F2-07": (INCIDENT_ID, "DataBreachIncident"),
     "F2-08": (NOTICE_ID, "NotificationNotice"),
     "F2-09": (NOTICE_ID, "NotificationNotice"),
+    "F2-11": (NOTICE_ID, "NotificationNotice"),
+    "F2-12": (NOTICE_ID, "NotificationNotice"),
     "F2-10": (INCIDENT_ID, "DataBreachIncident"),
 }
 
@@ -112,7 +116,7 @@ Poc2Value = str | list[str] | list[ResponseMeasure] | NoticeRef | None
 # 낼 수 있는지는 enum이 아니라 _collect의 허용 목록이 따로 본다.
 Poc2FactId = Literal[
     "F2-01", "F2-02", "F2-03", "F2-04", "F2-05",
-    "F2-06", "F2-07", "F2-08", "F2-09", "F2-10",
+    "F2-06", "F2-07", "F2-08", "F2-09", "F2-10", "F2-11", "F2-12",
 ]
 
 
