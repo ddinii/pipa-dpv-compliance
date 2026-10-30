@@ -559,6 +559,17 @@ def build_h5(document: str) -> dict:
     }
 
 
+def automatic_collection_unknown_facts(document: str) -> list[dict]:
+    """쿠키 등 장치 사용 여부가 나타나지 않는 문서의 확인 필요 Fact."""
+    evidence = [{"text": document.splitlines()[0], "start_offset": 0,
+                 "end_offset": len(document.splitlines()[0])}]
+    return [fact(f"F1-{number}", None, "PersonalInformationController", prop,
+                 evidence, value_state="absent", subject_id="automatic-collection")
+            for number, prop in [(23, "hasAutomaticCollectionDevice"),
+                                 (24, "hasAutomaticCollectionOperation"),
+                                 (25, "hasAutomaticCollectionOptOutMethod")]]
+
+
 BUILDERS = {
     "h1-fitness-app": build_h1,
     "h2-online-academy": build_h2,
@@ -579,6 +590,8 @@ def main() -> int:
             "fact_schema_version": SCHEMA_VERSION,
             **builder(document),
         }
+        payload["facts"].extend(automatic_collection_unknown_facts(document))
+        payload["expected_rule_status"]["P1-R12"] = "YELLOW"
         (directory / "gold_facts.json").write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )

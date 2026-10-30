@@ -19,7 +19,8 @@
     "P2-R02": "GREEN",
     "P2-R03": "GREEN",
     "P2-R08": "YELLOW",
-    "P2-R09": "GREEN"
+    "P2-R09": "GREEN",
+    "P2-R10": "YELLOW"
   },
   "facts": [
     {
@@ -231,6 +232,44 @@
       ],
       "schema_version": "fact-1.0",
       "_note": "통지문이 기재한 경위"
+    },
+    {
+      "fact_id": "F2-11:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasDamageReportDepartment",
+      "value": null,
+      "value_state": "unknown",
+      "source_type": "notification_notice",
+      "evidence": [
+        {
+          "text": "개인정보보호 담당부서 연락처를 통하여 문의하실 수 있으며",
+          "start_offset": 350,
+          "end_offset": 381
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "일반적인 담당부서 표현만 있고 실제 접수부서 식별은 불명확"
+    },
+    {
+      "fact_id": "F2-12:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasDamageReportContact",
+      "value": null,
+      "value_state": "unknown",
+      "source_type": "notification_notice",
+      "evidence": [
+        {
+          "text": "개인정보보호 담당부서 연락처를 통하여 문의하실 수 있으며",
+          "start_offset": 350,
+          "end_offset": 381
+        }
+      ],
+      "schema_version": "fact-1.0",
+      "_note": "실제 전화번호·이메일 등 문의 연락 수단은 표시되어 있지 않음"
     }
   ]
 }

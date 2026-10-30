@@ -63,7 +63,7 @@ def test_breach_check_response_json_unchanged_shape_and_values():
     assert set(body.keys()) == {"analysis_id", "poc", "ontology_version", "rule_version",
          "fact_schema_version", "results"}
     assert body["poc"] == "PoC2"
-    assert len(body["results"]) == 5
+    assert len(body["results"]) == 6
 
 
 def test_design_check_response_json_unchanged_shape_and_values():

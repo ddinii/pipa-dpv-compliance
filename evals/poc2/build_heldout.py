@@ -282,6 +282,17 @@ def main() -> int:
             "fact_schema_version": SCHEMA_VERSION,
             **builder(incident, notice),
         }
+        if notice is not None:
+            # 통지문이 있어도 담당부서·연락처 특정 여부를 별도로 검토한다.
+            quote = notice.splitlines()[0]
+            evidence = [{"text": quote, "start_offset": 0, "end_offset": len(quote)}]
+            for num, prop in [(11, "hasDamageReportDepartment"), (12, "hasDamageReportContact")]:
+                payload["facts"].append(fact(
+                    f"F2-{num}", NOTICE_ID, "NotificationNotice", "notification_notice",
+                    evidence, ontology_property=prop, value_state="unknown"))
+            payload["expected_rule_status"]["P2-R10"] = "YELLOW"
+        else:
+            payload["expected_rule_status"]["P2-R10"] = "N/A"
         (directory / "gold_facts.json").write_text(
             json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )

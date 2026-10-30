@@ -183,6 +183,19 @@ NOTICE_FACTS = [
 ]
 
 
+# SC-P02에는 담당부서 "연락처를 통하여 문의"라고만 쓰여 있으며
+# 담당부서 고유 명칭이나 전화번호·이메일을 특정하지 않는다.
+NOTICE_FACTS.extend([
+    fact("F2-11:breach-notice", NOTICE_ID, "NotificationNotice", "notification_notice",
+         [note("개인정보보호 담당부서 연락처를 통하여 문의하실 수 있으며")],
+         ontology_property="hasDamageReportDepartment", value_state="unknown",
+         comment="일반적인 담당부서 표현만 있고 실제 접수부서 식별은 불명확"),
+    fact("F2-12:breach-notice", NOTICE_ID, "NotificationNotice", "notification_notice",
+         [note("개인정보보호 담당부서 연락처를 통하여 문의하실 수 있으며")],
+         ontology_property="hasDamageReportContact", value_state="unknown",
+         comment="실제 전화번호·이메일 등 문의 연락 수단은 표시되어 있지 않음"),
+])
+
 FACTS = INCIDENT_FACTS + NOTICE_FACTS
 
 # tests/SC-P02_FINAL_Protege.ttl의 Freeze 기대값
@@ -192,6 +205,7 @@ EXPECTED_RULE_STATUS = {
     "P2-R03": "GREEN",
     "P2-R08": "GREEN",
     "P2-R09": "GREEN",
+    "P2-R10": "YELLOW",
 }
 
 

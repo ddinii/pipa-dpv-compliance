@@ -31,6 +31,7 @@ FACT_IDS = (
 # v1.1 확장 (2026-10-29): 국외 이전 기재 F1-13~F1-19, 보호책임자 기재 F1-20~F1-21,
 # 처리하는 개인정보 항목 F1-22
 V11_FACT_IDS = [f"F1-{n:02d}" for n in range(13, 23)]
+V12_FACT_IDS = [f"F1-{n:02d}" for n in range(23, 26)] + [f"F2-{n:02d}" for n in range(11, 13)]
 
 # --- Fact Dictionary 7장 Rule <-> Fact Coverage ---------------------------
 COVERAGE = {
@@ -41,11 +42,13 @@ COVERAGE = {
     "P1-R06": {"F1-09", "F1-10"},
     "P1-R07": {"F1-11", "F1-12"},
     "P1-R08": {"F1-11"},
+    "P1-R12": {"F1-23", "F1-24", "F1-25"},
     "P2-R01": {"F2-01", "F2-02", "F2-03"},
     "P2-R02": {"F2-02", "F2-04"},
     "P2-R03": {"F2-08", "F2-09"},
     "P2-R08": {"F2-01", "F2-10"},
     "P2-R09": {"F2-05", "F2-08"},
+    "P2-R10": {"F2-11", "F2-12"},
     "P3-R01": {"F3-01", "F3-02"},
     "P3-R02": {"F3-02", "F3-03", "F3-04"},
     "P3-R03": {"F3-02", "F3-03", "F3-05"},
@@ -72,8 +75,8 @@ ENVELOPE_FIELDS = {
 
 # --- 기능명세서 9장 최소 Compliance API ------------------------------------
 ENDPOINTS = {
-    "API-001": ("/api/v1/compliance/policy-check", "examples/poc1_synthetic_policy_fixture.json", "PoC1", 10),
-    "API-002": ("/api/v1/compliance/breach-check", "examples/poc2_synthetic_breach_fixture.json", "PoC2", 5),
+    "API-001": ("/api/v1/compliance/policy-check", "examples/poc1_synthetic_policy_fixture.json", "PoC1", 11),
+    "API-002": ("/api/v1/compliance/breach-check", "examples/poc2_synthetic_breach_fixture.json", "PoC2", 6),
     "API-003": ("/api/v1/compliance/design-check", "examples/SC-D01_form.json", "PoC3", 8),
 }
 
@@ -91,8 +94,8 @@ def payload(name: str) -> dict:
 
 
 def test_registry_holds_the_thirty_five_frozen_facts_plus_v11():
-    """3·4·5장이 정의하는 동결 Fact 35개(12+10+13)와 v1.1 확장 10개. 그 밖의 번호는 없다."""
-    assert sorted(FACT_SPECS) == sorted(FACT_IDS + V11_FACT_IDS)
+    """3·4·5장이 정의하는 동결 Fact 35개와 v1.1 확장 10개, v1.2 추가 5개를 확인한다."""
+    assert sorted(FACT_SPECS) == sorted(FACT_IDS + V11_FACT_IDS + V12_FACT_IDS)
     assert len(FACT_IDS) == 35
 
 
@@ -125,14 +128,14 @@ def test_system_metadata_is_never_an_ontology_property(fact_id: str):
 # --- 기능명세서 ----------------------------------------------------------
 
 
-def test_rule_set_loader_splits_ten_five_eight():
-    """COM-005: PoC에 따라 P01 10개 / P02 5개 / D01 8개를 로드한다 (v1.1 확장 포함)."""
+def test_rule_set_loader_splits_eleven_six_eight():
+    """COM-005: PoC에 따라 P01 11개 / P02 6개 / D01 8개를 로드한다 (v1.2 확장 포함)."""
     engine = P0RuleEngine()
     counts = {
         poc: len([r for r, m in engine.metadata.items() if m.poc.lower() == poc])
         for poc in ("poc1", "poc2", "poc3")
     }
-    assert counts == {"poc1": 10, "poc2": 5, "poc3": 8}
+    assert counts == {"poc1": 11, "poc2": 6, "poc3": 8}
 
 
 def test_response_model_matches_the_nine_one_envelope():

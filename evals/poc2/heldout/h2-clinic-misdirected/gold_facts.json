@@ -13,7 +13,8 @@
     "P2-R02": "GREEN",
     "P2-R03": "RED",
     "P2-R08": "YELLOW",
-    "P2-R09": "GREEN"
+    "P2-R09": "GREEN",
+    "P2-R10": "YELLOW"
   },
   "facts": [
     {
@@ -228,6 +229,42 @@
       ],
       "schema_version": "fact-1.0",
       "_note": "통지문 전체에 경위 기재가 없다. 근거는 확인한 문서"
+    },
+    {
+      "fact_id": "F2-11:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasDamageReportDepartment",
+      "value": null,
+      "value_state": "unknown",
+      "source_type": "notification_notice",
+      "evidence": [
+        {
+          "text": "개인정보 유출 통지",
+          "start_offset": 0,
+          "end_offset": 10
+        }
+      ],
+      "schema_version": "fact-1.0"
+    },
+    {
+      "fact_id": "F2-12:breach-notice",
+      "subject_id": "breach-notice",
+      "activity_id": "breach-incident",
+      "ontology_class": "NotificationNotice",
+      "ontology_property": "hasDamageReportContact",
+      "value": null,
+      "value_state": "unknown",
+      "source_type": "notification_notice",
+      "evidence": [
+        {
+          "text": "개인정보 유출 통지",
+          "start_offset": 0,
+          "end_offset": 10
+        }
+      ],
+      "schema_version": "fact-1.0"
     }
   ]
 }

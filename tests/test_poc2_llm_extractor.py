@@ -39,9 +39,10 @@ NOTICE_TEXT = (
     "본 통지는 2026년 8월 3일에 발송되었습니다."
 )
 
-ALLOWED_FACT_IDS = {f"F2-{n:02d}" for n in range(1, 11)}
+ALLOWED_FACT_IDS = {f"F2-{n:02d}" for n in range(1, 13)}
 INCIDENT_SIDE = {"F2-01", "F2-02", "F2-05", "F2-06"}
 NOTICE_SIDE = {"F2-03", "F2-04", "F2-07", "F2-08", "F2-09"}
+NEW_NOTICE_SIDE = {"F2-11", "F2-12"}
 
 
 class StubMessages:
@@ -389,7 +390,7 @@ def test_injected_extractor_runs_the_five_poc2_rules():
         extractor=extractor,
     )
     statuses = {item.rule_id: item.status.value for item in results}
-    assert set(statuses) == {"P2-R01", "P2-R02", "P2-R03", "P2-R08", "P2-R09"}
+    assert set(statuses) == {"P2-R01", "P2-R02", "P2-R03", "P2-R08", "P2-R09", "P2-R10"}
     # 통지문이 전화번호를 빠뜨렸으므로 P2-R02는 GREEN일 수 없다
     assert statuses["P2-R02"] != "GREEN"
     # 나머지는 통지문이 모두 갖춰져 있으므로 확인된다
@@ -457,7 +458,7 @@ def test_gold_shaped_extraction_reproduces_sc_p02():
         if fact_type(i["fact_id"]) in INCIDENT_SIDE | {"F2-10"}
     ]
     notice_side = [
-        as_extracted(i) for i in gold["facts"] if fact_type(i["fact_id"]) in NOTICE_SIDE
+        as_extracted(i) for i in gold["facts"] if fact_type(i["fact_id"]) in NOTICE_SIDE | NEW_NOTICE_SIDE
     ]
 
     extractor = LlmPoc2Extractor(

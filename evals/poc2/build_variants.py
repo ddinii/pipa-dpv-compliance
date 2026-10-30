@@ -157,7 +157,7 @@ VARIANTS: list[Variant] = [
         expected_status="N/A",
         # 통지문이 없으면 P2-R03도 판정 대상이 없다(N/A). P2-R01은 "사고는 있으나
         # 통지문이 없음"을 RED로 드러낸다. 통지 의무 판정이 아니다 (engine 문구 참고).
-        also_moves={"P2-R01": "RED", "P2-R03": "N/A", "P2-R09": "N/A"},
+        also_moves={"P2-R01": "RED", "P2-R03": "N/A", "P2-R09": "N/A", "P2-R10": "N/A"},
         no_notice=True,
     ),
 ]

@@ -228,6 +228,18 @@ class MockPoc2Extractor:
                         source_type="notification_notice",
                         field_path="notification.circumstances",
                     ),
+                    _fact(
+                        "F2-11-001", subject_id=_NOTICE_ID, activity_id=_INCIDENT_ID,
+                        ontology_class="NotificationNotice", ontology_property="hasDamageReportDepartment",
+                        value="개인정보보호팀", value_state="confirmed", source_type="notification_notice",
+                        field_path="notification.damage_report_department",
+                    ),
+                    _fact(
+                        "F2-12-001", subject_id=_NOTICE_ID, activity_id=_INCIDENT_ID,
+                        ontology_class="NotificationNotice", ontology_property="hasDamageReportContact",
+                        value="privacy@example.com", value_state="confirmed", source_type="notification_notice",
+                        field_path="notification.damage_report_contact",
+                    ),
                 ]
             )
         else:
@@ -242,6 +254,8 @@ class MockPoc2Extractor:
                 ("F2-07-001", _INCIDENT_ID, "DataBreachIncident", "notificationDate", "notification"),
                 ("F2-08-001", _NOTICE_ID, "NotificationNotice", None, "notification"),
                 ("F2-09-001", _NOTICE_ID, "NotificationNotice", "hasIncidentCircumstances", "notification"),
+                ("F2-11-001", _NOTICE_ID, "NotificationNotice", "hasDamageReportDepartment", "notification"),
+                ("F2-12-001", _NOTICE_ID, "NotificationNotice", "hasDamageReportContact", "notification"),
             ):
                 facts.append(
                     _fact(

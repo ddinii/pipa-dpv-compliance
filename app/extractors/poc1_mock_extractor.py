@@ -291,4 +291,20 @@ class MockPoC1Extractor:
                 value=["이름", "이메일 주소", "휴대전화번호"],
                 field_path="collection.items",
             ),
+            # 문서 단위 자동수집장치 (합성 mock에서 완전 기재)
+            _fact(
+                "F1-23-001", subject_id="automatic-collection", activity_id=None,
+                ontology_class="PersonalInformationController", ontology_property="hasAutomaticCollectionDevice",
+                value="쿠키", field_path="cookie.device",
+            ),
+            _fact(
+                "F1-24-001", subject_id="automatic-collection", activity_id=None,
+                ontology_class="PersonalInformationController", ontology_property="hasAutomaticCollectionOperation",
+                value="웹사이트 접속 시 쿠키를 설치·운영", field_path="cookie.operation",
+            ),
+            _fact(
+                "F1-25-001", subject_id="automatic-collection", activity_id=None,
+                ontology_class="PersonalInformationController", ontology_property="hasAutomaticCollectionOptOutMethod",
+                value="브라우저 설정에서 쿠키 저장 차단", field_path="cookie.opt_out",
+            ),
         ]

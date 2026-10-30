@@ -44,7 +44,7 @@ def test_every_case_carries_a_document_and_expected_statuses():
         assert case.document.strip()
         assert set(case.expected_rule_status) == {
             "P1-R01", "P1-R02", "P1-R03", "P1-R04", "P1-R06", "P1-R07", "P1-R08",
-            "P1-R09", "P1-R10", "P1-R11",
+            "P1-R09", "P1-R10", "P1-R11", "P1-R12",
         }
 
 
@@ -60,7 +60,7 @@ def test_perfect_prediction_scores_full_agreement():
     score = RuleScore()
     for case in load_poc1_cases():
         score.add(case.name, case.expected_rule_status, case.expected_rule_status)
-    assert score.total == 120  # 12건 x 10 Rule
+    assert score.total == 132  # 12건 x 11 Rule
     assert score.agreement == 1.0
     assert score.false_greens == []
 
@@ -78,8 +78,8 @@ def test_predicting_green_everywhere_is_caught_as_dangerous():
             case.expected_rule_status,
             {rule: "GREEN" for rule in case.expected_rule_status},
         )
-    assert 0.6 < score.agreement < 0.75
-    assert len(score.false_greens) == 42
+    assert 0.5 < score.agreement < 0.75
+    assert len(score.false_greens) == 54
     assert score.false_green_rate > 0.25
 
 
