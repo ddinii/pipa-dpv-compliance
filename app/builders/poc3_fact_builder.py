@@ -44,6 +44,22 @@ def _required(obj: dict[str, Any], key: str, path: str) -> Any:
     return obj[key]
 
 
+def _is_absent(value: Any, path: str) -> bool:
+    """True only for the exact explicit-absence marker ``{"state": "absent"}``.
+
+    No string heuristics: sentinel text such as "미기재" stays a confirmed
+    string.  A dict carrying a ``state`` key that is not exactly the marker is
+    an input error, never silently treated as a value or as absent.
+    """
+    if isinstance(value, dict) and "state" in value:
+        if value == {"state": "absent"}:
+            return True
+        raise Poc3FormError(
+            f"잘못된 상태 객체: {path} (허용 형식은 정확히 {{\"state\": \"absent\"}})"
+        )
+    return False
+
+
 def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
     """Convert a PoC3 form payload into F3-01..F3-13 Fact envelopes.
 
@@ -88,6 +104,50 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     f"{base}.personal_information_items[{item_index}]는 객체여야 함"
                 )
 
+        item_path_of = lambda i: f"{base}.personal_information_items[{i}]"  # noqa: E731
+        # Explicitly absent item names are kept out of the aggregate F3-05 value
+        # (so named items keep their information) and are recorded as separate
+        # F3-05 absent Facts whose evidence points at the missing item.
+        absent_name_indexes = [
+            i for i, item in enumerate(items)
+            if _is_absent(
+                _required(item, "item_name", item_path_of(i)),
+                f"{item_path_of(i)}.item_name",
+            )
+        ]
+        named_items = [
+            _required(item, "item_name", item_path_of(i))
+            for i, item in enumerate(items)
+            if i not in absent_name_indexes
+        ]
+        f3_05_facts: list[dict[str, Any]] = []
+        if named_items:
+            f3_05_facts.append(
+                _fact(
+                    next_id("F3-05"),
+                    subject_id=activity_id,
+                    activity_id=activity_id,
+                    ontology_class="CollectionAndUse",
+                    ontology_property="hasPersonalInformation",
+                    value=named_items,
+                    field_path=f"{base}.personal_information_items",
+                )
+            )
+        for missing_index in absent_name_indexes:
+            f3_05_facts.append(
+                _fact(
+                    next_id("F3-05"),
+                    # item-level absence: reuse the existing item subject_id
+                    subject_id=f"{activity_id}-item-{missing_index + 1}",
+                    activity_id=activity_id,
+                    ontology_class="CollectionAndUse",
+                    ontology_property="hasPersonalInformation",
+                    value=None,
+                    value_state="absent",
+                    field_path=f"{item_path_of(missing_index)}.item_name",
+                )
+            )
+
         facts.extend(
             [
                 _fact(
@@ -126,15 +186,7 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     value=purpose,
                     field_path=f"{base}.purpose",
                 ),
-                _fact(
-                    next_id("F3-05"),
-                    subject_id=activity_id,
-                    activity_id=activity_id,
-                    ontology_class="CollectionAndUse",
-                    ontology_property="hasPersonalInformation",
-                    value=[_required(item, "item_name", f"{base}.personal_information_items") for item in items],
-                    field_path=f"{base}.personal_information_items",
-                ),
+                *f3_05_facts,
                 _fact(
                     next_id("F3-06"),
                     subject_id=activity_id,
@@ -146,38 +198,43 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                 ),
             ]
         )
-
         for item_index, item in enumerate(items):
             item_path = f"{base}.personal_information_items[{item_index}]"
-            item_name = str(_required(item, "item_name", item_path))
+            # An explicitly absent name keeps the item addressable by its
+            # existing subject_id; F3-07/F3-08 then carry item_name=None.
+            name_absent = item_index in absent_name_indexes
+            item_name = None if name_absent else str(_required(item, "item_name", item_path))
             required = _required(item, "is_required", item_path)
             rationale = _required(item, "design_rationale", item_path)
             if not isinstance(required, bool):
                 raise Poc3FormError(f"{item_path}.is_required는 boolean이어야 함")
-            facts.extend(
-                [
-                    _fact(
-                        next_id("F3-07"),
-                        subject_id=f"{activity_id}-item-{item_index + 1}",
-                        activity_id=activity_id,
-                        ontology_class="PersonalInformation",
-                        ontology_property="isRequired",
-                        value={"item_name": item_name, "is_required": required},
-                        field_path=f"{item_path}.is_required",
-                    ),
-                    _fact(
-                        next_id("F3-08"),
-                        subject_id=f"{activity_id}-item-{item_index + 1}",
-                        activity_id=activity_id,
-                        ontology_class="PersonalInformation",
-                        ontology_property="designRationale",
-                        value={
-                            "item_name": item_name,
-                            "design_rationale": rationale,
-                        },
-                        field_path=f"{item_path}.design_rationale",
-                    ),
-                ]
+            rationale_absent = _is_absent(rationale, f"{item_path}.design_rationale")
+            # Optional-item absence is preserved as an absent F3-08 Fact; the
+            # engine scopes it per item (P3-R05 evaluates required items only).
+            facts.append(
+                _fact(
+                    next_id("F3-07"),
+                    subject_id=f"{activity_id}-item-{item_index + 1}",
+                    activity_id=activity_id,
+                    ontology_class="PersonalInformation",
+                    ontology_property="isRequired",
+                    value={"item_name": item_name, "is_required": required},
+                    field_path=f"{item_path}.is_required",
+                )
+            )
+            facts.append(
+                _fact(
+                    next_id("F3-08"),
+                    subject_id=f"{activity_id}-item-{item_index + 1}",
+                    activity_id=activity_id,
+                    ontology_class="PersonalInformation",
+                    ontology_property="designRationale",
+                    value=None
+                    if rationale_absent
+                    else {"item_name": item_name, "design_rationale": rationale},
+                    value_state="absent" if rationale_absent else "confirmed",
+                    field_path=f"{item_path}.design_rationale",
+                )
             )
 
         if "denies_service_on_optional_refusal" in activity:
@@ -211,6 +268,9 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                 )
             )
         if end_condition and destruction_method:
+            method_absent = _is_absent(
+                destruction_method, f"{base}.retention.destruction_method"
+            )
             facts.append(
                 _fact(
                     next_id("F3-11"),
@@ -218,11 +278,18 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="RetentionEndCondition",
                     ontology_property="triggersDestruction",
-                    value={
+                    value=None
+                    if method_absent
+                    else {
                         "end_condition": end_condition,
                         "destruction_method": destruction_method,
                     },
-                    field_path=f"{base}.retention",
+                    value_state="absent" if method_absent else "confirmed",
+                    field_path=(
+                        f"{base}.retention.destruction_method"
+                        if method_absent
+                        else f"{base}.retention"
+                    ),
                 )
             )
 
@@ -236,6 +303,8 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
         activity_id = str(_required(entry, "activity_id", base))
         processor = _required(entry, "processor", base)
         task = _required(entry, "task", base)
+        processor_absent = _is_absent(processor, f"{base}.processor")
+        task_absent = _is_absent(task, f"{base}.task")
         facts.extend(
             [
                 _fact(
@@ -244,7 +313,8 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="EntrustedProcessing",
                     ontology_property="hasProcessor",
-                    value=processor,
+                    value=None if processor_absent else processor,
+                    value_state="absent" if processor_absent else "confirmed",
                     field_path=f"{base}.processor",
                 ),
                 _fact(
@@ -253,7 +323,8 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="EntrustedProcessing",
                     ontology_property=None,
-                    value=task,
+                    value=None if task_absent else task,
+                    value_state="absent" if task_absent else "confirmed",
                     field_path=f"{base}.task",
                 ),
             ]

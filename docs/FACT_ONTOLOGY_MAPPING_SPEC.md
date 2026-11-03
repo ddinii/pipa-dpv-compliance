@@ -81,6 +81,26 @@ Frozen Fact의 `value_state=absent`를 사용함. 이 경우 N/A가 아니라 RE
 | F3-12 | `EntrustedProcessing.hasProcessor → EntrustedProcessor.hasName` |
 | F3-13 | `system_metadata.entrusted_task_text` + `pipa:entrustedTaskText` Annotation triple |
 
+### PoC3 확장: 항목명이 명시적으로 absent인 개인정보 항목 (F3-05/F3-07/F3-08)
+
+Frozen Fact ID, ontology term, 기존 필드 의미는 바꾸지 않는다. 입력 `{"state": "absent"}`
+(항목명 필드)에 한해 다음 표현을 추가로 허용한다.
+
+- **F3-07 / F3-08**: `value.item_name`이 `null`일 수 있다. 항목은 기존 `subject_id`
+  (`{activity_id}-item-N`)로 식별한다. 새 ID는 만들지 않는다.
+- **F3-05**: 이름이 있는 항목은 기존처럼 하나의 confirmed 집계 Fact(`value`=항목명 목록)에 둔다.
+  항목명이 absent인 항목마다 별도 `value_state=absent`, `value=null` Fact를 추가하며
+  `subject_id`는 해당 항목의 `subject_id`, `evidence.field_path`는 `...personal_information_items[i].item_name`이다.
+- **RDF Mapper**: `item_name=null`이면 `PersonalInformation` 노드를 `subject_id` 기준으로 만들고
+  `hasPersonalInformation`/`inProcessingActivity`만 연결한다. `hasItemName`은 만들지 않는다.
+- **Rule 적용 정책**
+  - P3-R03: 항목명 absent F3-05가 있으면 RED(absent 계약 그대로).
+  - P3-R05: 항목별 F3-07 `subject_id`에 대응하는 항목 단위 F3-05 absent는 R03 소관이므로 전파하지 않는다.
+    F3-05의 활동 단위 absent·unknown·envelope 누락은 기존 의미(RED/YELLOW/YELLOW)를 유지한다.
+    F3-08 absent는 같은 `subject_id`의 F3-07이 `is_required=true`일 때만 계산한다.
+  - P3-R06: 이름 없는 항목도 `isRequired`로 선택항목 존재를 인식한다.
+- F3-12/F3-13이 absent여도 `EntrustedProcessing` 인스턴스는 유지한다(속성만 미주장).
+
 ## 버전 정책
 
 현재 변경은 신규 Fact ID 또는 core ontology term을 추가하지 않으므로 v1.0을 유지함.

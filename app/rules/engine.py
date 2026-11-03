@@ -537,6 +537,39 @@ class P0RuleEngine:
         """Return (unknown_types, absent_types, Fact IDs by (type, state)) for one instance."""
         states_by_type: dict[str, set[str]] = {fact_type: set() for fact_type in required}
         ids_by_state: dict[tuple[str, str], list[str]] = {}
+        if rule_id == "P3-R05":
+            # P3-R05 evaluates the design rationale of REQUIRED items only.
+            # An absent F3-08 therefore counts only when the same item
+            # (subject_id) has a confirmed F3-07 with is_required == true.
+            required_subjects = {
+                fact.get("subject_id")
+                for fact in facts
+                if fact.get("fact_type") == "F3-07"
+                and fact.get("value_state") == "confirmed"
+                and isinstance(fact.get("value"), Mapping)
+                and fact["value"].get("is_required") is True
+            }
+            # F3-05 absent that targets one item (subject_id equals an item's
+            # F3-07 subject_id) is an item-NAME gap owned by P3-R03; the item
+            # is still judged by is_required/design_rationale here.  An
+            # activity-level F3-05 absent or unknown keeps its normal meaning.
+            item_subjects = {
+                fact.get("subject_id") for fact in facts if fact.get("fact_type") == "F3-07"
+            }
+            facts = [
+                fact
+                for fact in facts
+                if not (
+                    fact.get("fact_type") == "F3-08"
+                    and fact.get("value_state") == "absent"
+                    and fact.get("subject_id") not in required_subjects
+                )
+                and not (
+                    fact.get("fact_type") == "F3-05"
+                    and fact.get("value_state") == "absent"
+                    and fact.get("subject_id") in item_subjects
+                )
+            ]
         for fact in facts:
             fact_type = str(fact.get("fact_type"))
             state = str(fact.get("value_state"))
@@ -2351,7 +2384,9 @@ class P0RuleEngine:
                 evidence += self._assertion_evidence(graph, item, PIPA.designRationale)
 
                 if not raw_names:
-                    missing_names.append(item)
+                    # Explicitly absent item name (unnamed node): owned by
+                    # P3-R03; R05 judges the item by is_required/rationale.
+                    pass
                 elif not names:
                     uncertain_names.append(item)
                 else:

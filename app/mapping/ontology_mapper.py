@@ -52,6 +52,10 @@ class MappingResult:
         return self.graph.serialize(destination=destination, format="turtle")
 
 
+# Absent attribute Facts that still evidence an existing entrusted activity.
+ENTRUSTED_INSTANCE_FACTS = {"F3-12", "F3-13"}
+
+
 class OntologyMapper:
     def __init__(
         self,
@@ -95,6 +99,10 @@ class OntologyMapper:
             }
             self.trace.append(trace_item)
             if fact["value_state"] != "confirmed":
+                # An explicitly absent processor/task still proves the
+                # entrusted activity exists; only the property is unasserted.
+                if fact["fact_type"] in ENTRUSTED_INSTANCE_FACTS and fact["value_state"] == "absent":
+                    self._ensure_activity(self._activity_id(fact), "EntrustedProcessing")
                 continue
             self._map_confirmed(fact)
             trace_item["emitted"] = True
@@ -225,8 +233,17 @@ class OntologyMapper:
             raise FactValidationError(
                 f"{fact['fact_id']}: 항목별 Fact value는 객체여야 함"
             )
-        item_name = self._object_name(value, "item_name", "name")
         activity = self._ensure_activity(self._activity_id(fact), "CollectionAndUse")
+        if "item_name" in value and value["item_name"] is None:
+            # Explicitly absent item name (F3-07/F3-08 extension): the item is
+            # still identified by its existing subject_id.  No hasItemName is
+            # asserted, so P3-R03 can see the gap while R05/R06 keep the item.
+            node = self._derived_uri("pi-unnamed", f"{activity}|{fact['subject_id']}")
+            self.graph.add((node, RDF.type, PIPA.PersonalInformation))
+            self.graph.add((activity, PIPA.hasPersonalInformation, node))
+            self.graph.add((node, PIPA.inProcessingActivity, activity))
+            return node, value
+        item_name = self._object_name(value, "item_name", "name")
         item = self._ensure_personal_information(
             activity, item_name, PIPA.hasPersonalInformation, activity=activity
         )

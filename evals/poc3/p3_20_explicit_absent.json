@@ -1,0 +1,50 @@
+{
+  "analysis_id": "Q-P3-20",
+  "controller": {
+    "controller_id": "QA-GAON",
+    "name": "가온테스트(가상)"
+  },
+  "collection_activities": [
+    {
+      "activity_id": "A-P3-20-MAIN",
+      "purpose": "회원 인증 및 주문내역 조회",
+      "legal_basis": {
+        "type": "Consent",
+        "status": "confirmed"
+      },
+      "consent_request": {
+        "planned": true
+      },
+      "personal_information_items": [
+        {
+          "item_name": "이메일 주소",
+          "is_required": true,
+          "design_rationale": {
+            "state": "absent"
+          }
+        },
+        {
+          "item_name": "관심분야",
+          "is_required": false,
+          "design_rationale": "선택적 개인화 추천"
+        }
+      ],
+      "retention": {
+        "end_condition": "회원 탈퇴 완료 시",
+        "destruction_method": {
+          "state": "absent"
+        }
+      },
+      "denies_service_on_optional_refusal": true
+    }
+  ],
+  "entrusted_processings": [
+    {
+      "activity_id": "ENT-P3-20-1",
+      "processor": "가온클라우드 주식회사",
+      "task": {
+        "state": "absent"
+      }
+    }
+  ]
+}
