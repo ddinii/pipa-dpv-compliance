@@ -109,6 +109,14 @@ def _consent_request_state(
     return consent_request, "confirmed"
 
 
+def _retention_fact_value(retention: dict[str, Any], base: str) -> dict[str, Any]:
+    """F3-06 value.  An absent end_condition marker is replaced by None so it
+    never reaches the Mapper; every other key is passed through unchanged."""
+    if _is_absent(retention.get("end_condition"), f"{base}.retention.end_condition"):
+        return {**retention, "end_condition": None}
+    return retention
+
+
 def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
     """Convert a PoC3 form payload into F3-01..F3-13 Fact envelopes.
 
@@ -247,7 +255,7 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="CollectionAndUse",
                     ontology_property="hasRetention",
-                    value=retention,
+                    value=_retention_fact_value(retention, base),
                     field_path=f"{base}.retention",
                 ),
             ]
@@ -309,6 +317,9 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
 
         end_condition = retention.get("end_condition")
         destruction_method = retention.get("destruction_method")
+        # The explicit marker applies to this field only (F3-10).  It does not
+        # imply anything about destruction_method (F3-11), nor the reverse.
+        end_absent = _is_absent(end_condition, f"{base}.retention.end_condition")
         if end_condition:
             facts.append(
                 _fact(
@@ -317,7 +328,8 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="Retention",
                     ontology_property="hasRetentionEndCondition",
-                    value=end_condition,
+                    value=None if end_absent else end_condition,
+                    value_state="absent" if end_absent else "confirmed",
                     field_path=f"{base}.retention.end_condition",
                 )
             )
@@ -325,27 +337,30 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
             method_absent = _is_absent(
                 destruction_method, f"{base}.retention.destruction_method"
             )
-            facts.append(
-                _fact(
-                    next_id("F3-11"),
-                    subject_id=f"{activity_id}-retention-end",
-                    activity_id=activity_id,
-                    ontology_class="RetentionEndCondition",
-                    ontology_property="triggersDestruction",
-                    value=None
-                    if method_absent
-                    else {
-                        "end_condition": end_condition,
-                        "destruction_method": destruction_method,
-                    },
-                    value_state="absent" if method_absent else "confirmed",
-                    field_path=(
-                        f"{base}.retention.destruction_method"
+            # No end condition to link a concrete method to: no F3-11 (the
+            # method itself is not absent and stays in the F3-06 value).
+            if not (end_absent and not method_absent):
+                facts.append(
+                    _fact(
+                        next_id("F3-11"),
+                        subject_id=f"{activity_id}-retention-end",
+                        activity_id=activity_id,
+                        ontology_class="RetentionEndCondition",
+                        ontology_property="triggersDestruction",
+                        value=None
                         if method_absent
-                        else f"{base}.retention"
-                    ),
+                        else {
+                            "end_condition": end_condition,
+                            "destruction_method": destruction_method,
+                        },
+                        value_state="absent" if method_absent else "confirmed",
+                        field_path=(
+                            f"{base}.retention.destruction_method"
+                            if method_absent
+                            else f"{base}.retention"
+                        ),
+                    )
                 )
-            )
 
     entrusted = form.get("entrusted_processings", [])
     if not isinstance(entrusted, list):

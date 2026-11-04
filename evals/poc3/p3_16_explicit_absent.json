@@ -1,0 +1,42 @@
+{
+  "analysis_id": "Q-P3-16",
+  "controller": {
+    "controller_id": "QA-GAON",
+    "name": "가온테스트(가상)"
+  },
+  "collection_activities": [
+    {
+      "activity_id": "A-P3-16-MAIN",
+      "purpose": "회원 인증 및 주문내역 조회",
+      "legal_basis": {
+        "type": "Consent",
+        "status": "confirmed"
+      },
+      "consent_request": {
+        "planned": true
+      },
+      "personal_information_items": [
+        {
+          "item_name": "이메일 주소",
+          "is_required": true,
+          "design_rationale": "계정 식별 및 본인 인증"
+        },
+        {
+          "item_name": "관심분야",
+          "is_required": false,
+          "design_rationale": "선택적 개인화 추천"
+        }
+      ],
+      "retention": {
+        "end_condition": {
+          "state": "absent"
+        },
+        "destruction_method": {
+          "state": "absent"
+        }
+      },
+      "denies_service_on_optional_refusal": false
+    }
+  ],
+  "entrusted_processings": []
+}
