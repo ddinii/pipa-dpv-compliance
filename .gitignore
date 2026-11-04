@@ -64,3 +64,9 @@ evals/*/predictions/
 # Claude local-only settings
 # =========================
 .claude/settings.local.json
+
+# PoC3 quantitative-evaluation artifacts (local only)
+/evals/poc3/team_final/
+/evals/poc3/results_v2/
+/evals/poc3/gold_poc3_*.csv
+/evals/poc3/CHANGELOG_v2.md
