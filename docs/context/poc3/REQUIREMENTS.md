@@ -151,3 +151,19 @@ An explicitly present empty `entrusted_processings` array is converted by the
 service into evidence-backed
 `system_metadata.activity_presence(EntrustedProcessing=confirmed_false)`.
 This makes P3-R11 N/A without inventing F3-14 or a core ontology property.
+
+## consent_request → F3-03 value_state (input semantics)
+
+No Fact ID, Rule ID or ontology term is added; only the `value_state` of the
+existing F3-03 is derived from the input:
+
+| Input | F3-03 |
+|---|---|
+| `consent_request.planned = true` | confirmed (unchanged) |
+| `consent_request.planned = false` and consent legal basis | `absent` (explicit "not designed") → P3-R02/R03/R04 RED |
+| `consent_request` field missing or null | `unknown` (no `planned=true` default is invented) → P3-R02/R03/R04 YELLOW |
+| `planned = false` and non-consent legal basis | confirmed (unchanged); consent Rules keep their applicability handling |
+
+The Ontology Mapper does not recreate the ConsentRequest node from F3-09 for an
+activity whose F3-03 is absent. Consequence: for such an activity P3-R06 sees no
+ConsentRequest and reports YELLOW for its optional items.

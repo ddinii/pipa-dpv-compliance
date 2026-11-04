@@ -78,6 +78,7 @@ class OntologyMapper:
         self.trace: list[dict[str, Any]] = []
         self._end_conditions: list[URIRef] = []
         self._destructions: list[URIRef] = []
+        self._consent_request_absent: set[str] = set()
 
     def map(
         self,
@@ -87,6 +88,13 @@ class OntologyMapper:
     ) -> MappingResult:
         facts = validate_facts(raw_facts)
         self.system_metadata.extend(validate_system_metadata(system_metadata))
+        # Activities whose F3-03 ConsentRequest is explicitly absent: later
+        # facts (F3-09) must not recreate the ConsentRequest node for them.
+        self._consent_request_absent = {
+            self._activity_id(fact)
+            for fact in facts
+            if fact["fact_type"] == "F3-03" and fact["value_state"] == "absent"
+        }
         for fact in facts:
             self._assert_mapping_contract(fact)
             trace_item = {
@@ -569,6 +577,8 @@ class OntologyMapper:
 
     def _map_optional_refusal(self, fact: dict[str, Any]) -> None:
         activity = self._ensure_activity(self._activity_id(fact), "CollectionAndUse")
+        if self._activity_id(fact) in self._consent_request_absent:
+            return
         request = self._ensure_consent_request(activity)
         if not isinstance(fact["value"], bool):
             raise FactValidationError(
