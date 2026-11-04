@@ -60,6 +60,40 @@ def _is_absent(value: Any, path: str) -> bool:
     return False
 
 
+def _is_consent_basis(legal_basis: Any) -> bool:
+    """Same consent test as the Ontology Mapper (_map_legal_basis)."""
+    if isinstance(legal_basis, dict):
+        for key in ("type", "basis", "name"):
+            if legal_basis.get(key) not in (None, ""):
+                legal_basis = legal_basis[key]
+                break
+        else:
+            return False
+    if not isinstance(legal_basis, str):
+        return False
+    return legal_basis.lower() == "consent" or "동의" in legal_basis
+
+
+def _consent_request_state(activity: dict[str, Any], legal_basis: Any) -> tuple[Any, str]:
+    """Return (value, value_state) for F3-03.
+
+    * field missing / null -> unknown (a planned=true default is never invented)
+    * planned == false on a consent basis -> absent (explicit "not designed")
+    * anything else -> confirmed, unchanged (including non-consent bases, so
+      the consent Rules stay N/A for them)
+    """
+    consent_request = activity.get("consent_request")
+    if consent_request is None:
+        return None, "unknown"
+    if (
+        isinstance(consent_request, dict)
+        and consent_request.get("planned") is False
+        and _is_consent_basis(legal_basis)
+    ):
+        return None, "absent"
+    return consent_request, "confirmed"
+
+
 def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
     """Convert a PoC3 form payload into F3-01..F3-13 Fact envelopes.
 
@@ -90,7 +124,7 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
         activity_id = str(_required(activity, "activity_id", base))
         purpose = _required(activity, "purpose", base)
         legal_basis = _required(activity, "legal_basis", base)
-        consent_request = activity.get("consent_request", {"planned": True})
+        consent_value, consent_state = _consent_request_state(activity, legal_basis)
         items = _required(activity, "personal_information_items", base)
         retention = _required(activity, "retention", base)
 
@@ -174,7 +208,8 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="CollectionAndUse",
                     ontology_property="hasConsentRequest",
-                    value=consent_request,
+                    value=consent_value,
+                    value_state=consent_state,
                     field_path=f"{base}.consent_request",
                 ),
                 _fact(
