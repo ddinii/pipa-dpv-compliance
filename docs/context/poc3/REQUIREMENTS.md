@@ -167,3 +167,32 @@ existing F3-03 is derived from the input:
 The Ontology Mapper does not recreate the ConsentRequest node from F3-09 for an
 activity whose F3-03 is absent. Consequence: for such an activity P3-R06 sees no
 ConsentRequest and reports YELLOW for its optional items.
+
+## legal_basis → F3-02 (allowed tokens and status)
+
+Token definitions live in one module, `app/mapping/legal_basis_tokens.py`, used
+by the Fact builder, the Ontology Mapper and the Rule Engine. No ontology class,
+Fact ID or Rule condition is added.
+
+Allowed concrete legal basis tokens: `Consent`, `Contract`, `LegalObligation`.
+Matching is exact after trimming and case folding. There is no substring
+matching and no Korean alias ("비동의", "동의 안함" and even "동의" are not
+Consent). `LegitimateInterest`, typos and any other value are not concrete
+types (P3-R01 YELLOW, P3-R02/R03/R04 YELLOW).
+
+`Consent` keeps its ontology class. `Contract` and `LegalObligation` stay plain
+`LegalBasis` nodes, identified by their canonical `rdfs:label`; the Engine
+accepts such a label as a concrete type only on the legal-basis node linked to
+the activity. Confirmed non-consent bases make P3-R02/R03/R04 N/A.
+
+`legal_basis.status` sets the F3-02 `value_state`:
+
+| status | F3-02 |
+|---|---|
+| `confirmed`, `planned`, key missing | confirmed |
+| `unknown` | unknown (value not used) → P3-R01..R04 YELLOW |
+| anything else | input validation error (422) |
+
+`legal_basis={"state":"absent"}` is not supported yet. F3-03 is made `absent`
+for `planned=false` only for a confirmed Consent basis; with an unknown basis
+F3-03 stays confirmed so the rules are YELLOW, not RED.

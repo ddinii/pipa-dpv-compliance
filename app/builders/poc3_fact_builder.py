@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.mapping.legal_basis_tokens import (
+    STATUS_TO_VALUE_STATE,
+    is_consent_token,
+    legal_basis_type_text,
+)
+
 
 class Poc3FormError(ValueError):
     """Raised when a required PoC3 form field is missing or malformed."""
@@ -61,24 +67,32 @@ def _is_absent(value: Any, path: str) -> bool:
 
 
 def _is_consent_basis(legal_basis: Any) -> bool:
-    """Same consent test as the Ontology Mapper (_map_legal_basis)."""
-    if isinstance(legal_basis, dict):
-        for key in ("type", "basis", "name"):
-            if legal_basis.get(key) not in (None, ""):
-                legal_basis = legal_basis[key]
-                break
-        else:
-            return False
-    if not isinstance(legal_basis, str):
-        return False
-    return legal_basis.lower() == "consent" or "동의" in legal_basis
+    """Exact Consent token (shared with the Ontology Mapper)."""
+    return is_consent_token(legal_basis_type_text(legal_basis))
 
 
-def _consent_request_state(activity: dict[str, Any], legal_basis: Any) -> tuple[Any, str]:
+def _legal_basis_state(legal_basis: Any, path: str) -> str:
+    """F3-02 value_state from ``legal_basis.status`` (missing key -> confirmed)."""
+    if not isinstance(legal_basis, dict) or "status" not in legal_basis:
+        return "confirmed"
+    status = legal_basis["status"]
+    if not isinstance(status, str) or status not in STATUS_TO_VALUE_STATE:
+        raise Poc3FormError(
+            f"지원하지 않는 legal_basis.status: {path}.status "
+            f"(허용: {', '.join(STATUS_TO_VALUE_STATE)})"
+        )
+    return STATUS_TO_VALUE_STATE[status]
+
+
+def _consent_request_state(
+    activity: dict[str, Any], legal_basis: Any, legal_basis_state: str
+) -> tuple[Any, str]:
     """Return (value, value_state) for F3-03.
 
     * field missing / null -> unknown (a planned=true default is never invented)
-    * planned == false on a consent basis -> absent (explicit "not designed")
+    * planned == false on a CONFIRMED consent basis -> absent (explicit "not
+      designed"); with an unknown legal basis it stays confirmed so the
+      unknown F3-02 yields YELLOW instead of RED
     * anything else -> confirmed, unchanged (including non-consent bases, so
       the consent Rules stay N/A for them)
     """
@@ -88,6 +102,7 @@ def _consent_request_state(activity: dict[str, Any], legal_basis: Any) -> tuple[
     if (
         isinstance(consent_request, dict)
         and consent_request.get("planned") is False
+        and legal_basis_state == "confirmed"
         and _is_consent_basis(legal_basis)
     ):
         return None, "absent"
@@ -124,7 +139,10 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
         activity_id = str(_required(activity, "activity_id", base))
         purpose = _required(activity, "purpose", base)
         legal_basis = _required(activity, "legal_basis", base)
-        consent_value, consent_state = _consent_request_state(activity, legal_basis)
+        legal_basis_state = _legal_basis_state(legal_basis, f"{base}.legal_basis")
+        consent_value, consent_state = _consent_request_state(
+            activity, legal_basis, legal_basis_state
+        )
         items = _required(activity, "personal_information_items", base)
         retention = _required(activity, "retention", base)
 
@@ -199,7 +217,8 @@ def build_poc3_facts(form: dict[str, Any]) -> list[dict[str, Any]]:
                     activity_id=activity_id,
                     ontology_class="CollectionAndUse",
                     ontology_property="hasLegalBasis",
-                    value=legal_basis,
+                    value=legal_basis if legal_basis_state == "confirmed" else None,
+                    value_state=legal_basis_state,
                     field_path=f"{base}.legal_basis",
                 ),
                 _fact(

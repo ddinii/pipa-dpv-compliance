@@ -9,6 +9,7 @@ from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef
 from rdflib.term import Node
 
 from app.mapping.fact_schema import validate_facts
+from app.mapping.legal_basis_tokens import is_non_consent_token
 from app.rules.metadata import load_rule_metadata
 from app.rules.rights_coverage import RIGHTS_CHECKS, LEGACY_RIGHT_IRI_ALIASES, recognized_rights
 from app.rules.models import (
@@ -297,7 +298,12 @@ class P0RuleEngine:
                 continue
             if self._class_is_subclass_of(graph, basis_type, PIPA.LegalBasis):
                 return True
-        return False
+        # Non-consent tokens (Contract, LegalObligation) have no ontology
+        # class; the basis node's own rdfs:label identifies them.  Any other
+        # label (typo, LegitimateInterest, 미지정, ...) stays unspecific.
+        return any(
+            is_non_consent_token(str(label)) for label in graph.objects(basis, RDFS.label)
+        )
 
     def _source_evidence(self, graph: Graph, subject: Node) -> list[Evidence]:
         evidence: list[Evidence] = []
