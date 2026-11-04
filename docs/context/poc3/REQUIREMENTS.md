@@ -239,3 +239,18 @@ specific words ("이메일, 전화번호 등", "필요할 때"), and any extra t
 the list, even meaningless ("기타 개인정보 ABC", "관련 업무 123"), makes a phrase
 specific (unresolved). Sentinel strings such as "미기재"/"미설계" stay confirmed
 values; only `{"state":"absent"}` means absence.
+
+## retention.end_condition explicit absent (F3-06 / F3-10 / F3-11)
+
+`retention.end_condition = {"state": "absent"}` is supported like
+`destruction_method` (exact marker only; other `state` objects are input errors;
+`""` keeps its previous meaning: no Fact). Each Fact reflects only its own field:
+
+| Fact | Meaning | State |
+|---|---|---|
+| F3-06 | the retention object | confirmed; an absent `end_condition` marker is passed on as `None` |
+| F3-10 | end condition | `absent` for the marker |
+| F3-11 | end condition -> destruction method | `absent` only when `destruction_method` is the marker; not created when the end condition is absent and the method is concrete (nothing to link; the method is not treated as absent) |
+
+An absent end condition does not make the method absent and vice versa. A concrete
+`period` keeps P3-R04 GREEN while P3-R08 is RED (its required F3-10 is absent).

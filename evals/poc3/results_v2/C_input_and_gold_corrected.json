@@ -1,0 +1,1257 @@
+{
+  "case": "C",
+  "title": "P3-16 명시적 absent 입력 + 정정 정답",
+  "generated_at": "2026-11-04T16:25:18+00:00",
+  "code": {
+    "head_commit": "a89d42aa1e6f9b4b09ca27763757132646273ad5",
+    "uncommitted_files": [
+      " M app/builders/poc3_fact_builder.py",
+      " M app/rules/engine.py",
+      "?? evals/poc3/gold_poc3_v1_original_extract.csv",
+      "?? evals/poc3/gold_poc3_v2_corrected.csv",
+      "?? evals/poc3/p3_16_explicit_absent.json",
+      "?? tests/test_poc3_r08_activities.py",
+      "?? tests/test_poc3_retention_absent.py"
+    ],
+    "git_diff_HEAD_sha256": "caff7ed2d4d0812ee7c1bbeca8311cac5d16f2a8b31dc58371b4d78ab76e4490",
+    "note": "working tree contains uncommitted changes on top of head_commit (4-A R08 + 4-B); the diff hash identifies them",
+    "file_sha256": {
+      "app/rules/engine.py": "d168bf1fccfaa510c431934c8ade3cddc2c43317d9289c75748dcd42635db7d9",
+      "app/builders/poc3_fact_builder.py": "26cddf02893184be1b8e4c2cf0518215dd4cc71d1aa9745697675c4b1add4a90",
+      "app/rules/ambiguity.py": "044e893967c28787ca10cb93daf87b1d5ca205c30def26224f43678e30c81377",
+      "app/mapping/legal_basis_tokens.py": "0d8599872465ba22e257df87e6d498ef30e98b1dd387ebf2dfb4daf189d24237"
+    }
+  },
+  "inputs": [
+    {
+      "scenario": "P3-01",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-01.json",
+      "sha256": "0456dc4e0ff571f7755749114f36491132e4275cc1adc4259d71207e2dc48d22"
+    },
+    {
+      "scenario": "P3-02",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-02.json",
+      "sha256": "91d0e0ce641099c295cb4ce1b211f76a81db36ae0aed0248f24651635bcffb27"
+    },
+    {
+      "scenario": "P3-03",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-03.json",
+      "sha256": "63641ecc9ddac4779cea89a808de02f7231a7d845217f036f57866816a8c5701"
+    },
+    {
+      "scenario": "P3-04",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-04.json",
+      "sha256": "68cabcea12fdf43f31c0f742b2e80efa6a5df04defb449565a0a419b04dbdc09"
+    },
+    {
+      "scenario": "P3-05",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-05.json",
+      "sha256": "d2d486ff154bb7387d10b752ed64afe1f20316b111bc072eff0b47d3573daa32"
+    },
+    {
+      "scenario": "P3-06",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-06.json",
+      "sha256": "3dbc728991519a6650e0926ac8b4dc4d13a98eddcd83f359568b246db71ac075"
+    },
+    {
+      "scenario": "P3-07",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-07.json",
+      "sha256": "27623d2ba0785df2cd11391c5383a911a6ce798c5177e291fb2ad20dd41deab9"
+    },
+    {
+      "scenario": "P3-08",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-08.json",
+      "sha256": "fa0a74b7049167dcab3c7ebad1ce4791127b2a5ec388875e4c753d490b2502b7"
+    },
+    {
+      "scenario": "P3-09",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-09.json",
+      "sha256": "7f5ffd6d34ae815657f5caf77dbcd8835ad61ceb6b08ce1bebc2bf0c707311e9"
+    },
+    {
+      "scenario": "P3-10",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-10.json",
+      "sha256": "9386c09ae060e0d39063f922b38d59be7f4403e295ba0b2f05ca28699cd2f93a"
+    },
+    {
+      "scenario": "P3-11",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-11.json",
+      "sha256": "b538f856f4aadee5d7d193563ad69a4798b3cf50158f2ffec2f346bb99ae284a"
+    },
+    {
+      "scenario": "P3-12",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-12.json",
+      "sha256": "2f8942aa5857f9bc09fbf8586bfb0a406c69fadea93c43c16a44392742228477"
+    },
+    {
+      "scenario": "P3-13",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-13.json",
+      "sha256": "e2a7ef24dc9d6c7a8380d9d4f1e7888145d8744b267511f571f5ead8d7b30d3a"
+    },
+    {
+      "scenario": "P3-14",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-14.json",
+      "sha256": "117e31321efc779f98b18d1a99481288a5d2f0d9482403f9844d6f14193dc8fc"
+    },
+    {
+      "scenario": "P3-15",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-15.json",
+      "sha256": "43ddf596f6d381ad57b76fcb344a3d671d900d89c45511d0cf81516f519efa6c"
+    },
+    {
+      "scenario": "P3-16",
+      "path": "evals/poc3/p3_16_explicit_absent.json",
+      "sha256": "bbb7d8c90361cc302a43327915a9f73d39a30cbeda255261ea348f6ca1efae4a"
+    },
+    {
+      "scenario": "P3-17",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-17.json",
+      "sha256": "435963a3354b6b4d69679f9dd7582a22f117ce697634a77a0093d20472dc23a7"
+    },
+    {
+      "scenario": "P3-18",
+      "path": "<평가 원본 폴더>/PoC3_설계JSON_20건/P3-18.json",
+      "sha256": "5786a0e632cd55346c623ef75fcbb00f9f47b07a9b5e2c63d311b0bcb581f985"
+    },
+    {
+      "scenario": "P3-19",
+      "path": "evals/poc3/p3_19_explicit_absent.json",
+      "sha256": "42e6d6a651d64285a23710fb077a939aa21048681d2a63a8b8b07017c78571b5"
+    },
+    {
+      "scenario": "P3-20",
+      "path": "evals/poc3/p3_20_explicit_absent.json",
+      "sha256": "555f8c96711964b8a720901ccc940e7f1bebc255126245b69383aa78fe7e2c12"
+    }
+  ],
+  "gold": {
+    "file": "evals/poc3/gold_poc3_v2_corrected.csv",
+    "sha256": "09ba9975147e32d9ef8b65c795d168d2bf91ba5b29edcb2a563fc9b677b2bedc"
+  },
+  "correct": 160,
+  "total": 160,
+  "accuracy": 1.0,
+  "mismatches": [],
+  "rule_results": [
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-01",
+      "rule": "P3-R11",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R06",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-02",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R06",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-03",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R02",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R03",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R04",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R06",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-04",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R02",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R03",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R04",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R06",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-05",
+      "rule": "P3-R11",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R02",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-06",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R03",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-07",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R04",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R08",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-08",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R05",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-09",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-10",
+      "rule": "P3-R11",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-11",
+      "rule": "P3-R11",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R02",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R03",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R04",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R06",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-12",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R06",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-13",
+      "rule": "P3-R11",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R06",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-14",
+      "rule": "P3-R11",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R02",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R06",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-15",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R04",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R08",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-16",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R06",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-17",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R01",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R02",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R03",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R04",
+      "expected": "AMBER",
+      "actual": "AMBER",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R05",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R08",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-18",
+      "rule": "P3-R11",
+      "expected": "N/A",
+      "actual": "N/A",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R03",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R05",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R06",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R08",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-19",
+      "rule": "P3-R11",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R01",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R02",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R03",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R04",
+      "expected": "GREEN",
+      "actual": "GREEN",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R05",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R06",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R08",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    },
+    {
+      "scenario": "P3-20",
+      "rule": "P3-R11",
+      "expected": "RED",
+      "actual": "RED",
+      "match": true
+    }
+  ]
+}
