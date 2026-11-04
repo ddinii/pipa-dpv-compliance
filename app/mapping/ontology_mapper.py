@@ -15,6 +15,7 @@ from urllib.parse import quote
 
 from rdflib import Graph, Literal, Namespace, RDF, RDFS, URIRef, XSD
 
+from .legal_basis_tokens import CONSENT, normalize_token
 from .fact_schema import FactValidationError, local_name, validate_facts
 from .mapping_registry import FACT_SPECS
 from .presence_metadata import validate_system_metadata
@@ -544,11 +545,15 @@ class OntologyMapper:
         activity = self._subject_activity(fact)
         value = fact["value"]
         basis_type = self._object_name(value, "type", "basis", "name")
-        is_consent = basis_type.lower() == "consent" or "동의" in basis_type
-        class_name = "Consent" if is_consent else "LegalBasis"
-        basis = self._derived_uri("legal-basis", f"{activity}|{basis_type}")
+        # Exact allowed token (trim + case-insensitive) -> canonical label.
+        # Consent keeps its ontology class; other tokens stay plain LegalBasis
+        # recognised by label.  No substring matching, no aliases.
+        token = normalize_token(basis_type)
+        label = token or basis_type
+        class_name = "Consent" if token == CONSENT else "LegalBasis"
+        basis = self._derived_uri("legal-basis", f"{activity}|{label}")
         self.graph.add((basis, RDF.type, PIPA[class_name]))
-        self._add_label(basis, basis_type)
+        self._add_label(basis, label)
         self.graph.add((activity, PIPA.hasLegalBasis, basis))
 
     def _ensure_consent_request(self, activity: URIRef) -> URIRef:
