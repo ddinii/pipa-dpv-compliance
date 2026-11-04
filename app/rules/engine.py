@@ -2664,90 +2664,165 @@ class P0RuleEngine:
                 )
         return results
 
-    def _p3_r08(self, graph: Graph) -> list[InstanceRuleResult]:
-        retentions = self._instances(graph, PIPA.Retention)
-        end_conditions = self._instances(graph, PIPA.RetentionEndCondition)
-        if not retentions and not end_conditions:
-            return self._conditional_no_targets(graph, META.retentionState, "Retention/RetentionEndCondition")
+    def _p3_r08_end_result(
+        self, graph: Graph, end: Node, instance_id: str
+    ) -> InstanceRuleResult:
+        """Frozen R08 chain for one end condition: end -> destruction -> method."""
+        destructions = self._objects(graph, end, PIPA.triggersDestruction)
+        evidence = self._assertion_evidence(graph, end, PIPA.triggersDestruction)
+        if not destructions:
+            return (
+                InstanceRuleResult(
+                    instance_id=instance_id,
+                    status=RuleStatus.RED,
+                    applicability=Applicability.TRUE,
+                    missing_facts=[self._fact_key(end, PIPA.triggersDestruction)],
+                    evidence=[self._absence_evidence(end, "triggersDestruction", "종료조건에서 파기 연결 부재")],
+                    reason="보유 종료조건은 있으나 파기 설계가 연결되지 않았습니다.",
+                    recommendation="RetentionEndCondition에서 Destruction으로 triggersDestruction을 연결하세요.",
+                )
+            )
+        methods = [
+            method
+            for destruction in destructions
+            for method in self._concrete_values(graph, destruction, PIPA.hasDestructionMethod, "destruction_method")
+        ]
+        for destruction in destructions:
+            evidence += self._assertion_evidence(graph, destruction, PIPA.hasDestructionMethod)
+        if methods:
+            return (
+                InstanceRuleResult(
+                    instance_id=instance_id,
+                    status=RuleStatus.GREEN,
+                    applicability=Applicability.TRUE,
+                    matched_facts=[
+                        self._fact_key(end, PIPA.triggersDestruction),
+                        *[self._fact_key(destruction, PIPA.hasDestructionMethod) for destruction in destructions],
+                    ],
+                    evidence=self._dedupe_evidence(evidence),
+                    reason="보유 종료조건에서 파기 활동과 구체적 방법까지 연결되어 있습니다.",
+                    recommendation="현재 종료조건-파기 설계 연결을 유지하세요.",
+                )
+            )
+        else:
+            return (
+                InstanceRuleResult(
+                    instance_id=instance_id,
+                    status=RuleStatus.YELLOW,
+                    applicability=Applicability.TRUE,
+                    matched_facts=[self._fact_key(end, PIPA.triggersDestruction)],
+                    uncertain_facts=[self._fact_key(destruction, PIPA.hasDestructionMethod) for destruction in destructions],
+                    evidence=self._dedupe_evidence(evidence) + [
+                        self._absence_evidence(destruction, "hasDestructionMethod", "파기 방법 미지정") for destruction in destructions
+                    ],
+                    reason="파기 설계는 연결되었으나 방법이 명확하지 않습니다."
+                    + (
+                        " (일반어만으로 구성된 모호한 설명)"
+                        if any(
+                            GENERIC_ONLY in self._vague_codes(
+                                graph, d, PIPA.hasDestructionMethod, "destruction_method"
+                            )
+                            for d in destructions
+                        )
+                        else ""
+                    ),
+                    recommendation="연결된 Destruction에 hasDestructionMethod를 명시하세요.",
+                )
+            )
+
+    @staticmethod
+    def _merge_worst(results: list[InstanceRuleResult], instance_id: str) -> InstanceRuleResult:
+        """Collapse several results of one activity into one (RED > YELLOW > GREEN)."""
+        priority = {RuleStatus.RED: 3, RuleStatus.YELLOW: 2, RuleStatus.GREEN: 1}
+        base = max(results, key=lambda r: priority.get(r.status, 0))
+        for other in results:
+            if other is base:
+                continue
+            base.matched_facts = sorted({*base.matched_facts, *other.matched_facts})
+            base.missing_facts = sorted({*base.missing_facts, *other.missing_facts})
+            base.uncertain_facts = sorted({*base.uncertain_facts, *other.uncertain_facts})
+            base.evidence = [*base.evidence, *other.evidence]
+        base.instance_id = instance_id
+        return base
+
+    def _p3_r08_by_nodes(
+        self, graph: Graph, retentions: list[Node], end_conditions: list[Node]
+    ) -> list[InstanceRuleResult]:
+        """Node-based evaluation for graphs without any CollectionAndUse activity."""
         target_ends: set[Node] = set(end_conditions)
         for retention in retentions:
             target_ends.update(self._objects(graph, retention, PIPA.hasRetentionEndCondition))
         if not target_ends:
-            return [
-                InstanceRuleResult(
-                    instance_id="__document__",
-                    status=RuleStatus.RED,
-                    applicability=Applicability.TRUE,
-                    missing_facts=["Retention.hasRetentionEndCondition"],
-                    evidence=[self._absence_evidence("__document__", "hasRetentionEndCondition", "보유 종료조건은 있으나 구조화되지 않음")],
-                    reason="보유 종료조건을 확인하지 못했습니다.",
-                    recommendation="Retention에 RetentionEndCondition을 연결하세요.",
-                )
-            ]
-        results = []
-        for end in sorted(target_ends, key=str):
-            destructions = self._objects(graph, end, PIPA.triggersDestruction)
-            evidence = self._assertion_evidence(graph, end, PIPA.triggersDestruction)
-            if not destructions:
+            return [self._p3_r08_no_end_condition("__document__")]
+        return [self._p3_r08_end_result(graph, end, str(end)) for end in sorted(target_ends, key=str)]
+
+    def _p3_r08_no_end_condition(self, instance_id: str) -> InstanceRuleResult:
+        return InstanceRuleResult(
+            instance_id=instance_id,
+            status=RuleStatus.RED,
+            applicability=Applicability.TRUE,
+            missing_facts=["Retention.hasRetentionEndCondition"],
+            evidence=[self._absence_evidence(instance_id, "hasRetentionEndCondition", "보유 종료조건은 있으나 구조화되지 않음")],
+            reason="보유 종료조건을 확인하지 못했습니다.",
+            recommendation="Retention에 RetentionEndCondition을 연결하세요.",
+        )
+
+    def _p3_r08(self, graph: Graph) -> list[InstanceRuleResult]:
+        retentions = self._instances(graph, PIPA.Retention)
+        end_conditions = self._instances(graph, PIPA.RetentionEndCondition)
+        activities = self._collection_activities(graph)
+        if not retentions and not end_conditions:
+            # Nothing at all: explicit confirmed_false (or no activity) keeps the
+            # document-level result; otherwise every activity lacks a design.
+            if not activities or self._explicit_state(graph, META.retentionState) == "confirmed_false":
+                return self._conditional_no_targets(graph, META.retentionState, "Retention/RetentionEndCondition")
+        elif not activities:
+            return self._p3_r08_by_nodes(graph, retentions, end_conditions)
+
+        # One instance per CollectionAndUse (instance_id = activity URI), so the
+        # Fact contract layer can match facts to their own activity only.
+        results: list[InstanceRuleResult] = []
+        attached_ends: set[Node] = set()
+        attached_retentions: set[Node] = set()
+        for activity in activities:
+            activity_retentions = self._objects(graph, activity, PIPA.hasRetention)
+            attached_retentions.update(activity_retentions)
+            ends: set[Node] = set()
+            for retention in activity_retentions:
+                ends.update(self._objects(graph, retention, PIPA.hasRetentionEndCondition))
+            attached_ends |= ends
+            instance_id = str(activity)
+            if ends:
                 results.append(
-                    InstanceRuleResult(
-                        instance_id=str(end),
-                        status=RuleStatus.RED,
-                        applicability=Applicability.TRUE,
-                        missing_facts=[self._fact_key(end, PIPA.triggersDestruction)],
-                        evidence=[self._absence_evidence(end, "triggersDestruction", "종료조건에서 파기 연결 부재")],
-                        reason="보유 종료조건은 있으나 파기 설계가 연결되지 않았습니다.",
-                        recommendation="RetentionEndCondition에서 Destruction으로 triggersDestruction을 연결하세요.",
+                    self._merge_worst(
+                        [self._p3_r08_end_result(graph, end, instance_id) for end in sorted(ends, key=str)],
+                        instance_id,
                     )
                 )
-                continue
-            methods = [
-                method
-                for destruction in destructions
-                for method in self._concrete_values(graph, destruction, PIPA.hasDestructionMethod, "destruction_method")
-            ]
-            for destruction in destructions:
-                evidence += self._assertion_evidence(graph, destruction, PIPA.hasDestructionMethod)
-            if methods:
-                results.append(
-                    InstanceRuleResult(
-                        instance_id=str(end),
-                        status=RuleStatus.GREEN,
-                        applicability=Applicability.TRUE,
-                        matched_facts=[
-                            self._fact_key(end, PIPA.triggersDestruction),
-                            *[self._fact_key(destruction, PIPA.hasDestructionMethod) for destruction in destructions],
-                        ],
-                        evidence=self._dedupe_evidence(evidence),
-                        reason="보유 종료조건에서 파기 활동과 구체적 방법까지 연결되어 있습니다.",
-                        recommendation="현재 종료조건-파기 설계 연결을 유지하세요.",
-                    )
-                )
+            elif activity_retentions:
+                results.append(self._p3_r08_no_end_condition(instance_id))
             else:
                 results.append(
                     InstanceRuleResult(
-                        instance_id=str(end),
+                        instance_id=instance_id,
                         status=RuleStatus.YELLOW,
-                        applicability=Applicability.TRUE,
-                        matched_facts=[self._fact_key(end, PIPA.triggersDestruction)],
-                        uncertain_facts=[self._fact_key(destruction, PIPA.hasDestructionMethod) for destruction in destructions],
-                        evidence=self._dedupe_evidence(evidence) + [
-                            self._absence_evidence(destruction, "hasDestructionMethod", "파기 방법 미지정") for destruction in destructions
-                        ],
-                        reason="파기 설계는 연결되었으나 방법이 명확하지 않습니다."
-                        + (
-                            " (일반어만으로 구성된 모호한 설명)"
-                            if any(
-                                GENERIC_ONLY in self._vague_codes(
-                                    graph, d, PIPA.hasDestructionMethod, "destruction_method"
-                                )
-                                for d in destructions
-                            )
-                            else ""
-                        ),
-                        recommendation="연결된 Destruction에 hasDestructionMethod를 명시하세요.",
+                        applicability=Applicability.UNKNOWN,
+                        uncertain_facts=[self._fact_key(activity, PIPA.hasRetention)],
+                        evidence=[self._absence_evidence(activity, "hasRetention", "이 처리행위의 보유·파기 설계를 확인할 수 없음")],
+                        reason="Retention/RetentionEndCondition의 존재/부재를 확정할 수 없습니다.",
+                        recommendation="이 처리행위의 보유 종료조건과 파기 방법을 Fact로 명시하세요.",
                     )
                 )
+
+        # Retention structures not linked to any activity keep the node-based
+        # evaluation so that nothing already visible disappears.
+        orphan_ends: set[Node] = set(end_conditions) - attached_ends
+        for retention in set(retentions) - attached_retentions:
+            orphan_ends.update(self._objects(graph, retention, PIPA.hasRetentionEndCondition))
+        orphan_ends -= attached_ends
+        results.extend(
+            self._p3_r08_end_result(graph, end, str(end)) for end in sorted(orphan_ends, key=str)
+        )
         return results
 
     def _p3_r11(self, graph: Graph) -> list[InstanceRuleResult]:
