@@ -254,3 +254,43 @@ values; only `{"state":"absent"}` means absence.
 
 An absent end condition does not make the method absent and vice versa. A concrete
 `period` keeps P3-R04 GREEN while P3-R08 is RED (its required F3-10 is absent).
+
+## P3-R08 required-Fact envelope: judged per activity
+
+`_apply_fact_input_contract` judges a missing F3-10 / F3-11 envelope **per
+activity** for P3-R08 instances that are CollectionAndUse activities (instance
+id = activity URI). Before, a missing envelope was judged over the whole document,
+so the same activity was YELLOW alone but RED next to an activity that carried
+F3-10/F3-11. R08 instances not linked to an activity (legacy end-condition
+nodes) and every other Rule (PoC1, PoC2, other PoC3 Rules) keep the document
+level judgement.
+
+| Fact state of the activity | R08 |
+|---|---|
+| F3-10 / F3-11 explicit `absent` | RED |
+| `unknown` | YELLOW |
+| envelope missing (key missing, `""`, `null`, period only) | YELLOW |
+| no retention design at all | YELLOW |
+
+Priority is unchanged: absent > unknown / missing. The verdict of one activity
+no longer depends on the other activities (single, with a complete activity,
+with an unknown or an absent one: always the same for the same activity).
+A concrete `period` alone does not make R08 GREEN: R04 (제15조제2항제3호) only
+asks whether a retention term is announced (period OR end condition), while R08
+(제21조) asks for end condition -> destruction -> method, and has no
+"period OR end condition" clause like P1-R02.
+
+User-facing R08 reasons are built from the real Fact state (no Fact IDs; those
+stay in the evidence): end condition absent (with "파기 방법은 입력되었으나 ..."
+only when a destruction method was really entered), method absent, end condition
+unknown, method unknown, missing envelope ("absent와 다릅니다"), activity without
+any retention design. When the method was entered but the end condition is
+absent, F3-11 is not created and the method text stays in the F3-06 value
+(developer note; the response schema is unchanged).
+
+Test expectations corrected RED -> YELLOW (all three encoded the document-level
+artifact, not an explicit absence): `tests/test_poc3_form.py` "파기방법 없음"
+(`None` means "not decided", see DesignForm),
+`test_empty_destruction_method_is_missing_envelope_yellow_per_activity` and
+`test_period_only_retention_is_yellow_for_that_activity`
+(`tests/test_poc3_r08_activities.py`, renamed).

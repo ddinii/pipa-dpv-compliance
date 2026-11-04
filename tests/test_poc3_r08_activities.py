@@ -82,13 +82,19 @@ def test_vague_destruction_method_is_scoped_to_its_activity():
     assert any("일반어만으로 구성된" in x for x in reasons)
 
 
-def test_empty_destruction_method_keeps_existing_contract_per_activity():
+def test_empty_destruction_method_is_missing_envelope_yellow_per_activity():
+    # Renamed and corrected RED -> YELLOW: an empty destruction method creates no F3-11, which is
+    # a missing envelope (YELLOW), not an explicit absence (RED). The earlier RED only appeared
+    # because A-2's F3-11 hid A-1's gap; the same input alone is YELLOW (judged per activity).
     no_method = {"end_condition": "탈퇴 시", "destruction_method": ""}
-    assert by_activity(form(no_method, FULL)) == {"A-1": R, "A-2": G}
+    assert by_activity(form(no_method, FULL)) == {"A-1": Y, "A-2": G}
 
 
-def test_period_only_retention_is_red_for_that_activity():
-    assert by_activity(form({"period": "3년"}, FULL)) == {"A-1": R, "A-2": G}
+def test_period_only_retention_is_yellow_for_that_activity():
+    # Renamed and corrected RED -> YELLOW: a period-only design supplies no F3-10/F3-11 envelope
+    # (missing, not absent), so it is YELLOW like the same activity alone. A concrete period is
+    # still not turned into GREEN for R08 (R04 and R08 check different things).
+    assert by_activity(form({"period": "3년"}, FULL)) == {"A-1": Y, "A-2": G}
 
 
 def test_activity_order_does_not_change_verdicts():

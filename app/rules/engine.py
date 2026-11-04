@@ -457,11 +457,25 @@ class P0RuleEngine:
         present_types = {fact.get("fact_type") for fact in required_facts}
         missing_types = [fact_type for fact_type in required if fact_type not in present_types]
 
+        # P3-R08 only: its instances are CollectionAndUse activities, so a missing
+        # envelope is judged against that activity's own Facts.  Instances not
+        # linked to an activity (legacy end-condition nodes) keep the document
+        # level judgement; every other rule is unchanged.
+        document_missing_types = missing_types
+        activity_ids = {fact.get("activity_id") for fact in facts}
+
         rewritten: list[InstanceRuleResult] = []
         for result in instance_results:
             if result.status == RuleStatus.NOT_APPLICABLE:
                 rewritten.append(result)
                 continue
+
+            missing_types = document_missing_types
+            if rule_id == "P3-R08" and _local_name(result.instance_id) in activity_ids:
+                activity_types = {
+                    fact.get("fact_type") for fact in facts_for(result.instance_id)
+                }
+                missing_types = [t for t in required if t not in activity_types]
 
             unknown_types, absent_types, ids_by_state = self._contract_states(
                 rule_id, required, facts_for(result.instance_id)
@@ -527,10 +541,15 @@ class P0RuleEngine:
                     set(result.missing_facts)
                     | {f"fact:{fact_type}:absent" for fact_type in absent_types}
                 )
-                result.reason = (
-                    "Frozen Fact input contract에서 필수 Fact가 absent로 확인되었습니다. "
-                    + result.reason
-                )
+                if rule_id == "P3-R08":
+                    result.reason = self._p3_r08_contract_reason(
+                        result, facts, unknown_types, absent_types, missing_types
+                    )
+                else:
+                    result.reason = (
+                        "Frozen Fact input contract에서 필수 Fact가 absent로 확인되었습니다. "
+                        + result.reason
+                    )
                 result.recommendation = (
                     "absent인 필수 Fact를 원문/구조화 Form 근거로 보완한 뒤 다시 평가하세요."
                 )
@@ -544,16 +563,81 @@ class P0RuleEngine:
                     | {f"fact:{fact_type}:unknown" for fact_type in unknown_types}
                     | {f"fact:{fact_type}:missing_envelope" for fact_type in missing_types}
                 )
-                result.reason = (
-                    "Frozen Fact input contract가 불완전하거나 UNKNOWN 상태를 포함합니다. "
-                    + result.reason
-                )
+                if rule_id == "P3-R08":
+                    result.reason = self._p3_r08_contract_reason(
+                        result, facts, unknown_types, absent_types, missing_types
+                    )
+                else:
+                    result.reason = (
+                        "Frozen Fact input contract가 불완전하거나 UNKNOWN 상태를 포함합니다. "
+                        + result.reason
+                    )
                 result.recommendation = (
                     "필수 Fact의 value_state를 confirmed 또는 명시적 absent로 확정한 뒤 다시 평가하세요."
                 )
             rewritten.append(result)
 
         return rewritten
+
+    @staticmethod
+    def _p3_r08_contract_reason(
+        result: InstanceRuleResult,
+        facts: list[Mapping[str, Any]],
+        unknown_types: list[str],
+        absent_types: list[str],
+        missing_types: list[str],
+    ) -> str:
+        """User-facing R08 reason built from the real Fact states.
+
+        F3-10 = retention end condition, F3-11 = destruction method linked to it.
+        absent (stated as not existing), unknown (undetermined) and a missing
+        envelope (not provided) are kept apart; no graph sentence is appended,
+        so an explicit absence is never described as "cannot be determined".
+        Internal Fact IDs stay in the evidence, not in this text.
+        """
+        activity_id = _local_name(result.instance_id)
+        method_input = any(
+            fact.get("fact_type") == "F3-06"
+            and fact.get("activity_id") == activity_id
+            and isinstance(fact.get("value"), Mapping)
+            and isinstance(fact["value"].get("destruction_method"), str)
+            and fact["value"]["destruction_method"].strip()
+            for fact in facts
+        )
+        parts: list[str] = []
+        if "F3-10" in absent_types:
+            if method_input:
+                parts.append(
+                    "파기 방법은 입력되었으나 보유 종료조건이 명시적으로 없어, "
+                    "종료조건과 파기 방법의 연결을 확인할 수 없습니다."
+                )
+            else:
+                parts.append(
+                    "보유 종료조건이 명시적으로 없음(absent)으로 입력되어 "
+                    "종료조건과 파기 방법의 연결을 확인할 수 없습니다."
+                )
+        if "F3-11" in absent_types:
+            parts.append("파기 방법이 명시적으로 없음(absent)으로 입력되었습니다.")
+        if "F3-10" in unknown_types:
+            parts.append("보유 종료조건이 미정(unknown)이어서 파기 연결을 확정할 수 없습니다.")
+        if "F3-11" in unknown_types:
+            parts.append("파기 방법이 미정(unknown)이어서 확정할 수 없습니다.")
+        if parts:
+            return " ".join(parts)
+        if result.reason == P0RuleEngine._R08_NO_DESIGN_REASON:
+            return result.reason
+        missing_names = [
+            name
+            for fact_type, name in (("F3-10", "보유 종료조건"), ("F3-11", "파기 방법"))
+            if fact_type in missing_types
+        ]
+        subject = "과 ".join(missing_names) if len(missing_names) == 2 else "".join(missing_names)
+        return (
+            f"{subject}이 입력되지 않아(필수 Fact 누락) 확정할 수 없습니다. "
+            "이는 '없음'을 명시한 absent(없음 명시)와 다릅니다."
+            if missing_names
+            else result.reason
+        )
 
     @staticmethod
     def _contract_states(
@@ -2664,6 +2748,8 @@ class P0RuleEngine:
                 )
         return results
 
+    _R08_NO_DESIGN_REASON = "이 처리행위의 보유 종료조건·파기 설계가 입력되지 않아 확정할 수 없습니다."
+
     def _p3_r08_end_result(
         self, graph: Graph, end: Node, instance_id: str
     ) -> InstanceRuleResult:
@@ -2809,7 +2895,7 @@ class P0RuleEngine:
                         applicability=Applicability.UNKNOWN,
                         uncertain_facts=[self._fact_key(activity, PIPA.hasRetention)],
                         evidence=[self._absence_evidence(activity, "hasRetention", "이 처리행위의 보유·파기 설계를 확인할 수 없음")],
-                        reason="Retention/RetentionEndCondition의 존재/부재를 확정할 수 없습니다.",
+                        reason=self._R08_NO_DESIGN_REASON,
                         recommendation="이 처리행위의 보유 종료조건과 파기 방법을 Fact로 명시하세요.",
                     )
                 )
