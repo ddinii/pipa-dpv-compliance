@@ -164,7 +164,11 @@ def test_item_facts_identify_their_item_by_name(raw_form: dict):
         (
             "파기방법 없음",
             lambda d: d["collection_activities"][0]["retention"].update(destruction_method=None),
-            "P3-R08", "RED",
+            # Expectation corrected RED -> YELLOW: None means "not decided yet" (unknown/missing,
+            # see DesignForm), never an explicit absence. The old RED only appeared because the
+            # other two activities carried F3-11 and hid this activity's missing envelope; the
+            # same input alone gives YELLOW. Missing envelope -> YELLOW, judged per activity.
+            "P3-R08", "YELLOW",
         ),
         (
             "위탁 목록이 비어 있음",

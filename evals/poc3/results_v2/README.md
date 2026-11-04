@@ -20,3 +20,10 @@ Cautions
 - Between A and C only one verdict differs (P3-16 R08 AMBER -> RED); no other rule changed.
 - The labels follow the original sheet (AMBER = YELLOW). The results do not certify legal
   compliance; GREEN is not a compliance certificate and RED is not a confirmed violation.
+
+Scope note
+- Team submission result: series **A** (original inputs and original answer sheet; only
+  P3-19/P3-20 use the repository explicit_absent JSON).
+- Series **B/C** are separate reference results that include a corrected answer / input. They
+  are not added to, and do not replace, the series A result, and must not be used as the
+  official result without the team's approval.
