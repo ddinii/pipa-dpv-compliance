@@ -10,6 +10,7 @@ from rdflib.term import Node
 
 from app.mapping.fact_schema import validate_facts
 from app.mapping.legal_basis_tokens import is_non_consent_token
+from app.rules.ambiguity import GENERIC_ONLY, PROCESSOR_UNDETERMINED, PROCESSOR_UNSPECIFIC, classify
 from app.rules.metadata import load_rule_metadata
 from app.rules.rights_coverage import RIGHTS_CHECKS, LEGACY_RIGHT_IRI_ALIASES, recognized_rights
 from app.rules.models import (
@@ -266,6 +267,26 @@ class P0RuleEngine:
                     continue
             values.append(value)
         return values
+
+    def _concrete_values(
+        self, graph: Graph, subject: Node, predicate: URIRef, kind: str
+    ) -> list[Node]:
+        """PoC3 only: non-empty values that are also specific for ``kind``.
+
+        ``_nonempty_values`` is shared with PoC1/PoC2 and stays untouched.
+        """
+        return [
+            value
+            for value in self._nonempty_values(graph, subject, predicate)
+            if classify(str(value), kind) is None
+        ]
+
+    def _vague_codes(
+        self, graph: Graph, subject: Node, predicate: URIRef, kind: str
+    ) -> set[str]:
+        """Reason codes of non-empty values that are not specific for ``kind``."""
+        codes = (classify(str(v), kind) for v in self._nonempty_values(graph, subject, predicate))
+        return {code for code in codes if code}
 
     def _class_is_subclass_of(self, graph: Graph, child: URIRef, parent: URIRef) -> bool:
         frontier: list[URIRef] = [child]
@@ -816,7 +837,9 @@ class P0RuleEngine:
             candidates.update(self._instances(graph, cls))
         return sorted(candidates, key=str)
 
-    def _retention_complete(self, graph: Graph, activity: Node) -> tuple[bool, list[Evidence], list[str]]:
+    def _retention_complete(
+        self, graph: Graph, activity: Node, *, concrete_end: bool = False
+    ) -> tuple[bool, list[Evidence], list[str]]:
         retentions = self._objects(graph, activity, PIPA.hasRetention)
         evidence = self._assertion_evidence(graph, activity, PIPA.hasRetention)
         matched: list[str] = []
@@ -838,7 +861,13 @@ class P0RuleEngine:
                 evidence.extend(self._assertion_evidence(graph, retention, PIPA.hasRetentionEndCondition))
                 for end in ends:
                     evidence.extend(self._assertion_evidence(graph, end, PIPA.hasEndConditionDescription))
-                    if self._nonempty_values(graph, end, PIPA.hasEndConditionDescription):
+                    # concrete_end is set by P3-R04 only (PoC1 keeps its behaviour).
+                    described = (
+                        self._concrete_values(graph, end, PIPA.hasEndConditionDescription, "end_condition")
+                        if concrete_end
+                        else self._nonempty_values(graph, end, PIPA.hasEndConditionDescription)
+                    )
+                    if described:
                         matched.append(self._fact_key(end, PIPA.hasEndConditionDescription))
                         return True, self._dedupe_evidence(evidence), matched
         return False, self._dedupe_evidence(evidence), matched
@@ -2079,6 +2108,8 @@ class P0RuleEngine:
                 )
         return results
 
+    _DETAIL_KINDS = {"hasPurposeDescription": "purpose", "hasItemName": "item_name"}
+
     def _consent_rule(
         self,
         graph: Graph,
@@ -2158,11 +2189,16 @@ class P0RuleEngine:
                 continue
 
             ambiguous: list[tuple[Node, URIRef]] = []
+            generic_only = False
             for relation, detail_predicate in detail_requirements:
+                kind = self._DETAIL_KINDS[_local_name(detail_predicate)]
                 for linked in self._objects(graph, activity, relation):
                     evidence += self._assertion_evidence(graph, linked, detail_predicate)
-                    if not self._nonempty_values(graph, linked, detail_predicate):
+                    if not self._concrete_values(graph, linked, detail_predicate, kind):
                         ambiguous.append((linked, detail_predicate))
+                        generic_only |= GENERIC_ONLY in self._vague_codes(
+                            graph, linked, detail_predicate, kind
+                        )
 
             if ambiguous:
                 results.append(
@@ -2180,7 +2216,8 @@ class P0RuleEngine:
                             )
                             for linked, predicate in ambiguous
                         ],
-                        reason=f"동의 기반 처리의 {title} 연결은 있으나 구체 값이 모호합니다.",
+                        reason=f"동의 기반 처리의 {title} 연결은 있으나 구체 값이 모호합니다."
+                        + (" (일반어만으로 구성된 모호한 설명)" if generic_only else ""),
                         recommendation=recommendation,
                     )
                 )
@@ -2260,7 +2297,9 @@ class P0RuleEngine:
 
             requests = self._objects(graph, activity, PIPA.hasConsentRequest)
             retentions = self._objects(graph, activity, PIPA.hasRetention)
-            complete, evidence, matched = self._retention_complete(graph, activity)
+            complete, evidence, matched = self._retention_complete(
+                graph, activity, concrete_end=True
+            )
             combined_evidence = self._dedupe_evidence(
                 self._assertion_evidence(graph, activity, PIPA.hasLegalBasis)
                 + self._assertion_evidence(graph, activity, PIPA.hasConsentRequest)
@@ -2325,7 +2364,18 @@ class P0RuleEngine:
                         ],
                         uncertain_facts=["Retention.hasRetentionPeriod/hasRetentionEndCondition"],
                         evidence=combined_evidence,
-                        reason="보유정보 연결은 있으나 기간 값 또는 식별 가능한 종료조건이 모호합니다.",
+                        reason="보유정보 연결은 있으나 기간 값 또는 식별 가능한 종료조건이 모호합니다."
+                        + (
+                            " (일반어만으로 구성된 모호한 설명)"
+                            if any(
+                                GENERIC_ONLY in self._vague_codes(
+                                    graph, end, PIPA.hasEndConditionDescription, "end_condition"
+                                )
+                                for retention in retentions
+                                for end in self._objects(graph, retention, PIPA.hasRetentionEndCondition)
+                            )
+                            else ""
+                        ),
                         recommendation="RetentionPeriod의 기간 값 또는 RetentionEndCondition의 구체적 종료조건을 명시하세요.",
                     )
                 )
@@ -2377,6 +2427,7 @@ class P0RuleEngine:
             uncertain_names: list[Node] = []
             required_without_rationale: list[Node] = []
             required_with_uncertain_rationale: list[Node] = []
+            generic_rationale = False
             matched = [self._fact_key(activity, PIPA.hasPersonalInformation)]
 
             for item in items:
@@ -2384,7 +2435,9 @@ class P0RuleEngine:
                 names = self._nonempty_values(graph, item, PIPA.hasItemName)
                 flags = self._objects(graph, item, PIPA.isRequired)
                 raw_rationales = self._objects(graph, item, PIPA.designRationale)
-                rationales = self._nonempty_values(graph, item, PIPA.designRationale)
+                rationales = self._concrete_values(graph, item, PIPA.designRationale, "rationale")
+                if GENERIC_ONLY in self._vague_codes(graph, item, PIPA.designRationale, "rationale"):
+                    generic_rationale = True
                 evidence += self._assertion_evidence(graph, item, PIPA.hasItemName)
                 evidence += self._assertion_evidence(graph, item, PIPA.isRequired)
                 evidence += self._assertion_evidence(graph, item, PIPA.designRationale)
@@ -2458,7 +2511,8 @@ class P0RuleEngine:
                             *[self._fact_key(item, PIPA.designRationale) for item in required_with_uncertain_rationale],
                         ],
                         evidence=self._dedupe_evidence(evidence),
-                        reason="일부 항목의 이름, 필수/선택 값 또는 최소수집 설계 사유가 UNKNOWN/모호합니다.",
+                        reason="일부 항목의 이름, 필수/선택 값 또는 최소수집 설계 사유가 UNKNOWN/모호합니다."
+                        + (" (일반어만으로 구성된 모호한 설명)" if generic_rationale and required_with_uncertain_rationale else ""),
                         recommendation="각 수집 항목의 이름, isRequired 값, 필수항목의 designRationale을 구체적으로 명시하세요.",
                     )
                 )
@@ -2650,7 +2704,7 @@ class P0RuleEngine:
             methods = [
                 method
                 for destruction in destructions
-                for method in self._nonempty_values(graph, destruction, PIPA.hasDestructionMethod)
+                for method in self._concrete_values(graph, destruction, PIPA.hasDestructionMethod, "destruction_method")
             ]
             for destruction in destructions:
                 evidence += self._assertion_evidence(graph, destruction, PIPA.hasDestructionMethod)
@@ -2680,7 +2734,17 @@ class P0RuleEngine:
                         evidence=self._dedupe_evidence(evidence) + [
                             self._absence_evidence(destruction, "hasDestructionMethod", "파기 방법 미지정") for destruction in destructions
                         ],
-                        reason="파기 설계는 연결되었으나 방법이 명확하지 않습니다.",
+                        reason="파기 설계는 연결되었으나 방법이 명확하지 않습니다."
+                        + (
+                            " (일반어만으로 구성된 모호한 설명)"
+                            if any(
+                                GENERIC_ONLY in self._vague_codes(
+                                    graph, d, PIPA.hasDestructionMethod, "destruction_method"
+                                )
+                                for d in destructions
+                            )
+                            else ""
+                        ),
                         recommendation="연결된 Destruction에 hasDestructionMethod를 명시하세요.",
                     )
                 )
@@ -2695,7 +2759,9 @@ class P0RuleEngine:
         for activity in activities:
             processors = self._objects(graph, activity, PIPA.hasProcessor)
             raw_task = self._objects(graph, activity, PIPA.entrustedTaskText)
-            task = self._nonempty_values(graph, activity, PIPA.entrustedTaskText)
+            task = self._concrete_values(graph, activity, PIPA.entrustedTaskText, "task")
+            task_vague = bool(self._vague_codes(graph, activity, PIPA.entrustedTaskText, "task"))
+            processor_codes: set[str] = set()
             evidence = self._assertion_evidence(graph, activity, PIPA.hasProcessor)
             evidence += self._assertion_evidence(graph, activity, PIPA.entrustedTaskText)
 
@@ -2708,7 +2774,8 @@ class P0RuleEngine:
             processors_with_name: list[Node] = []
             for processor in processors:
                 raw_names = self._objects(graph, processor, PIPA.hasName)
-                names = self._nonempty_values(graph, processor, PIPA.hasName)
+                names = self._concrete_values(graph, processor, PIPA.hasName, "processor")
+                processor_codes |= self._vague_codes(graph, processor, PIPA.hasName, "processor")
                 evidence += self._assertion_evidence(graph, processor, PIPA.hasName)
                 if names:
                     processors_with_name.append(processor)
@@ -2768,7 +2835,10 @@ class P0RuleEngine:
                         matched_facts=matched_facts,
                         uncertain_facts=uncertain_facts,
                         evidence=self._dedupe_evidence(evidence),
-                        reason="수탁자명 또는 위탁업무 값이 UNKNOWN/모호하여 자동 확정할 수 없습니다.",
+                        reason="수탁자명 또는 위탁업무 값이 UNKNOWN/모호하여 자동 확정할 수 없습니다."
+                        + (" (수탁자 미확정)" if PROCESSOR_UNDETERMINED in processor_codes else "")
+                        + (" (수탁자 특정 불가)" if PROCESSOR_UNSPECIFIC in processor_codes else "")
+                        + (" (위탁업무 모호)" if task_vague else ""),
                         recommendation="수탁자명과 위탁업무 내용을 구체적으로 명시하세요.",
                     )
                 )

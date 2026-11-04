@@ -196,3 +196,46 @@ the activity. Confirmed non-consent bases make P3-R02/R03/R04 N/A.
 `legal_basis={"state":"absent"}` is not supported yet. F3-03 is made `absent`
 for `planned=false` only for a confirmed Consent basis; with an unknown basis
 F3-03 stays confirmed so the rules are YELLOW, not RED.
+
+## Concreteness checks (generic-only phrases, undetermined processor)
+
+Implemented in `app/rules/ambiguity.py` and applied only by the PoC3 Rules in
+the Rule Engine (`_concrete_values`; `_nonempty_values`, shared with PoC1/PoC2,
+is unchanged). Facts stay `confirmed`; no Fact ID, Rule ID, ontology term or
+status is added and the response schema is unchanged (the cause is in the
+per-instance `reason`).
+
+A phrase is *generic-only* (→ YELLOW through the existing "ambiguous" paths)
+when every token, after NFKC normalization, whitespace/punctuation trimming and
+removal of one trailing particle, belongs to the closed generic list of that
+field. One token outside the list makes the phrase specific. There is no
+substring search.
+
+| Field | Rule | Notes |
+|---|---|---|
+| purpose | P3-R02 | generic words such as 기타, 관련, 다양한, 서비스, 운영, 목적 |
+| item name | P3-R03 | 기타, 각종, 개인정보, 정보, 항목 ... (R05 is not affected) |
+| end condition | P3-R04 | 필요 시, 필요한 경우 ...; "처리 목적 달성 시" stays specific; a concrete `period` keeps R04 GREEN; R08 is not affected |
+| destruction method | P3-R08 | generic words; an evaluative modifier (적절한 ...) plus only generic words/verbs ("적절한 방법으로 파기") is generic; "해당 정보 삭제" stays specific |
+| rationale of REQUIRED items | P3-R05 | optional items are not checked |
+| entrusted task | P3-R11 | reason "(위탁업무 모호)" |
+| processor | P3-R11 | separate meaning, see below |
+
+Processor: a status marker (미정, 미확정, TBD, 협의 중, 선정 중, 검토 중,
+추후 결정/확정/지정, 결정 예정, 협의 예정; word-boundary aware, so a company
+name such as "미정산업" is not matched, "A사 (계약 협의 중)" is) means
+*processor undetermined* ("(수탁자 미확정)"). A generic noun only (수탁업체, 외부
+업체, 협력사) means *processor not identifiable* ("(수탁자 특정 불가)"). Both are
+different from a vague task text. Generic-only reasons read
+"(일반어만으로 구성된 모호한 설명)".
+
+Vocabulary management: the lists live only in `app/rules/ambiguity.py`; each
+added word needs one flagged and one unflagged example in
+`tests/test_poc3_ambiguity.py`.
+
+Limits: this is a limited static check of how specific a phrase is, not a
+verification of legal adequacy. It does not detect vague wording mixed with
+specific words ("이메일, 전화번호 등", "필요할 때"), and any extra token outside
+the list, even meaningless ("기타 개인정보 ABC", "관련 업무 123"), makes a phrase
+specific (unresolved). Sentinel strings such as "미기재"/"미설계" stay confirmed
+values; only `{"state":"absent"}` means absence.
