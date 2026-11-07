@@ -113,8 +113,6 @@ PoC 3 · 개발·설계정보 ──── 구조화 입력 → Fact 생성 ─�
 
 ## 🎬 시연 영상
 
-PoC 1·2·3의 시연 영상입니다.
-
 <!-- PIPA-DEMO-START -->
 <table>
   <tr>
@@ -129,11 +127,11 @@ PoC 1·2·3의 시연 영상입니다.
   </tr>
   <tr>
     <td align="center">
-      <strong>PoC 3 · Privacy-by-Design 시연 ①</strong>
+      <strong>PoC 3 · Privacy-by-Design ①</strong>
       <video src="https://github.com/user-attachments/assets/e32b6b07-48e8-4ce4-8c37-3aedd2f75029" controls width="100%"></video>
     </td>
     <td align="center">
-      <strong>PoC 3 · Privacy-by-Design 시연 ②</strong>
+      <strong>PoC 3 · Privacy-by-Design ②</strong>
       <video src="https://github.com/user-attachments/assets/0d5de600-3463-4fd2-9b34-27d5de154352" controls width="100%"></video>
     </td>
   </tr>
